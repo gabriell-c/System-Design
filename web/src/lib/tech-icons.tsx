@@ -76,6 +76,7 @@ import {
   MessageSquare,
   Monitor,
   Plug,
+  Rocket,
   Server,
   Shield,
   Workflow,
@@ -205,6 +206,23 @@ const TECH_ICONS: Record<string, IconType> = {
   "int-n8n": SiNodedotjs,
   "int-linear": Box as unknown as IconType,
   "int-github": SiNodedotjs,
+  // ── Deploy ──
+  "dep-docker": SiDocker,
+  "dep-compose": SiDocker,
+  "dep-k8s": SiDocker,
+  "dep-coolify": SiDocker,
+  "dep-vercel": TbBrandVercel as unknown as IconType,
+  "dep-netlify": Globe as unknown as IconType,
+  "dep-railway": SiDocker,
+  "dep-flyio": SiDocker,
+  "dep-render": SiDocker,
+  "dep-ghactions": SiNodedotjs,
+  "dep-gitlab-ci": SiNodedotjs,
+  "dep-terraform": SiNodedotjs,
+  "dep-pulumi": SiNodedotjs,
+  "dep-cloudfront": TbBrandAws as unknown as IconType,
+  "dep-nginx": SiDocker,
+  "dep-traefik": SiDocker,
 };
 
 const KIND_FALLBACK: Record<NodeKind, IconType> = {
@@ -216,6 +234,7 @@ const KIND_FALLBACK: Record<NodeKind, IconType> = {
   identity: Fingerprint,
   observability: Activity,
   integration: Plug,
+  deploy: Rocket,
 };
 
 export function resolveTechIcon(catalogId: string | undefined, kind: NodeKind): IconType {

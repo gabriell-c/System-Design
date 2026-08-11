@@ -41,6 +41,7 @@ def _ids_by_kind(nodes: list[dict]) -> dict[str, list[str]]:
         "identity": [],
         "observability": [],
         "integration": [],
+        "deploy": [],
     }
     for node in nodes:
         data = _node_data(node)
@@ -78,6 +79,19 @@ def estimate_monthly_cost(nodes: list[dict]) -> float:
         cost += COST_USD_MONTH["Hostinger VPS"]
     if any("digital" in t for t in techs):
         cost += COST_USD_MONTH["DigitalOcean droplet 2GB"]
+    # Deploy platforms
+    if any("vercel" in t for t in techs):
+        cost += COST_USD_MONTH["Vercel:Pro"]
+    if any("netlify" in t for t in techs):
+        cost += COST_USD_MONTH["Netlify:Pro"]
+    if any("railway" in t for t in techs):
+        cost += COST_USD_MONTH["Railway:Starter"]
+    if any("fly.io" in t or "flyio" in t for t in techs):
+        cost += COST_USD_MONTH["Fly.io:Scale"]
+    if any("render" in t for t in techs):
+        cost += COST_USD_MONTH["Render:Starter"]
+    if any("kubernetes" in t or "k8s" in t for t in techs):
+        cost += COST_USD_MONTH["Kubernetes:managed"]
     return round(cost or 12.0, 2)
 
 

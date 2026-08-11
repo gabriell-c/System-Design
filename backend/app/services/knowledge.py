@@ -24,6 +24,18 @@ COST_USD_MONTH = {
     "ElastiCache:t3.micro": 12.0,
     "Hostinger VPS": 7.0,
     "DigitalOcean droplet 2GB": 12.0,
+    # Deploy platforms (estimated monthly cost for small projects)
+    "Vercel:Hobby": 0.0,
+    "Vercel:Pro": 20.0,
+    "Netlify:Starter": 0.0,
+    "Netlify:Pro": 19.0,
+    "Railway:Starter": 5.0,
+    "Fly.io:Scale": 5.0,
+    "Render:Starter": 7.0,
+    "Coolify:self-hosted": 0.0,
+    "Kubernetes:managed": 73.0,
+    "GitHub Actions:free": 0.0,
+    "Terraform:free": 0.0,
 }
 
 POSTGRES_DEFAULT_MAX_CONN = 100
@@ -57,6 +69,23 @@ COMPLEXITY = {
     "CloudFront": 2,
     "Load Balancer": 3,
     "ElastiCache": 3,
+    # Deploy tools
+    "Docker": 2,
+    "Docker Compose": 2,
+    "Kubernetes": 5,
+    "Coolify": 2,
+    "Vercel": 2,
+    "Netlify": 2,
+    "Railway": 1,
+    "Fly.io": 2,
+    "Render": 2,
+    "GitHub Actions": 2,
+    "GitLab CI": 3,
+    "Terraform": 4,
+    "Pulumi": 3,
+    "CloudFront CDN": 2,
+    "Nginx": 3,
+    "Traefik": 3,
 }
 
 KNOWLEDGE_PROMPT = """

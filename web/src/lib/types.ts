@@ -6,7 +6,8 @@ export type NodeKind =
   | "messaging"
   | "identity"
   | "observability"
-  | "integration";
+  | "integration"
+  | "deploy";
 
 export const ALL_NODE_KINDS: NodeKind[] = [
   "frontend",
@@ -17,6 +18,7 @@ export const ALL_NODE_KINDS: NodeKind[] = [
   "identity",
   "observability",
   "integration",
+  "deploy",
 ];
 
 export type CanvasNodeKind = NodeKind | "block";
