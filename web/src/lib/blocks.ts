@@ -31,6 +31,7 @@ export function blockDefaults(domain: NodeKind): { label: string; description: s
     identity: { label: "Bloco Identidade", description: "Authn/z e IdP" },
     observability: { label: "Bloco Observabilidade", description: "Logs, métricas, tracing e erros" },
     integration: { label: "Bloco Integrações", description: "Pagamentos, e-mail, WhatsApp, webhooks" },
+    deploy: { label: "Bloco Deploy", description: "CI/CD, containers, hosting e IaC" },
   };
   return map[domain];
 }
@@ -140,6 +141,7 @@ const DOMAIN_LABEL: Record<NodeKind, string> = {
   identity: "Identidade",
   observability: "Observabilidade",
   integration: "Integrações",
+  deploy: "Deploy",
 };
 
 /** Card só pode entrar em bloco do mesmo domínio. */
