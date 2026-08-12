@@ -11,7 +11,11 @@ import {
   Play,
   RefreshCw,
   Route,
+  ShieldAlert,
   Zap,
+  TrendingUp,
+  Clock,
+  Flame,
 } from "lucide-react";
 import CustomSelect from "@/components/ui/Select";
 import { useSimulation } from "@/hooks/useSimulation";
@@ -21,9 +25,27 @@ function pct(n: number): string {
 }
 
 function severityClass(sev: string): string {
-  if (sev === "critical") return "text-rose-300";
-  if (sev === "warning") return "text-amber-300";
+  if (sev === "critical") return "text-rose-400";
+  if (sev === "warning") return "text-amber-400";
   return "text-slate-400";
+}
+
+function modeIcon(mode: string) {
+  if (mode === "stress") return <Flame size={14} />;
+  if (mode === "soak") return <Clock size={14} />;
+  return <Gauge size={14} />;
+}
+
+function modeLabel(mode: string): string {
+  if (mode === "stress") return "Stress Test";
+  if (mode === "soak") return "Soak Test";
+  return "Load Test";
+}
+
+function modeDesc(mode: string): string {
+  if (mode === "stress") return "Empurra até quebrar — acha o teto real";
+  if (mode === "soak") return "Carga sustentada — testa estabilidade";
+  return "Carga normal — testa capacidade sustentável";
 }
 
 export default function SimulationPanel() {
@@ -35,6 +57,8 @@ export default function SimulationPanel() {
     setSeed,
     realism,
     setRealism,
+    testMode,
+    setTestMode,
     loadingPresets,
     running,
     result,
@@ -63,10 +87,35 @@ export default function SimulationPanel() {
           <Zap size={16} />
         </span>
         <div>
-          <p className="text-sm font-semibold text-slate-100">Simulação de uso</p>
+          <p className="text-sm font-semibold text-slate-100">Simulação de carga</p>
           <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-            Testa se a arquitetura aguenta carga, quantos usuários chegam ao fim, e o que quebra sob pressão.
+            Testa se a arquitetura aguenta a carga, onde estão os gargalos, e o que quebra sob pressão.
           </p>
+        </div>
+      </div>
+
+      {/* Test Mode Selector */}
+      <div>
+        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Modo de teste</label>
+        <div className="mt-1 grid grid-cols-3 gap-2">
+          {(["load", "stress", "soak"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setTestMode(mode)}
+              className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                testMode === mode
+                  ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300"
+                  : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:text-slate-300"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1.5">
+                {modeIcon(mode)}
+                {modeLabel(mode)}
+              </div>
+              <div className="mt-1 text-[10px] opacity-70">{modeDesc(mode)}</div>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -84,9 +133,9 @@ export default function SimulationPanel() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="sim-seed">
-            Variação
+            Semente
           </label>
-          <p className="mt-0.5 text-[10px] text-slate-600">Número diferente = resultado diferente</p>
+          <p className="mt-0.5 text-[10px] text-slate-600">Mesma semente = mesmo resultado</p>
           <input
             id="sim-seed"
             type="number"
@@ -98,9 +147,9 @@ export default function SimulationPanel() {
         </div>
         <div>
           <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="sim-realism">
-            Ruído {(realism * 100).toFixed(0)}%
+            Realismo {(realism * 100).toFixed(0)}%
           </label>
-          <p className="mt-0.5 text-[10px] text-slate-600">Quanto de imprevisibilidade na simulação</p>
+          <p className="mt-0.5 text-[10px] text-slate-600">Quanto de imprevisibilidade</p>
           <input
             id="sim-realism"
             type="range"
@@ -156,9 +205,11 @@ export default function SimulationPanel() {
       )}
 
       {result && (
-        <div className="space-y-3 border-t border-white/8 pt-3">
+        <div className="space-y-4 border-t border-white/8 pt-4">
+          {/* Summary */}
           <p className="text-xs leading-relaxed text-slate-300">{result.summary}</p>
 
+          {/* Key Metrics */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Metric
               icon={<Gauge size={12} />}
@@ -173,8 +224,16 @@ export default function SimulationPanel() {
             />
             {result.load && (
               <>
-                <Metric label="Pico RPS" value={`${result.load.peak_rps} RPS`} ok={result.load.ok} />
-                <Metric label="Erros no pico" value={pct(result.load.error_rate_peak)} ok={result.load.error_rate_peak < 0.05} />
+                <Metric
+                  label="Pico RPS"
+                  value={`${result.load.peak_rps} RPS`}
+                  ok={result.load.ok}
+                />
+                <Metric
+                  label="Erros no pico"
+                  value={pct(result.load.error_rate_peak)}
+                  ok={result.load.error_rate_peak < 0.05}
+                />
               </>
             )}
             {result.journey && (
@@ -193,8 +252,85 @@ export default function SimulationPanel() {
                 ok={result.events.ok}
               />
             )}
+            {result.engineering_audit && (
+              <Metric
+                icon={<TrendingUp size={12} />}
+                label="Margem"
+                value={`${result.engineering_audit.headroom_pct}%`}
+                ok={result.engineering_audit.headroom_pct > 20}
+              />
+            )}
           </div>
 
+          {/* Engineering Audit - Bottleneck Analysis */}
+          {result.engineering_audit && (
+            <div className="rounded-lg border border-white/8 bg-black/20 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <ShieldAlert size={12} />
+                Análise de Engenharia
+              </p>
+
+              {/* Bottleneck */}
+              {result.engineering_audit.bottleneck_component && (
+                <div className="mb-2 rounded-md border border-rose-500/20 bg-rose-950/20 px-2.5 py-2">
+                  <p className="text-[11px] text-rose-300">
+                    <span className="font-medium">Gargalo:</span>{" "}
+                    {result.engineering_audit.bottleneck_tech} (~{result.engineering_audit.bottleneck_rps} RPS)
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Sistema suporta ~{result.engineering_audit.system_capacity_rps} RPS · Margem atual: {result.engineering_audit.headroom_pct}%
+                  </p>
+                </div>
+              )}
+
+              {/* Component Capacities */}
+              {result.engineering_audit.component_capacities.length > 0 && (
+                <div className="mb-2">
+                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Componentes</p>
+                  <div className="space-y-1">
+                    {result.engineering_audit.component_capacities.map((comp, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-md border border-white/5 bg-black/20 px-2 py-1.5">
+                        <span className="text-[10px] text-slate-300">{comp.component}</span>
+                        <span className="text-[10px] font-mono text-slate-400">{comp.tech}</span>
+                        <span className="text-[10px] font-mono text-slate-500">{comp.capacity_rps} RPS</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Failure Scenarios */}
+              {result.engineering_audit.failure_scenarios.length > 0 && (
+                <div className="mb-2">
+                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Riscos identificados</p>
+                  <ul className="space-y-1">
+                    {result.engineering_audit.failure_scenarios.map((s, i) => (
+                      <li key={i} className="text-[10px] leading-snug text-amber-300/90">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {result.engineering_audit.recommendations.length > 0 && (
+                <div>
+                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Recomendações</p>
+                  <ul className="space-y-1">
+                    {result.engineering_audit.recommendations.map((r, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-[10px] text-emerald-300/90">
+                        <span className="mt-0.5 text-emerald-400">→</span>
+                        <span>{r}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Findings */}
           {result.findings.length > 0 && (
             <ul className="space-y-1.5">
               {result.findings.map((f) => (
@@ -208,6 +344,7 @@ export default function SimulationPanel() {
             </ul>
           )}
 
+          {/* Bottlenecks (legacy) */}
           {result.load && result.load.bottlenecks.length > 0 && (
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Gargalos</p>
@@ -222,9 +359,10 @@ export default function SimulationPanel() {
             </div>
           )}
 
+          {/* Journey */}
           {result.journey && (
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Jornada</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Jornada do usuário</p>
               <ul className="space-y-1">
                 {result.journey.steps.map((s) => (
                   <li key={s.step_id} className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
@@ -238,6 +376,7 @@ export default function SimulationPanel() {
             </div>
           )}
 
+          {/* Events */}
           {result.events && result.events.events.some((e) => e.triggered) && (
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Incidentes</p>
@@ -257,11 +396,12 @@ export default function SimulationPanel() {
             </div>
           )}
 
+          {/* Validations */}
           {result.validations.length > 0 && (
             <div>
               <p className="mb-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 <CheckCircle2 size={11} />
-                Validação
+                Validações
               </p>
               <ul className="space-y-1">
                 {result.validations.map((v) => (
@@ -276,6 +416,7 @@ export default function SimulationPanel() {
             </div>
           )}
 
+          {/* Timeline */}
           {result.load && result.load.timeline.length > 0 && (
             <MiniTimeline points={result.load.timeline} capacity={result.estimated_capacity_rps} />
           )}
@@ -334,4 +475,3 @@ function MiniTimeline({
     </div>
   );
 }
-

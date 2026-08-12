@@ -6,10 +6,10 @@ const DOMAIN_LABELS: Record<NodeKind, string> = {
   backend: "Backend",
   database: "Dados",
   cloud: "Infra",
-  messaging: "Mensageria",
   identity: "Identidade",
   observability: "Observabilidade",
   integration: "Integrações",
+  deploy: "Deploy",
 };
 
 function isBlock(data: CanvasNodeData): boolean {

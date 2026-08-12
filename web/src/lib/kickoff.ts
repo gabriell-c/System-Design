@@ -99,14 +99,14 @@ export function buildKickoffChecklist(
 
   const needsAsync = highScale || /fila|async|evento|webhook|pedido/i.test(ctx);
   items.push({
-    id: "messaging",
-    label: "Mensageria / async",
-    detail: kinds.has("messaging")
-      ? "Há fila/stream."
+    id: "integration-async",
+    label: "Filas / async",
+    detail: kinds.has("integration")
+      ? "Há componente de integração."
       : needsAsync
         ? "Escala/contexto sugerem processamento assíncrono."
         : "Opcional no MVP — ok se tudo for request/response.",
-    status: kinds.has("messaging") ? "ok" : needsAsync ? "warn" : "ok",
+    status: kinds.has("integration") ? "ok" : needsAsync ? "warn" : "ok",
     severity: "info",
   });
 

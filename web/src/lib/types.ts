@@ -3,7 +3,6 @@ export type NodeKind =
   | "backend"
   | "database"
   | "cloud"
-  | "messaging"
   | "identity"
   | "observability"
   | "integration"
@@ -14,7 +13,6 @@ export const ALL_NODE_KINDS: NodeKind[] = [
   "backend",
   "database",
   "cloud",
-  "messaging",
   "identity",
   "observability",
   "integration",

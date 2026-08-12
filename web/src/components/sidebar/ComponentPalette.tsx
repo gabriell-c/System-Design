@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layout, Plug, Plus, Rocket, Search, Server, Workflow } from "lucide-react";
+import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layout, Plug, Plus, Rocket, Search, Server } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -17,7 +17,6 @@ const KIND_ICONS = {
   backend: Server,
   database: Database,
   cloud: Cloud,
-  messaging: Workflow,
   identity: Fingerprint,
   observability: Activity,
   integration: Plug,

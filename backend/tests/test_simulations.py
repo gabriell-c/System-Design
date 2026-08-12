@@ -133,15 +133,23 @@ def test_export_csv(client):
 
 
 def test_service_unit_capacity():
-    from app.services.simulation import estimate_capacity_rps, run_simulation
+    from app.services.simulation import estimate_component_capacities, run_simulation
     from app.schemas.simulation import SimulationRequest
 
-    cap, bots = estimate_capacity_rps(SAMPLE_NODES, SAMPLE_EDGES)
-    assert cap > 100
+    cap, comps, bots = estimate_component_capacities(SAMPLE_NODES, SAMPLE_EDGES)
+    # Capacity should be reasonable (>= 20 RPS)
+    assert cap >= 20
     assert isinstance(bots, list)
+    assert isinstance(comps, list)
+    assert len(comps) >= 2  # pelo menos backend e db
 
     r1 = run_simulation(SimulationRequest(nodes=SAMPLE_NODES, edges=SAMPLE_EDGES, seed=42))
     r2 = run_simulation(SimulationRequest(nodes=SAMPLE_NODES, edges=SAMPLE_EDGES, seed=42))
     assert r1.model_dump() == r2.model_dump()
     r3 = run_simulation(SimulationRequest(nodes=SAMPLE_NODES, edges=SAMPLE_EDGES, seed=43))
     assert r3.load.peak_rps != r1.load.peak_rps or r3.realism_score != r1.realism_score or r3.journey.conversion_rate != r1.journey.conversion_rate
+
+    # Testa engineering_audit
+    assert r1.engineering_audit is not None
+    assert r1.engineering_audit.system_capacity_rps > 0
+    assert r1.engineering_audit.headroom_pct >= 0

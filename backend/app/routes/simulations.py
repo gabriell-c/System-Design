@@ -21,6 +21,7 @@ class PresetRunRequest(BaseModel):
     context: str = ""
     seed: int = Field(default=42, ge=0)
     realism_level: float = Field(default=0.65, ge=0.0, le=1.0)
+    test_mode: str = "load"
     output_format: str = "json"
 
 
@@ -64,6 +65,7 @@ def run_preset(payload: PresetRunRequest) -> SimulationResult | Response:
             realism_level=payload.realism_level,
             context=payload.context,
             output_format=payload.output_format,
+            test_mode=payload.test_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

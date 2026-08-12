@@ -27,10 +27,9 @@ export function blockDefaults(domain: NodeKind): { label: string; description: s
     backend: { label: "Bloco Backend", description: "APIs, serviços e regras de negócio" },
     database: { label: "Bloco Dados", description: "Bancos, cache e storage" },
     cloud: { label: "Bloco Infra", description: "Compute, data, edge e plataforma" },
-    messaging: { label: "Bloco Mensageria", description: "Filas, streams e async" },
     identity: { label: "Bloco Identidade", description: "Authn/z e IdP" },
     observability: { label: "Bloco Observabilidade", description: "Logs, métricas, tracing e erros" },
-    integration: { label: "Bloco Integrações", description: "Pagamentos, e-mail, WhatsApp, webhooks" },
+    integration: { label: "Bloco Integrações", description: "Filas, pagamentos, e-mail, WhatsApp e webhooks" },
     deploy: { label: "Bloco Deploy", description: "CI/CD, containers, hosting e IaC" },
   };
   return map[domain];
@@ -137,7 +136,6 @@ const DOMAIN_LABEL: Record<NodeKind, string> = {
   backend: "Backend",
   database: "Dados",
   cloud: "Infra",
-  messaging: "Mensageria",
   identity: "Identidade",
   observability: "Observabilidade",
   integration: "Integrações",

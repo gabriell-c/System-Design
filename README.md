@@ -81,11 +81,11 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 - **Undo/redo** com painel de histórico (`HistoryPanel`).
 - **Auto-save** configurável por usuário (desligado, 5, 15, 30 ou 60 minutos).
 - **Modo tela cheia** para foco total no diagrama.
-- Templates prontos para começar rápido (`templates.ts`).
+- Templates prontos para começar rápido (`templates.ts`): MVP barato, SaaS B2B, Marketplace, API interna, Landing page, App mobile, Microserviços.
 
 ### 🗂️ Paleta de componentes e catálogo
 
-- **Paleta por domínio**: Frontend, Backend, Dados, Infra, Mensageria, Identidade, Observabilidade e Integrações.
+- **Paleta por domínio**: Frontend, Backend, Dados, Infra, Identidade, Observabilidade, Integrações (inclui filas/messaging) e Deploy.
 - **Catálogo com 100+ tecnologias** (`catalog.ts`), cada uma com heurísticas próprias (RPS, custo, cache, limites práticos).
 - Busca e filtros por categoria para montar a arquitetura em segundos.
 
@@ -100,6 +100,12 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 ### ⚙️ Motor de simulação
 
 - Simulação **determinística** (seed reproduzível) de **carga**, **jornada de usuário** e **eventos de falha** sobre o grafo desenhado — sem disparar HTTP real.
+- **Três modos de teste**:
+  - **Load Test**: carga normal — testa capacidade sustentável
+  - **Stress Test**: aumenta progressivamente até quebrar — encontra o teto real
+  - **Soak Test**: carga sustentada prolongada — testa estabilidade
+- **Modelo de capacidade por componente**: cada tecnologia tem RPS realista (FastAPI ~2000 RPS, PostgreSQL ~50 RPS, Redis ~8000 RPS).
+- **Análise de Engenharia**: identifica gargalos, mostra capacidades de cada componente, cenários de falha e recomendações.
 - **Presets prontos**: `black-friday-spike`, `steady-saas`, `incident-cascade`, `gradual-ramp`.
 - Relatórios de gargalos, saturação, eventos em cascata e validação de regras.
 - Formatos de saída: `json`, `csv` e `prometheus`.
@@ -460,6 +466,7 @@ A suíte cobre **integração HTTP**, **segurança**, **validação de schemas**
 | `test_property_fuzz.py` | Testes de propriedade (fuzz) |
 | `test_graphs_api.py` | CRUD de grafos, versões, restore, review |
 | `test_simulations.py` | Motor de simulação e presets |
+|| `test_simulation_realistic.py` | Simulação realista: capacidade por componente, modos de teste (load/stress/soak), análise de engenharia |
 | `test_ai_settings.py` | Configurações de IA e teste de conectividade |
 | `test_heuristic.py` / `test_e2e_analysis.py` | Heurística e análise ponta a ponta |
 | `test_nfr_kickoff.py` | NFRs e painel de kickoff |

@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 LoadType = Literal["spike", "constant", "gradual", "periodic"]
+TestMode = Literal["load", "stress", "soak"]
 OutputFormat = Literal["json", "csv", "prometheus"]
 JourneyStepKind = Literal[
     "landing",
@@ -66,12 +67,36 @@ class SimulationRequest(BaseModel):
     edges: list[dict] = Field(default_factory=list)
     seed: int = Field(default=42, ge=0)
     realism_level: float = Field(default=0.65, ge=0.0, le=1.0)
+    test_mode: TestMode = "load"
     load: LoadScenario | None = None
     journey: UserJourney | None = None
     events: list[EventPattern] = Field(default_factory=list)
     validation_rules: list[ValidationRule] = Field(default_factory=list)
     output_format: OutputFormat = "json"
     include_timeline: bool = True
+
+
+class ComponentCapacity(BaseModel):
+    """Capacidade individual de um componente na arquitetura."""
+    component: str
+    tech: str
+    kind: str
+    capacity_rps: float
+    max_connections: int
+    utilization_pct: float
+    is_bottleneck: bool = False
+
+
+class EngineeringAudit(BaseModel):
+    """Análise de engenharia detalhada dos gargalos e pontos de falha."""
+    bottleneck_component: str | None = None
+    bottleneck_tech: str | None = None
+    bottleneck_rps: float = 0.0
+    system_capacity_rps: float = 0.0
+    headroom_pct: float = 0.0
+    component_capacities: list[ComponentCapacity] = Field(default_factory=list)
+    failure_scenarios: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
 
 
 class Bottleneck(BaseModel):
@@ -153,6 +178,7 @@ class SimulationResult(BaseModel):
     realism_score: float
     reproducible: bool = True
     estimated_capacity_rps: float
+    test_mode: TestMode = "load"
     summary: str
     load: LoadReport | None = None
     journey: JourneyReport | None = None
@@ -160,6 +186,7 @@ class SimulationResult(BaseModel):
     validations: list[ValidationResult] = Field(default_factory=list)
     validations_passed: bool = True
     findings: list[str] = Field(default_factory=list)
+    engineering_audit: EngineeringAudit | None = None
     export_body: str | None = None
     export_content_type: str | None = None
     presets_used: list[str] = Field(default_factory=list)

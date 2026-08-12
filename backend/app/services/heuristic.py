@@ -37,7 +37,6 @@ def _ids_by_kind(nodes: list[dict]) -> dict[str, list[str]]:
         "backend": [],
         "database": [],
         "cloud": [],
-        "messaging": [],
         "identity": [],
         "observability": [],
         "integration": [],
@@ -273,11 +272,12 @@ def analyze_graph(nodes: list[dict], edges: list[dict]) -> AnalysisResult:
             )
         )
 
-    if grouped["integration"] and not grouped["messaging"]:
+    has_queue = _has_service(nodes, "SQS", "RabbitMQ", "Kafka", "NATS", "Pulsar", "Redis Streams")
+    if grouped["integration"] and not has_queue:
         suggestions.append("Integrações (pagamento/webhook) costumam combinar bem com fila para retries idempotentes.")
 
-    if not grouped["messaging"]:
-        suggestions.append("Se houver picos ou jobs longos, desenhe mensageria (SQS/Rabbit/Kafka) cedo.")
+    if not has_queue:
+        suggestions.append("Se houver picos ou jobs longos, considere SQS/Rabbit/Kafka para processamento assíncrono.")
 
     small = GrowthScenario(
         ok=True,
@@ -329,8 +329,8 @@ def analyze_graph(nodes: list[dict], edges: list[dict]) -> AnalysisResult:
         f"Arquitetura: {score}/10 — {counts.get('frontend', 0)} FE, "
         f"{counts.get('backend', 0)} BE, {counts.get('database', 0)} dados, "
         f"{counts.get('cloud', 0)} infra, {counts.get('identity', 0)} id, "
-        f"{counts.get('messaging', 0)} msg, {counts.get('observability', 0)} obs, "
-        f"{counts.get('integration', 0)} int. Custo ~US$ {cost}/mês (estimativa). "
+        f"{counts.get('observability', 0)} obs, "
+        f"{counts.get('integration', 0)} int, {counts.get('deploy', 0)} deploy. Custo ~US$ {cost}/mês (estimativa). "
         f"{'Stack enxuta e coerente.' if score >= 8 else 'Há over/under-engineering a revisar.'}"
     )
     findings.append(

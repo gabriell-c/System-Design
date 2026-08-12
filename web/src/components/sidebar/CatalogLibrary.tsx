@@ -15,7 +15,7 @@ import { CATEGORY_LABELS, groupCatalog, useCatalogPrefs } from "@/hooks/useCatal
 
 const KIND_TAB_ICONS: Record<string, typeof Layout> = {
   all: Boxes, frontend: Smartphone, backend: Server, database: Database,
-  cloud: Cloud, messaging: Workflow, identity: Shield, observability: Monitor, integration: Plug,
+  cloud: Cloud, identity: Shield, observability: Monitor, integration: Plug,
 };
 
 const KIND_TABS: { value: NodeKind | "all"; label: string }[] = [

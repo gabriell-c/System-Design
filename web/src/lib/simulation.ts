@@ -1,4 +1,5 @@
 export type LoadType = "spike" | "constant" | "gradual" | "periodic";
+export type TestMode = "load" | "stress" | "soak";
 export type OutputFormat = "json" | "csv" | "prometheus";
 
 export type LoadScenario = {
@@ -123,6 +124,7 @@ export type SimulationResult = {
   realism_score: number;
   reproducible: boolean;
   estimated_capacity_rps: number;
+  test_mode: TestMode;
   summary: string;
   load: LoadReport | null;
   journey: JourneyReport | null;
@@ -130,6 +132,23 @@ export type SimulationResult = {
   validations: ValidationResult[];
   validations_passed: boolean;
   findings: string[];
+  engineering_audit?: {
+    bottleneck_component: string | null;
+    bottleneck_tech: string | null;
+    bottleneck_rps: number;
+    system_capacity_rps: number;
+    headroom_pct: number;
+    component_capacities: {
+      component: string;
+      tech: string;
+      kind: string;
+      capacity_rps: number;
+      max_connections: number;
+      utilization_pct: number;
+    }[];
+    failure_scenarios: string[];
+    recommendations: string[];
+  } | null;
   export_body: string | null;
   export_content_type: string | null;
   presets_used: string[];
@@ -142,6 +161,7 @@ export type SimulationRunPayload = {
   edges: unknown[];
   seed: number;
   realism_level: number;
+  test_mode?: TestMode;
   load?: LoadScenario | null;
   journey?: UserJourney | null;
   events?: EventPattern[];
@@ -156,5 +176,6 @@ export type PresetRunPayload = {
   context?: string;
   seed: number;
   realism_level: number;
+  test_mode?: TestMode;
   output_format?: OutputFormat;
 };

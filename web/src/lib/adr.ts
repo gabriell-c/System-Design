@@ -37,7 +37,7 @@ export function buildAdrs(
     seq += 1;
   };
 
-  for (const kind of ["backend", "frontend", "database", "identity", "messaging", "observability", "cloud", "integration"] as const) {
+  for (const kind of ["backend", "frontend", "database", "identity", "observability", "cloud", "integration"] as const) {
     const list = byKind.get(kind);
     if (!list?.length) continue;
     const labels = list.map((n) => (isArchData(n.data) ? n.data.label : n.id)).join(", ");

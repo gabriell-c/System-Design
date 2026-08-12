@@ -7,6 +7,7 @@ import type { SimulationPreset, SimulationResult } from "@/lib/simulation";
 
 const SEED_KEY = "archia-sim-seed";
 const REALISM_KEY = "archia-sim-realism";
+const MODE_KEY = "archia-sim-mode";
 
 function readNumber(key: string, fallback: number): number {
   try {
@@ -29,6 +30,7 @@ export function useSimulation() {
   const [presetId, setPresetId] = useState<string>("gradual-ramp");
   const [seed, setSeedState] = useState(42);
   const [realism, setRealismState] = useState(0.65);
+  const [testMode, setTestModeState] = useState<"load" | "stress" | "soak">("load");
   const [loadingPresets, setLoadingPresets] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
@@ -37,6 +39,12 @@ export function useSimulation() {
   useEffect(() => {
     setSeedState(readNumber(SEED_KEY, 42));
     setRealismState(readNumber(REALISM_KEY, 0.65));
+    try {
+      const storedMode = localStorage.getItem(MODE_KEY);
+      if (storedMode === "stress" || storedMode === "soak") {
+        setTestModeState(storedMode);
+      }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
@@ -82,6 +90,15 @@ export function useSimulation() {
     }
   }, []);
 
+  const setTestMode = useCallback((mode: "load" | "stress" | "soak") => {
+    setTestModeState(mode);
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const runPreset = useCallback(async () => {
     if (nodes.length === 0) {
       setError("Adicione nodes no canvas antes de simular");
@@ -97,12 +114,13 @@ export function useSimulation() {
         context,
         seed,
         realism_level: realism,
+        test_mode: testMode,
         output_format: "json",
       });
       setResult(data);
       pushUiNotice({
         type: "success",
-        text: `Simulação ok · capacidade ~${data.estimated_capacity_rps} RPS · realismo ${(data.realism_score * 100).toFixed(0)}%.`,
+        text: `Simulação ${modeLabel(testMode)} ok · capacidade ~${data.estimated_capacity_rps} RPS · realismo ${(data.realism_score * 100).toFixed(0)}%.`,
       });
       return data;
     } catch (err) {
@@ -113,7 +131,7 @@ export function useSimulation() {
     } finally {
       setRunning(false);
     }
-  }, [context, edges, nodes, presetId, pushUiNotice, realism, seed]);
+  }, [context, edges, nodes, presetId, pushUiNotice, realism, seed, testMode]);
 
   const rerunSameSeed = useCallback(async () => {
     return runPreset();
@@ -137,12 +155,13 @@ export function useSimulation() {
         context,
         seed: next,
         realism_level: realism,
+        test_mode: testMode,
         output_format: "json",
       });
       setResult(data);
       pushUiNotice({
         type: "success",
-        text: `Nova semente ${next} · simulação concluída.`,
+        text: `Nova semente ${next} · simulação ${modeLabel(testMode)} concluída.`,
       });
       return data;
     } catch (err) {
@@ -153,7 +172,7 @@ export function useSimulation() {
     } finally {
       setRunning(false);
     }
-  }, [context, edges, nodes, presetId, pushUiNotice, realism, setSeed]);
+  }, [context, edges, nodes, presetId, pushUiNotice, realism, setSeed, testMode]);
 
   return {
     presets,
@@ -163,6 +182,8 @@ export function useSimulation() {
     setSeed,
     realism,
     setRealism,
+    testMode,
+    setTestMode,
     loadingPresets,
     running,
     result,
@@ -172,4 +193,10 @@ export function useSimulation() {
     newSeedAndRun,
     canRun: nodes.length > 0,
   };
+}
+
+function modeLabel(mode: string): string {
+  if (mode === "stress") return "Stress";
+  if (mode === "soak") return "Soak";
+  return "Load";
 }

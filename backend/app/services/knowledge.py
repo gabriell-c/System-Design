@@ -41,6 +41,76 @@ COST_USD_MONTH = {
 POSTGRES_DEFAULT_MAX_CONN = 100
 POSTGRES_PRACTICAL_ON_T3_MEDIUM = 50
 
+# Capacidade realista por componente (RPS sustentado antes de degradar).
+# Estes são teto práticos de produção (não pico teórico) para instância pequena/média.
+# Fonte: benchmarks públicos (TechEmpower, docs AWS, PostgreSQL wiki) — ordem de grandeza.
+COMPONENT_CAPACITY_RPS = {
+    # Backends (RPS/instância, antes de DB/IO ser gargalo)
+    "Flask": {"rps_per_instance": 400, "max_connections": 200, "kind": "backend"},
+    "Django": {"rps_per_instance": 300, "max_connections": 200, "kind": "backend"},
+    "FastAPI": {"rps_per_instance": 2000, "max_connections": 500, "kind": "backend"},
+    "Express": {"rps_per_instance": 5000, "max_connections": 1000, "kind": "backend"},
+    "NestJS": {"rps_per_instance": 3000, "max_connections": 800, "kind": "backend"},
+    "Spring Boot": {"rps_per_instance": 8000, "max_connections": 1000, "kind": "backend"},
+    "Laravel": {"rps_per_instance": 500, "max_connections": 200, "kind": "backend"},
+    # Bancos (RPS de leitura sustentado em instância pequena)
+    "PostgreSQL": {"rps_per_instance": 150, "max_connections": 100, "kind": "database"},
+    "MySQL": {"rps_per_instance": 150, "max_connections": 100, "kind": "database"},
+    "MariaDB": {"rps_per_instance": 150, "max_connections": 100, "kind": "database"},
+    "MongoDB": {"rps_per_instance": 500, "max_connections": 200, "kind": "database"},
+    "DynamoDB": {"rps_per_instance": 5000, "max_connections": 99999, "kind": "database"},
+    "Redis": {"rps_per_instance": 8000, "max_connections": 10000, "kind": "cache"},
+    "ElastiCache": {"rps_per_instance": 8000, "max_connections": 10000, "kind": "cache"},
+    # Cloud/Infra
+    "Load Balancer": {"rps_per_instance": 50000, "max_connections": 99999, "kind": "cloud"},
+    "ALB": {"rps_per_instance": 50000, "max_connections": 99999, "kind": "cloud"},
+    "CloudFront": {"rps_per_instance": 100000, "max_connections": 99999, "kind": "cloud"},
+    "Lambda": {"rps_per_instance": 1000, "max_connections": 1000, "kind": "cloud"},
+    "ECS": {"rps_per_instance": 99999, "max_connections": 99999, "kind": "cloud"},
+    "S3": {"rps_per_instance": 5500, "max_connections": 99999, "kind": "cloud"},
+    "RDS": {"rps_per_instance": 150, "max_connections": 100, "kind": "cloud"},
+}
+
+# Multiplicadores de capacidade quando há padrões arquiteturais saudáveis
+ARCHITECTURE_MULTIPLIERS = {
+    "load_balancer": 2.5,     # distribui entre N instâncias
+    "cache": 1.8,             # reduz hits no DB
+    "cdn": 1.4,               # descarga de assets/SSR
+    "read_replica": 2.0,      # replicas de leitura no DB
+    "queue": 1.6,             # suaviza picos (descasca do caminho quente)
+}
+
+# ============================================================
+# Capacidade por componente — modelo de capacidade realista
+# Cada componente tem: rps_base (RPS sustentado), max_connections,
+# cpu_cores (estimado), memory_gb (estimado), e limit_type.
+# ============================================================
+
+# Padrões de conexão entre componentes (quantas conexões o upstream precisa do downstream)
+CONNECTION_REQUIREMENTS = {
+    # (backend_kind) -> { "database": rps_per_conn, "cache": rps_per_conn, "queue": rps_per_conn }
+    "FastAPI": {"database": 50, "cache": 200, "queue": 100},
+    "Express": {"database": 80, "cache": 300, "queue": 150},
+    "NestJS": {"database": 60, "cache": 250, "queue": 120},
+    "Flask": {"database": 30, "cache": 150, "queue": 80},
+    "Django": {"database": 40, "cache": 180, "queue": 90},
+}
+
+# Multiplicadores de efeito cascata quando um componente satura
+CASCADE_EFFECTS = {
+    "database_saturation": {"api_latency_multiplier": 2.5, "error_rate_base": 0.15},
+    "cache_miss_storm": {"database_load_multiplier": 3.0, "api_latency_multiplier": 1.5},
+    "queue_overflow": {"api_error_rate": 0.1, "throughput_drop": 0.4},
+    "connection_exhaustion": {"success_rate_drop": 0.3, "latency_spike_ms": 5000},
+}
+
+# Limiares de degradação realistas (fração da capacidade nominal)
+DEGRADATION = {
+    "knee": 0.70,       # 70%: joelho da curva — latência começa a subir
+    "saturation": 0.85,  # 85%: saturado — erros começam
+    "critical": 1.0,     # 100%: colapso — erros altos + latência explode
+}
+
 COMPLEXITY = {
     "React": 2,
     "Next.js": 3,
