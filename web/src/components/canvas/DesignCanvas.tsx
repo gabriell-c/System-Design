@@ -26,7 +26,7 @@ import type { CanvasNodeData, NodeKind, ZoneKind } from "@/lib/types";
 import { ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 import { FLOW_KIND_META } from "@/lib/edges";
-import { filterOpacity, descendantIds } from "@/lib/canvas-filter";
+import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
 
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
@@ -119,13 +119,8 @@ function CanvasInner() {
   }, [nodes]);
 
   const displayNodes = useMemo(() => {
-    return orderedNodes.map((n) => {
-      const op = filterOpacity(n, canvasFilter, ownerTeam);
-      return {
-        ...n,
-        style: { ...n.style, opacity: op },
-      };
-    });
+    const filtered = orderedNodes.filter((n) => filterVisibility(n, canvasFilter, ownerTeam));
+    return filtered;
   }, [orderedNodes, canvasFilter, ownerTeam]);
 
   useEffect(() => {

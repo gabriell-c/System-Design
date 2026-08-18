@@ -84,6 +84,8 @@ type GraphState = {
   canvasFilter: CanvasFilter;
   focusedZoneId: string | null;
   ownerTeam: string;
+  _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
+  _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
   setContext: (context: string) => void;
   setNfr: (nfr: ProjectNfr | ((prev: ProjectNfr) => ProjectNfr)) => void;
@@ -229,6 +231,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   canvasFilter: EMPTY_CANVAS_FILTER,
   focusedZoneId: null,
   ownerTeam: "",
+  _pendingNodesChanges: null,
+  _pendingTimeout: null,
 
   setName: (name) => {
     withHistory(get, set, () => set({ name, dirty: true }));
@@ -357,10 +361,15 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       });
       return;
     }
-    set({
-      nodes: apply(),
-      dirty: true,
-    });
+    // Debounce non-structural changes (position, dimensions)
+    const pending = [...(get()._pendingNodesChanges ?? []), ...changes];
+    if (get()._pendingTimeout) clearTimeout(get()._pendingTimeout);
+    const timer = setTimeout(() => {
+      set({ _pendingNodesChanges: null, _pendingTimeout: null });
+      const applied = applyNodeChanges(pending, get().nodes);
+      set({ nodes: applied, dirty: true });
+    }, 150);
+    set({ _pendingNodesChanges: pending, _pendingTimeout: timer });
   },
 
   onEdgesChange: (changes) => {

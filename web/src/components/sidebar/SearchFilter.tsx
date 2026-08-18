@@ -6,8 +6,11 @@ import { KIND_META } from "@/lib/catalog";
 import { ZONE_META } from "@/lib/zones";
 import { useGraphStore } from "@/lib/graph-store";
 import { EMPTY_CANVAS_FILTER } from "@/lib/canvas-filter";
+import { CATALOG } from "@/lib/catalog";
 
 const PROVIDERS: (CloudProvider | "all")[] = ["all", "aws", "azure", "gcp", "generic"];
+
+const SERVICE_CATALOG = Array.from(new Set(CATALOG.map((c) => c.id).filter((id) => id.includes("-")))).slice(0, 40);
 
 export default function SearchFilter() {
   const canvasFilter = useGraphStore((s) => s.canvasFilter);
@@ -20,7 +23,7 @@ export default function SearchFilter() {
         <Search size={12} className="pointer-events-none absolute left-2.5 top-2.5 text-slate-500" />
         <input
           className="w-full rounded-lg border border-white/10 bg-[#0d1219] py-1.5 pl-7 pr-2 text-xs text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-          placeholder="Buscar nó, zona, tech…"
+          placeholder="Buscar nó, zona, tech, catalogId…"
           value={canvasFilter.query}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, query: e.target.value })}
         />
@@ -67,6 +70,18 @@ export default function SearchFilter() {
           value={canvasFilter.ownerTeam}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, ownerTeam: e.target.value })}
         />
+        <select
+          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          value={canvasFilter.catalogId}
+          onChange={(e) => setCanvasFilter({ ...canvasFilter, catalogId: e.target.value })}
+        >
+          <option value="">Catalogo (ID)</option>
+          {SERVICE_CATALOG.map((id) => (
+            <option key={id} value={id}>
+              {id}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex items-center justify-between text-[10px] text-slate-500">
         <span>{nodes.length} nós no canvas</span>

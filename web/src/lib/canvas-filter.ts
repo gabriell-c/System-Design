@@ -20,6 +20,7 @@ export type CanvasFilter = {
   provider: CloudProvider | "all";
   layerView: LayerView;
   ownerTeam: string;
+  catalogId: string;
 };
 
 export const EMPTY_CANVAS_FILTER: CanvasFilter = {
@@ -29,6 +30,7 @@ export const EMPTY_CANVAS_FILTER: CanvasFilter = {
   provider: "all",
   layerView: "all",
   ownerTeam: "",
+  catalogId: "",
 };
 
 export function isFilterActive(filter: CanvasFilter): boolean {
@@ -38,7 +40,8 @@ export function isFilterActive(filter: CanvasFilter): boolean {
     filter.zoneKind !== "all" ||
     filter.provider !== "all" ||
     filter.layerView !== "all" ||
-    filter.ownerTeam.trim().length > 0
+    filter.ownerTeam.trim().length > 0 ||
+    filter.catalogId.trim().length > 0
   );
 }
 
@@ -96,6 +99,10 @@ export function nodeMatchesFilter(data: CanvasNodeData, filter: CanvasFilter, ow
     if (provider !== filter.provider) return false;
   }
   if (!matchesLayer(data, filter.layerView)) return false;
+  if (filter.catalogId.trim()) {
+    const catalogId = "catalogId" in data ? (data as { catalogId: string }).catalogId : "";
+    if (catalogId !== filter.catalogId) return false;
+  }
   const q = filter.query.trim().toLowerCase();
   if (q && !blob(data).includes(q)) return false;
   return true;
@@ -107,7 +114,16 @@ export function filterOpacity(
   ownerTeam?: string | null,
 ): number {
   if (!isFilterActive(filter)) return 1;
-  return nodeMatchesFilter(node.data, filter, ownerTeam) ? 1 : 0.16;
+  return nodeMatchesFilter(node.data, filter, ownerTeam) ? 1 : 0;
+}
+
+export function filterVisibility(
+  node: Node<CanvasNodeData>,
+  filter: CanvasFilter,
+  ownerTeam?: string | null,
+): boolean {
+  if (!isFilterActive(filter)) return true;
+  return nodeMatchesFilter(node.data, filter, ownerTeam);
 }
 
 export function descendantIds(nodes: Node<CanvasNodeData>[], rootId: string): Set<string> {

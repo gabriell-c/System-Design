@@ -162,6 +162,7 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
       const cards = [
         card("c-gh", "int-github", { x: 24, y: 48 }, "z-src"),
         card("c-gha", "dep-ghactions", { x: 24, y: 140 }, "z-src"),
+        card("c-test", "obs-sentry", { x: 240, y: 140 }, "z-src"),
         card("c-tf", "dep-terraform", { x: 24, y: 48 }, "z-build"),
         card("c-docker", "dep-docker", { x: 24, y: 140 }, "z-build"),
         card("c-k8s", "dep-k8s", { x: 24, y: 48 }, "z-deploy"),
@@ -173,12 +174,13 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
       const edges = [
         flow("e1", "c-gh", "c-gha", 1, { flowKind: "control", label: "push" }),
         flow("e2", "c-gha", "c-docker", 2, { flowKind: "control", label: "build image" }),
-        flow("e3", "c-gha", "c-tf", 3, { flowKind: "control", label: "plan/apply" }),
-        flow("e4", "c-tf", "c-k8s", 4, { flowKind: "control", label: "infra" }),
-        flow("e5", "c-docker", "c-ecs", 5, { flowKind: "control", label: "rollout" }),
-        flow("e6", "c-k8s", "c-ecs", 6, { flowKind: "control", label: "workload" }),
-        flow("e7", "c-ecs", "c-prom", 7, { flowKind: "management", label: "metrics" }),
-        flow("e8", "c-prom", "c-graf", 8, { flowKind: "management", label: "dashboards" }),
+        flow("e3", "c-gha", "c-test", 3, { flowKind: "control", label: "run tests" }),
+        flow("e4", "c-gha", "c-tf", 4, { flowKind: "control", label: "plan/apply" }),
+        flow("e5", "c-tf", "c-k8s", 5, { flowKind: "control", label: "infra" }),
+        flow("e6", "c-docker", "c-ecs", 6, { flowKind: "control", label: "rollout" }),
+        flow("e7", "c-k8s", "c-ecs", 7, { flowKind: "control", label: "workload" }),
+        flow("e8", "c-ecs", "c-prom", 8, { flowKind: "management", label: "metrics" }),
+        flow("e9", "c-prom", "c-graf", 9, { flowKind: "management", label: "dashboards" }),
       ];
       return { nodes, edges };
     },
