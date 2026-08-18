@@ -41,20 +41,30 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
       <AnchorHandle tone="block" nodeId={id} handleId="z-left-out" type="source" position={Position.Left} style={{ top: "35%" }} />
       <AnchorHandle tone="block" nodeId={id} handleId="z-right-in" type="target" position={Position.Right} style={{ top: "35%" }} />
 
-      <header className="pointer-events-none flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+      <header className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          className="pointer-events-none flex h-7 w-7 items-center justify-center rounded-lg"
           style={{ background: meta.bg, color: meta.accent }}
         >
           <Icon size={14} />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="pointer-events-none min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-50">{data.label}</p>
           <p className="text-[10px] uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
             Zona · {meta.short}
             {data.provider && data.provider !== "generic" ? ` · ${data.provider.toUpperCase()}` : ""}
           </p>
         </div>
+        <button
+          type="button"
+          className="pointer-events-auto rounded-md border border-white/15 bg-black/40 px-1.5 py-0.5 text-[10px] text-cyan-200 hover:border-cyan-400/40"
+          onClick={(e) => {
+            e.stopPropagation();
+            useGraphStore.getState().setFocusedZoneId(id);
+          }}
+        >
+          Focar
+        </button>
         {data.score != null && (
           <span className="rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
             {data.score.toFixed(1)}

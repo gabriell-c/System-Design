@@ -1,13 +1,24 @@
-import { useState } from 'react';
-import { useProjectStore } from '@/lib/project-store';
-import { useAuthStore } from '@/lib/auth-store';
+import { useEffect, useState } from "react";
+import { useProjectStore } from "@/lib/project-store";
+import { useAuthStore } from "@/lib/auth-store";
+import { useGraphStore } from "@/lib/graph-store";
+import { api } from "@/lib/api";
 
 export default function DiagramSidebar() {
-  const { projects, activeProjectId, createProject, setActiveProject, deleteProject } =
+  const { projects, activeProjectId, createProject, setActiveProject, deleteProject, loadProjects } =
     useProjectStore();
   const { isAuthenticated } = useAuthStore();
+  const graphId = useGraphStore((s) => s.graphId);
+  const loadGraph = useGraphStore((s) => s.loadGraph);
+  const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState("");
+  const [subsystems, setSubsystems] = useState<Array<{ id: string; name: string }>>([]);
+  const [importId, setImportId] = useState("cdn-global");
+
+  useEffect(() => {
+    void api.listSubsystems().then(setSubsystems).catch(() => undefined);
+  }, []);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -100,9 +111,47 @@ export default function DiagramSidebar() {
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-2 border-t border-zinc-800">
+      <div className="space-y-2 border-t border-zinc-800 px-3 py-2">
+        {activeProjectId && (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-600">Importar subsystem</p>
+            <select
+              className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px] text-zinc-200"
+              value={importId}
+              onChange={(e) => setImportId(e.target.value)}
+            >
+              {(subsystems.length ? subsystems : [{ id: "cdn-global", name: "CDN global" }]).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="w-full rounded bg-zinc-800 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-700"
+              onClick={async () => {
+                try {
+                  const graph = await api.importSubsystem(activeProjectId, {
+                    subsystem_id: importId,
+                    merge_into_graph_id: graphId ?? undefined,
+                  });
+                  loadGraph(graph);
+                  await loadProjects();
+                  pushUiNotice({ type: "success", text: `Subsystem ${importId} importado.` });
+                } catch (err) {
+                  pushUiNotice({
+                    type: "error",
+                    text: err instanceof Error ? err.message : "Falha ao importar subsystem",
+                  });
+                }
+              }}
+            >
+              Importar no diagrama
+            </button>
+          </div>
+        )}
         <p className="text-xs text-zinc-600 text-center">
-          {projects.length} project{projects.length !== 1 ? 's' : ''}
+          {projects.length} project{projects.length !== 1 ? "s" : ""}
         </p>
       </div>
     </aside>

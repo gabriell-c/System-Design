@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Lightbulb, LayoutTemplate, Database, Code, MessageSquare, Activity, Network, GitBranch } from "lucide-react";
+import { FileText, Lightbulb, LayoutTemplate, Database, Code, Activity, Network, GitBranch } from "lucide-react";
 import Toggle from "@/components/ui/Toggle";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { COMPLIANCE_OPTIONS } from "@/lib/nfr";
@@ -22,6 +22,8 @@ export default function ContextPanel() {
   const setContext = useGraphStore((s) => s.setContext);
   const nfr = useGraphStore((s) => s.nfr);
   const setNfr = useGraphStore((s) => s.setNfr);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
+  const setOwnerTeam = useGraphStore((s) => s.setOwnerTeam);
   const applyTemplate = useGraphStore((s) => s.applyTemplate);
   const dirty = useGraphStore((s) => s.dirty);
   const nodes = useGraphStore((s) => s.nodes);
@@ -219,7 +221,18 @@ export default function ContextPanel() {
             <NumField label="Latência p99 (ms)" value={nfr.latency_p99_ms} onChange={(v) => setNfr({ ...nfr, latency_p99_ms: v })} />
             <NumField label="Time (pessoas)" value={nfr.team_size} onChange={(v) => setNfr({ ...nfr, team_size: v })} />
             <NumField label="Prazo (semanas)" value={nfr.deadline_weeks} onChange={(v) => setNfr({ ...nfr, deadline_weeks: v })} />
+            <NumField label="RPO (horas)" value={nfr.rpo_hours ?? null} onChange={(v) => setNfr({ ...nfr, rpo_hours: v })} />
+            <NumField label="RTO (minutos)" value={nfr.rto_minutes ?? null} onChange={(v) => setNfr({ ...nfr, rto_minutes: v })} />
           </div>
+          <label className="block text-[11px] text-slate-500">
+            Squad dono deste diagrama
+            <input
+              className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+              value={ownerTeam}
+              onChange={(e) => setOwnerTeam(e.target.value)}
+              placeholder="ex.: media, identity, platform"
+            />
+          </label>
 
           <div>
             <p className="mb-1.5 text-[11px] text-slate-500">Compliance</p>

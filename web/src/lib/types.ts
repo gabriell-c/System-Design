@@ -42,7 +42,11 @@ export type ZoneKind =
   | "subnet_private"
   | "layer"
   | "plane"
-  | "security_boundary";
+  | "security_boundary"
+  | "peering"
+  | "vpn"
+  | "privatelink"
+  | "express_route";
 
 export const ALL_ZONE_KINDS: ZoneKind[] = [
   "region",
@@ -53,6 +57,10 @@ export const ALL_ZONE_KINDS: ZoneKind[] = [
   "layer",
   "plane",
   "security_boundary",
+  "peering",
+  "vpn",
+  "privatelink",
+  "express_route",
 ];
 
 export type FlowKind = "sync" | "async" | "data" | "control" | "management";
@@ -303,6 +311,8 @@ export type ProjectNfr = {
   event_topics?: EventTopic[];
   consistency_patterns?: Record<string, ConsistencyPattern>;
   data_lineage?: DataLineage[];
+  rpo_hours?: number | null;
+  rto_minutes?: number | null;
 };
 
 export type GraphRecord = {
@@ -317,6 +327,7 @@ export type GraphRecord = {
   review_comment: string | null;
   reviewer_role: UserRole | null;
   project_id?: string | null;
+  owner_team?: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -7,6 +7,8 @@ import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
 import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
+import SearchFilter from "@/components/sidebar/SearchFilter";
+import ViewTabs from "@/components/sidebar/ViewTabs";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -169,7 +171,13 @@ export default function EditorShell() {
         <div className="flex min-h-0 flex-1">
           {!focusMode && (
             <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
-              <ComponentPalette />
+              <div className="flex h-full min-h-0 flex-col">
+                <SearchFilter />
+                <ViewTabs />
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <ComponentPalette />
+                </div>
+              </div>
             </ResizablePanel>
           )}
         <main className="relative min-w-0 flex-1 bg-[#070b10]">

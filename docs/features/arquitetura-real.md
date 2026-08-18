@@ -6,7 +6,7 @@ O Archia modela **arquitetura de software** além da escolha de stack: zonas ani
 
 | Conceito | Descrição |
 |----------|-----------|
-| **Zone** | Contêiner cloud-agnostic: `region`, `vpc`, `availability_zone`, `subnet_public`, `subnet_private`, `layer`, `plane`, `security_boundary` |
+| **Zone** | Contêiner cloud-agnostic: `region`, `vpc`, `availability_zone`, `subnet_public`, `subnet_private`, `layer`, `plane`, `security_boundary`, `peering`, `vpn`, `privatelink`, `express_route` |
 | **Block** | Agrupador de stack (FE/BE/DB…) — continua suportado |
 | **Card** | Serviço/tecnologia (AWS/Azure/GCP + stack) |
 | **ArchEdgeData** | `flowKind` (sync/async/data/control/management), `protocol`, `flowNumber`, `label` |
@@ -27,8 +27,19 @@ Em Contexto → templates:
 2. `aws-multi-az-app`
 3. `azure-data-pipeline`
 4. `aws-load-testing-control-data-plane`
+5. `youtube-scale` — ingest, encoding, CDN, search, recs, ads, live, identity
+6. `cicd-pipeline` — repo → build → deploy → obs
+7. `hybrid-network` — VPC + peering + VPN + Direct Connect + PrivateLink
 
-Cada um nasce com zones + fluxos numerados.
+## P2 — escala
+
+- Canvas: `onlyRenderVisibleElements` acima de 80 nós, snap desligado acima de 120, zoom mínimo 0.08
+- Filtro/search na sidebar (`SearchFilter`) + views Storage/Auth/Media/Search/Rede/CI-CD (`ViewTabs`)
+- Botão **Focar** na zona (`fitView` no subtree)
+- `POST /projects/{id}/subsystems/import` (`cdn-global`, `identity`, `ingest`, `search`, `cicd`)
+- `GET /api/v1/graphs/{id}/diff/{version_id}` — diff semântico de nós/arestas
+- `Graph.owner_team` + filtro por squad
+- NFR: `rpo_hours` / `rto_minutes` — heurística alerta se disponibilidade ≥ 99.9% sem DR
 
 ## Análise
 
@@ -47,7 +58,8 @@ Ver [PADRAO-DIAGRAMA-ARQUITETURA.md](../PADRAO-DIAGRAMA-ARQUITETURA.md).
 
 ## Arquivos-chave
 
-- `web/src/lib/zones.ts`, `edges.ts`, `templates-architecture.ts`, `catalog-multicloud.ts`
+- `web/src/lib/zones.ts`, `edges.ts`, `templates-architecture.ts`, `templates-scale.ts`, `catalog-multicloud.ts`, `catalog-network.ts`, `canvas-filter.ts`
+- `web/src/components/sidebar/SearchFilter.tsx`, `ViewTabs.tsx`
 - `web/src/components/nodes/ZoneNode.tsx`
 - `web/src/components/panels/ArchitecturePanel.tsx`
-- `backend/app/services/architecture_heuristics.py`
+- `backend/app/services/architecture_heuristics.py`, `diff.py`, `subsystems.py`

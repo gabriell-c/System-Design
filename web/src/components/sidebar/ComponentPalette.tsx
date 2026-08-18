@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layers, Layout, Plug, Plus, Rocket, Search, Server, Shield } from "lucide-react";
+import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layers, Layout, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -21,9 +21,13 @@ const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
   layer: Layers,
   plane: Boxes,
   security_boundary: Shield,
+  peering: Share2,
+  vpn: Shield,
+  privatelink: Plug,
+  express_route: Rocket,
 };
 
-const KIND_ICONS = {
+const KIND_ICONS: Record<NodeKind, typeof Layout> = {
   frontend: Layout,
   backend: Server,
   database: Database,
@@ -32,6 +36,7 @@ const KIND_ICONS = {
   observability: Activity,
   integration: Plug,
   deploy: Rocket,
+  security: Shield,
 };
 
 export default function ComponentPalette() {

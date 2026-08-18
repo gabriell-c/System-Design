@@ -42,6 +42,10 @@ export function exportToDrawio(nodes: Node<CanvasNodeData>[], edges: Edge[]): st
         security_boundary: "strokeColor=#f472b6;fillColor=#83184320;",
         layer: "strokeColor=#818cf8;fillColor=#1e1b4b20;",
         plane: "strokeColor=#2dd4bf;fillColor=#134e4a20;",
+        peering: "strokeColor=#67e8f9;fillColor=#08334420;",
+        vpn: "strokeColor=#c4b5fd;fillColor=#2e106520;",
+        privatelink: "strokeColor=#86efac;fillColor=#052e1620;",
+        express_route: "strokeColor=#fdba74;fillColor=#43140720;",
       };
       const color = colors[zoneData.zoneKind] || "strokeColor=#64748b;fillColor=#0f172a20;";
       xml += mxCell(id, node.position.x, node.position.y, node.width || 420, node.height || 280, data.label || node.id, `${color}rounded=1;whiteSpace=wrap;html=1;`);

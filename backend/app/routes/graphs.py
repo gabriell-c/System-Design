@@ -67,6 +67,7 @@ def to_out(graph: Graph) -> GraphOut:
         review_comment=graph.review_comment,
         reviewer_role=graph.reviewer_role,
         project_id=getattr(graph, "project_id", None),
+        owner_team=getattr(graph, "owner_team", None),
         created_at=graph.created_at,
         updated_at=graph.updated_at,
     )
@@ -95,6 +96,7 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db)) -> GraphO
     graph = Graph(
         id=new_uuid(),
         project_id=payload.project_id,
+        owner_team=payload.owner_team,
         name=payload.name.strip(),
         context_text=(payload.context or "").strip(),
         nfr_json=(payload.nfr or ProjectNfr()).model_dump_json(),
@@ -138,6 +140,8 @@ def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_
         graph.analysis_json = json.dumps(payload.analysis)
     if payload.project_id is not None:
         graph.project_id = payload.project_id
+    if payload.owner_team is not None:
+        graph.owner_team = payload.owner_team.strip() or None
     graph.updated_at = datetime.now(timezone.utc)
     with sqlite_write_guard():
         _snapshot(db, graph)
@@ -192,6 +196,24 @@ def restore_version(graph_id: str, version_id: str, db: Session = Depends(get_db
         db.commit()
         db.refresh(graph)
     return to_out(graph)
+
+
+@router.get("/graphs/{graph_id}/diff/{version_id}")
+def diff_graph_version(graph_id: str, version_id: str, db: Session = Depends(get_db)) -> dict:
+    from app.services.diff import semantic_diff
+
+    graph = db.get(Graph, graph_id)
+    if not graph:
+        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    version = db.get(GraphVersion, version_id)
+    if not version or version.graph_id != graph_id:
+        raise HTTPException(status_code=404, detail="Versão não encontrada")
+    return semantic_diff(
+        _parse_json_list(version.nodes_json),
+        _parse_json_list(version.edges_json),
+        _parse_json_list(graph.nodes_json),
+        _parse_json_list(graph.edges_json),
+    )
 
 
 @router.post("/graphs/{graph_id}/review", response_model=GraphOut)

@@ -26,6 +26,7 @@ from app.services.architecture_heuristics import (
     classify_architecture_style,
     compute_cohesion_coupling,
     detect_bottlenecks,
+    analyze_trust_and_dr,
     suggest_trade_offs,
     validate_firewall_rules,
 )
@@ -195,6 +196,7 @@ async def analyze_architecture(
     trade_offs = suggest_trade_offs(nodes, edges, nfr_obj)
     zone_findings = analyze_zone_structure(nodes, edges)
     bottleneck_findings = detect_bottlenecks(nodes, edges, nfr_obj)
+    trust_findings = analyze_trust_and_dr(nodes, edges, nfr_obj)
     firewall_findings_raw = validate_firewall_rules(nodes, edges)
     firewall_findings = [type("Finding", (), {"severity": f["severity"], "node_id": f["node_id"], "title": f["message"], "fix": f["fix"]})() for f in firewall_findings_raw]
     review_scorecard = build_review_scorecard(
@@ -249,7 +251,7 @@ async def analyze_architecture(
 
     # Injeta riscos de zona + bottlenecks + firewall + domain benchmarks no relatório heurístico
     benchmark_findings = list(analyze_domain_benchmarks(nodes, edges, nfr_obj))
-    extra_findings = list(zone_findings) + list(bottleneck_findings) + firewall_findings + benchmark_findings
+    extra_findings = list(zone_findings) + list(bottleneck_findings) + firewall_findings + benchmark_findings + list(trust_findings)
     if extra_findings:
         heuristic = heuristic.model_copy(
             update={

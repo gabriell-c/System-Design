@@ -46,6 +46,8 @@ class ProjectNfr(BaseModel):
     event_topics: list[dict[str, Any]] = Field(default_factory=list)
     consistency_patterns: dict[str, str] = Field(default_factory=dict)
     data_lineage: list[dict[str, Any]] = Field(default_factory=list)
+    rpo_hours: float | None = Field(default=None, ge=0)
+    rto_minutes: int | None = Field(default=None, ge=0)
 
 
 class GraphPayload(BaseModel):
@@ -55,6 +57,7 @@ class GraphPayload(BaseModel):
     nodes: list[dict[str, Any]] = Field(default_factory=list)
     edges: list[dict[str, Any]] = Field(default_factory=list)
     project_id: str | None = Field(default=None, max_length=36)
+    owner_team: str | None = Field(default=None, max_length=80)
 
 
 class GraphUpdate(BaseModel):
@@ -65,6 +68,7 @@ class GraphUpdate(BaseModel):
     edges: list[dict[str, Any]] | None = None
     analysis: dict[str, Any] | None = None
     project_id: str | None = Field(default=None, max_length=36)
+    owner_team: str | None = Field(default=None, max_length=80)
 
 
 class GraphOut(BaseModel):
@@ -79,6 +83,7 @@ class GraphOut(BaseModel):
     review_comment: str | None
     reviewer_role: str | None
     project_id: str | None = None
+    owner_team: str | None = None
     created_at: datetime
     updated_at: datetime
 

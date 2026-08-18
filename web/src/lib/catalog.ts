@@ -1,6 +1,7 @@
 import type { CatalogCategory, CatalogItem, NodeKind } from "./types";
 import { MULTI_CLOUD_CATALOG } from "./catalog-multicloud";
 import { PATTERNS_CATALOG } from "./catalog-patterns";
+import { NETWORK_CATALOG } from "./catalog-network";
 
 export const KIND_META: Record<
   NodeKind,
@@ -1737,6 +1738,7 @@ export const CATALOG: CatalogItem[] = [
 
   ...MULTI_CLOUD_CATALOG,
   ...PATTERNS_CATALOG,
+  ...NETWORK_CATALOG,
 ];
 
 export const UI_LIBS = ["Tailwind", "Material UI", "Chakra UI", "Design System próprio"];

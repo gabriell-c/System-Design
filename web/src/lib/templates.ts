@@ -3,6 +3,7 @@ import { createBlockNode } from "./blocks";
 import { findCatalog } from "./catalog";
 import { emptyNfr } from "./nfr";
 import { ARCHITECTURE_TEMPLATES } from "./templates-architecture";
+import { SCALE_TEMPLATES } from "./templates-scale";
 import type { ProjectTemplate } from "./templates-types";
 import type { CanvasNodeData, NodeKind } from "./types";
 
@@ -600,6 +601,7 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   },
 
   ...ARCHITECTURE_TEMPLATES,
+  ...SCALE_TEMPLATES,
 ];
 
 export function getTemplate(id: string): ProjectTemplate | undefined {

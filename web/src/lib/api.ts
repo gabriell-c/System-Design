@@ -47,6 +47,8 @@ export type GraphPayload = {
   nfr?: import("./types").ProjectNfr | null;
   nodes: unknown[];
   edges: unknown[];
+  project_id?: string | null;
+  owner_team?: string | null;
 };
 
 export const api = {
@@ -112,6 +114,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  listSubsystems: () =>
+    request<Array<{ id: string; name: string; owner_team?: string; node_count: number }>>("/projects/subsystems"),
+  importSubsystem: (
+    projectId: string,
+    payload: { subsystem_id: string; name?: string; owner_team?: string; merge_into_graph_id?: string },
+  ) =>
+    request<GraphRecord>(`/projects/${projectId}/subsystems/import`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  graphDiff: (graphId: string, versionId: string) =>
+    request<{
+      summary: string;
+      added_nodes: unknown[];
+      removed_nodes: unknown[];
+      changed_nodes: unknown[];
+      added_edges: unknown[];
+      removed_edges: unknown[];
+    }>(`/api/v1/graphs/${graphId}/diff/${versionId}`),
   // Comments
   listComments: (graphId: string) => request<NodeComment[]>(`/graphs/${graphId}/comments`),
   createComment: (graphId: string, payload: { node_id?: string; text: string }) =>

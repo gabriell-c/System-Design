@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CommentCreate(BaseModel):
@@ -8,12 +8,11 @@ class CommentCreate(BaseModel):
 
 
 class CommentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     graph_id: str
     node_id: str | None
     text: str
     author: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True

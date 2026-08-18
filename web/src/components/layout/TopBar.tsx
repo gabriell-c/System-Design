@@ -59,6 +59,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const architectureView = useGraphStore((s) => s.architectureView);
   const setArchitectureView = useGraphStore((s) => s.setArchitectureView);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -73,7 +74,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
 
   async function save() {
     try {
-      const payload = { name, context, nfr, nodes, edges };
+      const payload = { name, context, nfr, nodes, edges, owner_team: ownerTeam || null };
       const saved = graphId ? await api.updateGraph(graphId, payload) : await api.createGraph(payload);
       markSaved(saved.id);
       pushUiNotice({ type: "success", text: "Arquitetura salva." });

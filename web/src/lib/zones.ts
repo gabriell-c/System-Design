@@ -10,6 +10,10 @@ export const ZONE_DEFAULT_SIZE: Record<ZoneKind, { width: number; height: number
   layer: { width: 520, height: 280 },
   plane: { width: 420, height: 320 },
   security_boundary: { width: 360, height: 260 },
+  peering: { width: 360, height: 220 },
+  vpn: { width: 360, height: 240 },
+  privatelink: { width: 360, height: 220 },
+  express_route: { width: 360, height: 220 },
 };
 
 export const ZONE_META: Record<
@@ -72,18 +76,50 @@ export const ZONE_META: Record<
     bg: "rgba(236, 72, 153, 0.08)",
     border: "rgba(244, 114, 182, 0.5)",
   },
+  peering: {
+    label: "VPC / VNet Peering",
+    short: "Peering",
+    accent: "#67e8f9",
+    bg: "rgba(6, 182, 212, 0.08)",
+    border: "rgba(103, 232, 249, 0.45)",
+  },
+  vpn: {
+    label: "VPN / Hybrid",
+    short: "VPN",
+    accent: "#c4b5fd",
+    bg: "rgba(139, 92, 246, 0.1)",
+    border: "rgba(196, 181, 253, 0.5)",
+  },
+  privatelink: {
+    label: "PrivateLink / Private Endpoint",
+    short: "PrivateLink",
+    accent: "#86efac",
+    bg: "rgba(22, 163, 74, 0.08)",
+    border: "rgba(134, 239, 172, 0.45)",
+  },
+  express_route: {
+    label: "ExpressRoute / Direct Connect",
+    short: "DX / ER",
+    accent: "#fdba74",
+    bg: "rgba(234, 88, 12, 0.1)",
+    border: "rgba(253, 186, 116, 0.5)",
+  },
 };
 
 /** Filhos zoneKind permitidos dentro de um pai. */
 const ZONE_CHILD_ALLOWED: Record<ZoneKind, ZoneKind[]> = {
-  region: ["vpc", "plane", "layer", "security_boundary"],
-  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary"],
+  region: ["vpc", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "express_route"],
+  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink"],
   availability_zone: ["subnet_public", "subnet_private", "layer", "plane"],
   subnet_public: ["layer", "plane"],
-  subnet_private: ["layer", "plane", "security_boundary"],
+  subnet_private: ["layer", "plane", "security_boundary", "privatelink"],
   layer: ["plane", "security_boundary"],
   plane: ["layer", "security_boundary"],
   security_boundary: ["layer"],
+  peering: ["layer"],
+  vpn: ["layer", "security_boundary"],
+  privatelink: ["layer", "security_boundary"],
+  express_route: ["layer", "vpn"],
 };
 
 export function isZoneNode(node: Node<CanvasNodeData>): boolean {

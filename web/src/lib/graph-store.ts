@@ -43,6 +43,7 @@ import { emptyNfr, normalizeNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates";
 import { createZoneNode, ensureZoneFitsChild, isZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
 import type { ArchitectureView } from "./architecture-view";
+import { EMPTY_CANVAS_FILTER, type CanvasFilter } from "./canvas-filter";
 
 export type UiNotice = {
   type: "error" | "info" | "success";
@@ -80,10 +81,16 @@ type GraphState = {
   past: GraphSnapshot[];
   future: GraphSnapshot[];
   architectureView: ArchitectureView;
+  canvasFilter: CanvasFilter;
+  focusedZoneId: string | null;
+  ownerTeam: string;
   setName: (name: string) => void;
   setContext: (context: string) => void;
   setNfr: (nfr: ProjectNfr | ((prev: ProjectNfr) => ProjectNfr)) => void;
   setArchitectureView: (view: ArchitectureView) => void;
+  setCanvasFilter: (filter: CanvasFilter) => void;
+  setFocusedZoneId: (id: string | null) => void;
+  setOwnerTeam: (team: string) => void;
   applyTemplate: (template: ProjectTemplate) => void;
   setUserRole: (role: UserRole) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -219,6 +226,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   past: [],
   future: [],
   architectureView: "ai",
+  canvasFilter: EMPTY_CANVAS_FILTER,
+  focusedZoneId: null,
+  ownerTeam: "",
 
   setName: (name) => {
     withHistory(get, set, () => set({ name, dirty: true }));
@@ -231,6 +241,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set({ nfr: normalizeNfr(next), dirty: true });
   },
   setArchitectureView: (architectureView) => set({ architectureView }),
+  setCanvasFilter: (canvasFilter) => set({ canvasFilter }),
+  setFocusedZoneId: (focusedZoneId) => set({ focusedZoneId }),
+  setOwnerTeam: (ownerTeam) => set({ ownerTeam, dirty: true }),
   applyTemplate: (template) => {
     withHistory(get, set, () => {
       const built = template.build();
@@ -847,6 +860,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       uiNotice: null,
       past: [],
       future: [],
+      ownerTeam: graph.owner_team ?? "",
+      focusedZoneId: null,
     });
   },
 

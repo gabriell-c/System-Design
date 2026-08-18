@@ -718,6 +718,90 @@ def detect_bottlenecks(
     return findings
 
 
+def analyze_trust_and_dr(
+    nodes: list[dict],
+    edges: list[dict],
+    nfr: ProjectNfr | None = None,
+) -> list[Any]:
+    """Trust boundaries + DR (RPO/RTO) para infra enterprise."""
+    from app.schemas.analysis import Finding
+
+    nfr = nfr or ProjectNfr()
+    findings: list[Finding] = []
+    zones = [n for n in nodes if _node_data(n).get("kind") == "zone"]
+    cards = [n for n in nodes if _node_data(n).get("kind") not in {"zone", "block", None}]
+    zone_kinds = {_node_data(z).get("zoneKind") for z in zones}
+    has_security = "security_boundary" in zone_kinds
+    zone_by_id = {z.get("id"): z for z in zones}
+
+    ownership = nfr.data_ownership or []
+    pii_entities = {
+        str(item.get("entity") or "").lower()
+        for item in ownership
+        if isinstance(item, dict) and item.get("pii")
+    }
+
+    def parent_zone_kind(node: dict) -> str | None:
+        parent = zone_by_id.get(node.get("parentId"))
+        if not parent:
+            return None
+        return _node_data(parent).get("zoneKind")
+
+    for n in cards:
+        blob = _card_blob(n)
+        is_data = _node_data(n).get("kind") == "database" or any(
+            k in blob for k in ("postgres", "mysql", "rds", "dynamo", "mongo")
+        )
+        if not is_data:
+            continue
+        zk = parent_zone_kind(n)
+        label = _node_data(n).get("label") or n.get("id")
+        if zk == "subnet_public":
+            findings.append(
+                Finding(
+                    node_id=str(n.get("id")),
+                    severity="critical",
+                    title="Dado sensível fora do trust boundary",
+                    detail=f"{label} está em subnet pública. Dados devem ficar em subnet privada + security_boundary.",
+                )
+            )
+        if pii_entities and not has_security and zk != "security_boundary":
+            findings.append(
+                Finding(
+                    node_id=str(n.get("id")),
+                    severity="warning",
+                    title="PII sem security boundary",
+                    detail=f"Há entidades PII no NFR, mas {label} não está isolado em security_boundary.",
+                )
+            )
+
+    avail = float(nfr.availability_pct or nfr.slo_availability_pct or 0)
+    if avail >= 99.9 and (nfr.rpo_hours is None or nfr.rto_minutes is None):
+        findings.append(
+            Finding(
+                severity="warning",
+                title="Alta disponibilidade sem RPO/RTO",
+                detail=(
+                    f"Meta de {avail}% exige plano de DR. Defina rpo_hours e rto_minutes "
+                    "(active-active, failover, backups)."
+                ),
+            )
+        )
+
+    hybrid = zone_kinds & {"vpn", "peering", "privatelink", "express_route"}
+    if hybrid and not any((e.get("data") or {}).get("firewallRules") for e in edges):
+        findings.append(
+            Finding(
+                severity="info",
+                title="Links híbridos sem SG explícito",
+                detail="Há VPN/peering/PrivateLink/ExpressRoute. Documente firewallRules nas arestas que cruzam a borda.",
+            )
+        )
+
+    _ = edges
+    return findings
+
+
 def analyze_domain_benchmarks(
     nodes: list[dict],
     edges: list[dict],

@@ -82,6 +82,10 @@ def _ensure_sqlite_columns() -> None:
                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
             """))
+        if "graphs" in existing and "owner_team" not in {
+            c["name"] for c in inspector.get_columns("graphs")
+        }:
+            conn.execute(text("ALTER TABLE graphs ADD COLUMN owner_team VARCHAR(80) NULL"))
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)

@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 
 class ProjectCreate(BaseModel):
@@ -14,11 +16,12 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     context: str
     nfr_json: str
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
-    model_config = {"from_attributes": True}

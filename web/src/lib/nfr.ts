@@ -54,6 +54,8 @@ export function emptyNfr(): ProjectNfr {
     slo_latency_p99_ms: null,
     critical_path_edge_ids: [],
     failure_modes: [],
+    rpo_hours: null,
+    rto_minutes: null,
   };
 }
 
@@ -87,6 +89,8 @@ export function normalizeNfr(raw: unknown): ProjectNfr {
       ? o.critical_path_edge_ids.filter((x) => typeof x === "string")
       : [],
     failure_modes: normalizeFailureModes(o.failure_modes),
+    rpo_hours: typeof o.rpo_hours === "number" ? o.rpo_hours : null,
+    rto_minutes: typeof o.rto_minutes === "number" ? o.rto_minutes : null,
   };
 }
 

@@ -26,6 +26,7 @@ import type { CanvasNodeData, NodeKind, ZoneKind } from "@/lib/types";
 import { ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 import { FLOW_KIND_META } from "@/lib/edges";
+import { filterOpacity, descendantIds } from "@/lib/canvas-filter";
 
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
@@ -43,6 +44,9 @@ function CanvasInner() {
   const edges = useGraphStore((s) => s.edges);
   const name = useGraphStore((s) => s.name);
   const nfr = useGraphStore((s) => s.nfr);
+  const canvasFilter = useGraphStore((s) => s.canvasFilter);
+  const focusedZoneId = useGraphStore((s) => s.focusedZoneId);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
   const onNodesChange = useGraphStore((s) => s.onNodesChange);
   const onEdgesChange = useGraphStore((s) => s.onEdgesChange);
   const onConnect = useGraphStore((s) => s.onConnect);
@@ -59,7 +63,7 @@ function CanvasInner() {
   const redo = useGraphStore((s) => s.redo);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const reconcileOrphanCards = useGraphStore((s) => s.reconcileOrphanCards);
-  const { screenToFlowPosition, setNodes } = useReactFlow();
+  const { screenToFlowPosition, setNodes, fitView } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
   const snapRef = useRef({ active: false, originalPositions: new Map<string, { x: number; y: number }>() });
@@ -113,6 +117,24 @@ function CanvasInner() {
     containers.sort((a, b) => depth(a) - depth(b));
     return [...containers, ...rest];
   }, [nodes]);
+
+  const displayNodes = useMemo(() => {
+    return orderedNodes.map((n) => {
+      const op = filterOpacity(n, canvasFilter, ownerTeam);
+      return {
+        ...n,
+        style: { ...n.style, opacity: op },
+      };
+    });
+  }, [orderedNodes, canvasFilter, ownerTeam]);
+
+  useEffect(() => {
+    if (!focusedZoneId) return;
+    const ids = descendantIds(nodes, focusedZoneId);
+    const targets = displayNodes.filter((n) => ids.has(n.id));
+    if (targets.length === 0) return;
+    void fitView({ nodes: targets, padding: 0.25, duration: 450 });
+  }, [focusedZoneId, nodes, displayNodes, fitView]);
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -322,7 +344,7 @@ function CanvasInner() {
       )}
 
       <ReactFlow
-        nodes={orderedNodes}
+        nodes={displayNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -347,6 +369,10 @@ function CanvasInner() {
         onNodeDrag={(event, draggedNode) => {
           if (!snapRef.current.active || !draggedNode) return;
           const allNodes = useGraphStore.getState().nodes;
+          if (allNodes.length > 120) {
+            setGuidelines([]);
+            return;
+          }
           const result = computeSnap(draggedNode.id, draggedNode.position, allNodes);
 
           if (result.guidelines.length > 0) {
@@ -372,10 +398,11 @@ function CanvasInner() {
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode={null}
         connectionLineStyle={{ stroke: "#22d3ee", strokeWidth: 2 }}
-        defaultEdgeOptions={{ type: "smoothstep", animated: true }}
+        defaultEdgeOptions={{ type: "smoothstep", animated: nodes.length < 80 }}
+        onlyRenderVisibleElements={nodes.length >= 80}
         proOptions={{ hideAttribution: true }}
         aria-label="Canvas de arquitetura"
-        minZoom={0.25}
+        minZoom={0.08}
         maxZoom={1.75}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />

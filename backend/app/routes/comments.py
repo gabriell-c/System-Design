@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.graph import Graph, Comment
+from app.models.graph import Comment, Graph, new_uuid
 from app.schemas.comment import CommentCreate, CommentOut
 from app.routes.auth import get_current_user
 
@@ -24,10 +24,10 @@ def create_comment(graph_id: str, payload: CommentCreate, db: Session = Depends(
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
     comment = Comment(
-        id=f"comment-{len(db.query(Comment).filter(Comment.graph_id == graph_id).all()) + 1}",
+        id=new_uuid(),
         graph_id=graph_id,
         node_id=payload.node_id,
-        text=payload.text,
+        text=payload.text.strip(),
         author=user.email if user else "anonymous",
     )
     db.add(comment)
@@ -42,7 +42,7 @@ def delete_comment(graph_id: str, comment_id: str, db: Session = Depends(get_db)
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     # Only author or admin can delete
-    if comment.author != user.email and not user.is_admin:
+    if comment.author != user.email and getattr(user, "role", "") != "senior":
         raise HTTPException(status_code=403, detail="Not authorized")
     db.delete(comment)
     db.commit()
