@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface User {
+export type AuthUser = {
   id: number;
   username: string;
   email: string;
@@ -12,10 +12,10 @@ interface User {
   auto_save_interval_minutes: number;
   created_at: string;
   updated_at: string;
-}
+};
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -30,8 +30,8 @@ interface AuthState {
     birth_date?: string;
   }) => Promise<boolean>;
   fetchProfile: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<boolean>;
-  setUser: (user: User | null) => void;
+  updateProfile: (data: Partial<AuthUser>) => Promise<boolean>;
+  setUser: (user: AuthUser | null) => void;
   setToken: (token: string | null) => void;
 }
 
@@ -39,7 +39,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001';
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,

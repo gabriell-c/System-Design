@@ -1,7 +1,9 @@
 from collections.abc import Generator
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
+import threading
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -25,7 +27,11 @@ def _ensure_sqlite_dir(url: str) -> None:
 
 _ensure_sqlite_dir(settings.database_url)
 
-if settings.database_url.startswith("sqlite") and (
+_IS_SQLITE = settings.database_url.startswith("sqlite")
+# Serializa writers SQLite (StaticPool / :memory: não tolera flush paralelo).
+_sqlite_write_lock = threading.RLock()
+
+if _IS_SQLITE and (
     ":memory:" in settings.database_url or settings.database_url in {"sqlite://", "sqlite:///:memory:"}
 ):
     engine = create_engine(
@@ -34,9 +40,35 @@ if settings.database_url.startswith("sqlite") and (
         poolclass=StaticPool,
     )
 else:
-    connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+    connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
     engine = create_engine(settings.database_url, connect_args=connect_args)
+
+if _IS_SQLITE:
+
+    @event.listens_for(engine, "connect")
+    def _sqlite_on_connect(dbapi_connection, _connection_record) -> None:  # noqa: ANN001
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        try:
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.execute("PRAGMA journal_mode=WAL")
+        except Exception:  # noqa: BLE001
+            pass
+        cursor.close()
+
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+@contextmanager
+def sqlite_write_guard():
+    """Lock só em volta do flush/commit — não atravessa o TestClient (evita deadlock)."""
+    if not _IS_SQLITE:
+        with nullcontext():
+            yield
+        return
+    with _sqlite_write_lock:
+        yield
 
 
 def get_db() -> Generator[Session, None, None]:

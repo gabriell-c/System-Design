@@ -2,8 +2,10 @@ import type {
   AnalysisResult,
   GraphRecord,
   GraphVersion,
+  Project,
   ReviewStatus,
   UserRole,
+  NodeComment,
 } from "./types";
 import type {
   OutputFormat,
@@ -95,6 +97,30 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ output_format: "json" satisfies OutputFormat, ...payload }),
     }),
+  // Projects
+  listProjects: () => request<Project[]>("/projects"),
+  createProject: (payload: { name: string; context?: string; nfr_json?: string }) =>
+    request<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
+  getProject: (id: string) => request<Project>(`/projects/${id}`),
+  updateProject: (id: string, payload: Partial<Project>) =>
+    request<Project>(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteProject: (id: string) =>
+    request<void>(`/projects/${id}`, { method: "DELETE" }),
+  listProjectDiagrams: (id: string) => request<GraphRecord[]>(`/projects/${id}/diagrams`),
+  createProjectDiagram: (projectId: string, payload: Partial<GraphRecord>) =>
+    request<GraphRecord>(`/projects/${projectId}/diagrams`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Comments
+  listComments: (graphId: string) => request<NodeComment[]>(`/graphs/${graphId}/comments`),
+  createComment: (graphId: string, payload: { node_id?: string; text: string }) =>
+    request<NodeComment>(`/graphs/${graphId}/comments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteComment: (graphId: string, commentId: string) =>
+    request<void>(`/graphs/${graphId}/comments/${commentId}`, { method: "DELETE" }),
 };
 
 export type AiProvider = "omniroute" | "openai" | "anthropic" | "custom";

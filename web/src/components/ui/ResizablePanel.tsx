@@ -20,23 +20,21 @@ export default function ResizablePanel({
   side,
   children,
 }: Props) {
-  const [width, setWidth] = useState(defaultWidth);
-  const dragging = useRef(false);
-  const startX = useRef(0);
-  const startW = useRef(0);
-
-  // restaurar do localStorage
-  useEffect(() => {
+  const [width, setWidth] = useState(() => {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const n = Number(raw);
-        if (Number.isFinite(n) && n >= minWidth && n <= maxWidth) setWidth(n);
+        if (Number.isFinite(n) && n >= minWidth && n <= maxWidth) return n;
       }
     } catch {
       /* ignore */
     }
-  }, [storageKey, minWidth, maxWidth]);
+    return defaultWidth;
+  });
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
 
   const saveWidth = useCallback(
     (w: number) => {

@@ -3,6 +3,8 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://testserver")
 os.environ.setdefault("OMNIROUTE_TIMEOUT_S", "1")
+# ≥ 32 bytes — evita InsecureKeyLengthWarning do PyJWT
+os.environ.setdefault("ARCHIA_JWT_SECRET", "archia-test-secret-key-32b-minimum!!")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -6,7 +6,8 @@ export type NodeKind =
   | "identity"
   | "observability"
   | "integration"
-  | "deploy";
+  | "deploy"
+  | "security";
 
 export const ALL_NODE_KINDS: NodeKind[] = [
   "frontend",
@@ -17,9 +18,10 @@ export const ALL_NODE_KINDS: NodeKind[] = [
   "observability",
   "integration",
   "deploy",
+  "security",
 ];
 
-export type CanvasNodeKind = NodeKind | "block";
+export type CanvasNodeKind = NodeKind | "block" | "zone";
 
 export type Severity = "info" | "warning" | "critical";
 
@@ -28,6 +30,70 @@ export type UserRole = "senior" | "other";
 export type ReviewStatus = "draft" | "analyzed" | "pending_review" | "approved" | "rejected";
 
 export type CloudLayer = "compute" | "data" | "edge" | "platform";
+
+export type CloudProvider = "aws" | "azure" | "gcp" | "generic";
+
+/** Contêineres de arquitetura real (cloud-agnostic). */
+export type ZoneKind =
+  | "region"
+  | "vpc"
+  | "availability_zone"
+  | "subnet_public"
+  | "subnet_private"
+  | "layer"
+  | "plane"
+  | "security_boundary";
+
+export const ALL_ZONE_KINDS: ZoneKind[] = [
+  "region",
+  "vpc",
+  "availability_zone",
+  "subnet_public",
+  "subnet_private",
+  "layer",
+  "plane",
+  "security_boundary",
+];
+
+export type FlowKind = "sync" | "async" | "data" | "control" | "management";
+
+export type FlowProtocol = "https" | "grpc" | "amqp" | "kafka" | "sql" | "s3" | "other";
+
+export type FailureBehavior = "retry" | "fallback" | "dlq" | "fail_fast" | "none";
+
+export type ArchEdgeData = {
+  flowKind: FlowKind;
+  protocol?: FlowProtocol;
+  flowNumber?: number;
+  label?: string;
+  isCriticalPath?: boolean;
+  failureBehavior?: FailureBehavior;
+  firewallRules?: FirewallRule[];
+};
+
+export type FirewallRule = {
+  port: string;
+  protocol: "tcp" | "udp" | "all";
+  direction: "inbound" | "outbound";
+  description?: string;
+};
+
+export type NodeComment = {
+  id: string;
+  nodeId: string;
+  text: string;
+  author: string;
+  created_at: string;
+};
+
+export type ArchStyle =
+  | "monolithic"
+  | "layered"
+  | "microservices"
+  | "event_driven"
+  | "hexagonal"
+  | "serverless"
+  | "soa";
 
 export type ArchNodeConfig = {
   framework?: string;
@@ -38,6 +104,8 @@ export type ArchNodeConfig = {
   provider?: string;
   service?: string;
   layer?: CloudLayer;
+  /** Capability multi-cloud (dns, api_edge, secrets, …) */
+  capability?: string;
 };
 
 export type ArchNodeData = {
@@ -48,6 +116,8 @@ export type ArchNodeData = {
   config: ArchNodeConfig;
   score?: number | null;
   summary?: string;
+  /** Gargalo detectado na análise (pulse vermelho no canvas). */
+  bottleneck?: boolean;
 };
 
 export type BlockNodeData = {
@@ -57,16 +127,32 @@ export type BlockNodeData = {
   description?: string;
   score?: number | null;
   summary?: string;
+  bottleneck?: boolean;
 };
 
-export type CanvasNodeData = ArchNodeData | BlockNodeData;
+export type ZoneNodeData = {
+  kind: "zone";
+  zoneKind: ZoneKind;
+  label: string;
+  provider?: CloudProvider;
+  description?: string;
+  score?: number | null;
+  summary?: string;
+  bottleneck?: boolean;
+};
+
+export type CanvasNodeData = ArchNodeData | BlockNodeData | ZoneNodeData;
 
 export function isBlockData(data: CanvasNodeData): data is BlockNodeData {
   return data.kind === "block";
 }
 
+export function isZoneData(data: CanvasNodeData): data is ZoneNodeData {
+  return data.kind === "zone";
+}
+
 export function isArchData(data: CanvasNodeData): data is ArchNodeData {
-  return data.kind !== "block";
+  return data.kind !== "block" && data.kind !== "zone";
 }
 
 export type MetricEstimate = {
@@ -106,6 +192,39 @@ export type AnalysisResult = {
   ia_ok: boolean;
   ia_unavailable: boolean;
   agents_used: string[];
+  arch_style?: string | null;
+  style_confidence?: number;
+  domain_coherence?: {
+    an: number;
+    ad: number;
+    aa: number;
+    ai: number;
+    geral: number;
+  } | null;
+  cohesion_coupling?: {
+    cohesion_score: number;
+    coupling_score: number;
+    por_dominio?: Record<string, number>;
+  } | null;
+  trade_offs?: Array<{
+    decisao: string;
+    alternativa_rejeitada: string;
+    vantagem: string;
+    desvantagem: string;
+    criterio_escolha: string;
+  }>;
+  style_findings?: Finding[];
+  review_scorecard?: {
+    narrative: number;
+    views_completeness: number;
+    placement: number;
+    flow_continuity: number;
+    operability: number;
+    decision_quality: number;
+    overall: number;
+    review_ready: boolean;
+    gaps: string[];
+  } | null;
 };
 
 export type EnvironmentPlan = {
@@ -117,6 +236,50 @@ export type EnvironmentPlan = {
   has_monitoring_plan: boolean;
 };
 
+export type FailureMode = {
+  component_id: string;
+  mode: string;
+  impact: string;
+  mitigation: string;
+};
+
+export type DataOwnership = {
+  entity: string;
+  owner_team?: string;
+  owner_role?: string;
+  write_freq?: 'realtime' | 'batch' | 'streaming';
+  retention_days?: number;
+  pii?: boolean;
+  classification?: 'public' | 'internal' | 'confidential' | 'restricted';
+};
+
+export type ApiContract = {
+  service: string;
+  endpoint?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  protocol?: 'rest' | 'graphql' | 'grpc' | 'async';
+  schema_url?: string;
+  version?: string;
+};
+
+export type EventTopic = {
+  name: string;
+  protocol?: 'kafka' | 'rabbitmq' | 'sns' | 'pubsub';
+  schema_type?: 'avro' | 'protobuf' | 'jsonschema' | 'json';
+  retention_hours?: number;
+  consumers?: string[];
+  producers?: string[];
+};
+
+export type ConsistencyPattern = 'strong' | 'eventual' | 'causal' | 'session';
+
+export type DataLineage = {
+  source_entity: string;
+  target_entity: string;
+  transform?: string;
+  frequency?: string;
+};
+
 export type ProjectNfr = {
   users_per_day: number | null;
   budget_usd_month: number | null;
@@ -126,6 +289,20 @@ export type ProjectNfr = {
   team_size: number | null;
   deadline_weeks: number | null;
   environments: EnvironmentPlan;
+  arch_style?: ArchStyle | null;
+  business_processes?: string[];
+  data_entities?: string[];
+  data_governance?: string[];
+  slo_availability_pct?: number | null;
+  slo_latency_p99_ms?: number | null;
+  critical_path_edge_ids?: string[];
+  failure_modes?: FailureMode[];
+  // P1.1: Dados Profundos
+  data_ownership?: DataOwnership[];
+  api_contracts?: ApiContract[];
+  event_topics?: EventTopic[];
+  consistency_patterns?: Record<string, ConsistencyPattern>;
+  data_lineage?: DataLineage[];
 };
 
 export type GraphRecord = {
@@ -139,6 +316,17 @@ export type GraphRecord = {
   review_status: ReviewStatus;
   review_comment: string | null;
   reviewer_role: UserRole | null;
+  project_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  context?: string;
+  nfr?: ProjectNfr | null;
+  diagrams: GraphRecord[];
   created_at: string;
   updated_at: string;
 };
@@ -152,7 +340,7 @@ export type GraphVersion = {
   created_at: string;
 };
 
-export type CatalogCategory = "language" | "framework" | "library" | "service" | "database" | "platform" | "tool";
+export type CatalogCategory = "language" | "framework" | "library" | "service" | "database" | "platform" | "tool" | "security";
 
 export type CatalogItem = {
   id: string;
@@ -168,6 +356,10 @@ export type CatalogItem = {
   popularity?: number;
   /** Tags extras para busca */
   tags?: string[];
+  /** Provedor cloud (multi-cloud) */
+  provider?: CloudProvider;
+  /** Capability para paridade AWS/Azure/GCP */
+  capability?: string;
 };
 
 /** Preferências do usuário sobre quais componentes aparecem na paleta */

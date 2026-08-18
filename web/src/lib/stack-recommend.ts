@@ -97,7 +97,7 @@ export function checkRecommendations(
         recommendations.push({
           id: `rec-${addedTechId}-${rule.techId}`,
           techId: rule.techId,
-          title: catalogItem.name,
+          title: catalogItem.label,
           description: catalogItem.description ?? "",
           reason: rule.reason,
           category: catalogItem.category,

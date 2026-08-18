@@ -1,6 +1,4 @@
 ﻿"""Integration tests for auth routes."""
-import pytest
-from app.auth import create_access_token
 
 def _register(client, username="alice", email="alice@test.com", password="SecurePass1"):
     return client.post("/auth/register", json={

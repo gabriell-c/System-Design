@@ -5,6 +5,7 @@ import {
   FileImage,
   FileJson,
   FileText,
+  FileCode2,
   Loader2,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -16,6 +17,9 @@ import {
   toExportPayload,
 } from "@/lib/export";
 import { exportArchitecturePdf, exportArchitecturePng } from "@/lib/export-canvas";
+import { exportToDrawio } from "@/lib/export-drawio";
+import { exportToPlantuml } from "@/lib/export-plantuml";
+import { exportToMermaid } from "@/lib/export-mermaid";
 import { useGraphStore } from "@/lib/graph-store";
 
 type Props = {
@@ -45,7 +49,7 @@ export default function ExportMenu({ onDone }: Props) {
 
   const base = slugifyFilename(name);
 
-  async function run(kind: "json" | "md" | "png" | "pdf") {
+  async function run(kind: "json" | "md" | "png" | "pdf" | "drawio" | "plantuml" | "mermaid") {
     try {
       if (kind === "json") {
         downloadJson(
@@ -55,19 +59,31 @@ export default function ExportMenu({ onDone }: Props) {
         pushUiNotice({ type: "success", text: "JSON exportado (reimportável)." });
       } else if (kind === "md") {
         const md = toArchitectureMarkdown(name, nodes, edges, { context, nfr, analysis });
-        downloadText(`${base}.md`, md, "text/markdown;charset=utf-8");
-        pushUiNotice({ type: "success", text: "Markdown exportado." });
+        downloadText(`${base}.architecture-package.md`, md, "text/markdown;charset=utf-8");
+        pushUiNotice({ type: "success", text: "Architecture Package (Markdown) exportado." });
       } else if (kind === "png") {
         setBusy("png");
         await exportArchitecturePng(`${base}.png`, nodes);
         pushUiNotice({ type: "success", text: "Imagem PNG exportada." });
-      } else {
+      } else if (kind === "pdf") {
         setBusy("pdf");
         await exportArchitecturePdf(name, nodes, edges, { context, nfr, analysis, includeDiagram: true });
         pushUiNotice({
           type: "success",
           text: "PDF: escolha “Salvar como PDF” na impressão.",
         });
+      } else if (kind === "drawio") {
+        const xml = exportToDrawio(nodes, edges);
+        downloadText(`${base}.drawio`, xml, "application/xml;charset=utf-8");
+        pushUiNotice({ type: "success", text: "Draw.io exportado." });
+      } else if (kind === "plantuml") {
+        const puml = exportToPlantuml(nodes, edges, name);
+        downloadText(`${base}.puml`, puml, "text/plain;charset=utf-8");
+        pushUiNotice({ type: "success", text: "PlantUML exportado." });
+      } else if (kind === "mermaid") {
+        const md = exportToMermaid(nodes, edges, name);
+        downloadText(`${base}.mmd`, md, "text/plain;charset=utf-8");
+        pushUiNotice({ type: "success", text: "Mermaid exportado." });
       }
       setOpen(false);
       onDone?.();
@@ -128,6 +144,24 @@ export default function ExportMenu({ onDone }: Props) {
             hint="Impressão → Salvar como PDF"
             disabled={busy != null}
             onClick={() => void run("pdf")}
+          />
+          <ExportItem
+            icon={<FileCode2 size={14} />}
+            label="Draw.io / diagrams.net"
+            hint="XML para importar no draw.io"
+            onClick={() => void run("drawio")}
+          />
+          <ExportItem
+            icon={<FileCode2 size={14} />}
+            label="PlantUML"
+            hint="Diagrama de sequência/componentes"
+            onClick={() => void run("plantuml")}
+          />
+          <ExportItem
+            icon={<FileCode2 size={14} />}
+            label="Mermaid"
+            hint="Flowchart para README / Notion"
+            onClick={() => void run("mermaid")}
           />
         </div>
       )}

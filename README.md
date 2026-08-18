@@ -12,7 +12,7 @@
 
 # 🏗️ Archia — Editor Visual de System Design com IA
 
-**Desenhe, analise e simule arquiteturas de software SaaS em um canvas visual — com avaliação no nível de um Software Architect.**
+**Desenhe, analise e simule arquiteturas de software reais** (zonas VPC/AZ, fluxos tipados multi-cloud) **e stacks** em um canvas visual — com avaliação no nível de um Software Architect.
 
 O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componentes + conexões) arrastando e soltando blocos em um canvas, e recebe em troca uma **análise completa**: over/under-engineering, gargalos, riscos de segurança, custo mensal estimado e nota justificada. Tudo isso combinando **IA** (via OmniRoute/OpenAI/Anthropic) com **heurísticas locais determinísticas** que funcionam mesmo sem conexão com provedores de IA.
 
@@ -69,7 +69,8 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 | | Heurística local | Fallback determinístico sem IA |
 | **Portas** | Backend `8001` · Frontend `3015` · OmniRoute `20128` | Execução local |
 
-> 📄 Documentação detalhada do projeto em [`docs/README.md`](docs/README.md).
+> 📄 Documentação detalhada do projeto em [`docs/README.md`](docs/README.md).  
+> 📐 Padrão de diagrama review-ready: [`docs/PADRAO-DIAGRAMA-ARQUITETURA.md`](docs/PADRAO-DIAGRAMA-ARQUITETURA.md).
 
 ## ✨ Funcionalidades
 

@@ -3,6 +3,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.arch_style import ArchStyle, FailureMode
+
 ReviewStatus = Literal["draft", "analyzed", "pending_review", "approved", "rejected"]
 UserRole = Literal["senior", "other"]
 
@@ -26,6 +28,25 @@ class ProjectNfr(BaseModel):
     deadline_weeks: int | None = Field(default=None, ge=0)
     environments: EnvironmentPlan = Field(default_factory=EnvironmentPlan)
 
+    # Estilo + domínios AN/AD
+    arch_style: ArchStyle | None = None
+    business_processes: list[str] = Field(default_factory=list)
+    data_entities: list[str] = Field(default_factory=list)
+    data_governance: list[str] = Field(default_factory=list)
+
+    # SLOs explícitos (podem espelhar availability/latency NFR)
+    slo_availability_pct: float | None = Field(default=None, ge=0, le=100)
+    slo_latency_p99_ms: int | None = Field(default=None, ge=0)
+    critical_path_edge_ids: list[str] = Field(default_factory=list)
+    failure_modes: list[FailureMode] = Field(default_factory=list)
+
+    # P1.1: Dados Profundos
+    data_ownership: list[dict[str, Any]] = Field(default_factory=list)
+    api_contracts: list[dict[str, Any]] = Field(default_factory=list)
+    event_topics: list[dict[str, Any]] = Field(default_factory=list)
+    consistency_patterns: dict[str, str] = Field(default_factory=dict)
+    data_lineage: list[dict[str, Any]] = Field(default_factory=list)
+
 
 class GraphPayload(BaseModel):
     name: str = Field(min_length=1, max_length=200)
@@ -33,6 +54,7 @@ class GraphPayload(BaseModel):
     nfr: ProjectNfr | None = None
     nodes: list[dict[str, Any]] = Field(default_factory=list)
     edges: list[dict[str, Any]] = Field(default_factory=list)
+    project_id: str | None = Field(default=None, max_length=36)
 
 
 class GraphUpdate(BaseModel):
@@ -42,6 +64,7 @@ class GraphUpdate(BaseModel):
     nodes: list[dict[str, Any]] | None = None
     edges: list[dict[str, Any]] | None = None
     analysis: dict[str, Any] | None = None
+    project_id: str | None = Field(default=None, max_length=36)
 
 
 class GraphOut(BaseModel):
@@ -55,6 +78,7 @@ class GraphOut(BaseModel):
     review_status: str
     review_comment: str | None
     reviewer_role: str | None
+    project_id: str | None = None
     created_at: datetime
     updated_at: datetime
 

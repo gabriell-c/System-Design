@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 import { parseImportPayload } from "@/lib/export";
 import { useAuthStore } from "@/lib/auth-store";
 import { useGraphStore } from "@/lib/graph-store";
+import { ARCHITECTURE_VIEWS, type ArchitectureView } from "@/lib/architecture-view";
 
 type Props = {
   onAnalyze: () => void;
@@ -56,6 +57,8 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
   const past = useGraphStore((s) => s.past);
   const future = useGraphStore((s) => s.future);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
+  const architectureView = useGraphStore((s) => s.architectureView);
+  const setArchitectureView = useGraphStore((s) => s.setArchitectureView);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -133,6 +136,30 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
         </span>
 
         <div className="mx-0.5 hidden h-6 w-px bg-white/10 sm:block" />
+
+        <div
+          className="hidden items-center gap-0.5 rounded-lg border border-white/10 bg-[#121821] p-0.5 lg:flex"
+          role="group"
+          aria-label="Vista de arquitetura"
+          title="Alternar vistas AN/AD/AA/AI"
+        >
+          {ARCHITECTURE_VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+                architectureView === v.id
+                  ? "bg-cyan-500/20 text-cyan-200"
+                  : "text-slate-500 hover:text-slate-200"
+              }`}
+              aria-pressed={architectureView === v.id}
+              onClick={() => setArchitectureView(v.id as ArchitectureView)}
+              title={v.label}
+            >
+              {v.short}
+            </button>
+          ))}
+        </div>
 
         <div className="flex items-center gap-0.5" aria-label="Desfazer e refazer">
           <button

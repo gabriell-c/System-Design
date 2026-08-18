@@ -1,6 +1,5 @@
 ﻿"""Integration tests for profile routes: get, update, delete account."""
 
-import pytest
 
 def _register(client, username="alice", email="alice@test.com"):
     return client.post("/auth/register", json={

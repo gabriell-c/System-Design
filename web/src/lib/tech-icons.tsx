@@ -72,6 +72,7 @@ import {
   Globe,
   Key,
   Layout,
+  Lock,
   Mail,
   MessageSquare,
   Monitor,
@@ -234,6 +235,7 @@ const KIND_FALLBACK: Record<NodeKind, IconType> = {
   observability: Activity,
   integration: Plug,
   deploy: Rocket,
+  security: Lock,
 };
 
 export function resolveTechIcon(catalogId: string | undefined, kind: NodeKind): IconType {

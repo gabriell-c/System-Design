@@ -28,24 +28,21 @@ export function useSimulation() {
 
   const [presets, setPresets] = useState<SimulationPreset[]>([]);
   const [presetId, setPresetId] = useState<string>("gradual-ramp");
-  const [seed, setSeedState] = useState(42);
-  const [realism, setRealismState] = useState(0.65);
-  const [testMode, setTestModeState] = useState<"load" | "stress" | "soak">("load");
+  const [seed, setSeedState] = useState(() => readNumber(SEED_KEY, 42));
+  const [realism, setRealismState] = useState(() => readNumber(REALISM_KEY, 0.65));
+  const [testMode, setTestModeState] = useState<"load" | "stress" | "soak">(() => {
+    try {
+      const storedMode = localStorage.getItem(MODE_KEY);
+      if (storedMode === "stress" || storedMode === "soak") return storedMode;
+    } catch {
+      /* ignore */
+    }
+    return "load";
+  });
   const [loadingPresets, setLoadingPresets] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSeedState(readNumber(SEED_KEY, 42));
-    setRealismState(readNumber(REALISM_KEY, 0.65));
-    try {
-      const storedMode = localStorage.getItem(MODE_KEY);
-      if (storedMode === "stress" || storedMode === "soak") {
-        setTestModeState(storedMode);
-      }
-    } catch { /* ignore */ }
-  }, []);
 
   useEffect(() => {
     let alive = true;

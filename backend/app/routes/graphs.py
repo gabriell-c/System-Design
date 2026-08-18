@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.agents.runner import analyze_architecture
-from app.database import get_db
-from app.models.graph import Graph, GraphVersion
+from app.database import get_db, sqlite_write_guard
+from app.models.graph import Graph, GraphVersion, new_uuid
 from app.schemas.analysis import AnalysisResult, ComparisonResult
 from app.schemas.graph import (
     AnalyzeRequest,
@@ -66,6 +66,7 @@ def to_out(graph: Graph) -> GraphOut:
         review_status=graph.review_status,
         review_comment=graph.review_comment,
         reviewer_role=graph.reviewer_role,
+        project_id=getattr(graph, "project_id", None),
         created_at=graph.created_at,
         updated_at=graph.updated_at,
     )
@@ -74,6 +75,7 @@ def to_out(graph: Graph) -> GraphOut:
 def _snapshot(db: Session, graph: Graph) -> None:
     db.add(
         GraphVersion(
+            id=new_uuid(),
             graph_id=graph.id,
             name=graph.name,
             nodes_json=graph.nodes_json,
@@ -91,6 +93,8 @@ def list_graphs(db: Session = Depends(get_db)) -> list[GraphOut]:
 @router.post("/graphs", response_model=GraphOut, status_code=201)
 def create_graph(payload: GraphPayload, db: Session = Depends(get_db)) -> GraphOut:
     graph = Graph(
+        id=new_uuid(),
+        project_id=payload.project_id,
         name=payload.name.strip(),
         context_text=(payload.context or "").strip(),
         nfr_json=(payload.nfr or ProjectNfr()).model_dump_json(),
@@ -98,11 +102,12 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db)) -> GraphO
         edges_json=json.dumps(payload.edges),
         review_status="draft",
     )
-    db.add(graph)
-    db.flush()
-    _snapshot(db, graph)
-    db.commit()
-    db.refresh(graph)
+    with sqlite_write_guard():
+        db.add(graph)
+        db.flush()
+        _snapshot(db, graph)
+        db.commit()
+        db.refresh(graph)
     return to_out(graph)
 
 
@@ -131,10 +136,13 @@ def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_
         graph.edges_json = json.dumps(payload.edges)
     if payload.analysis is not None:
         graph.analysis_json = json.dumps(payload.analysis)
+    if payload.project_id is not None:
+        graph.project_id = payload.project_id
     graph.updated_at = datetime.now(timezone.utc)
-    _snapshot(db, graph)
-    db.commit()
-    db.refresh(graph)
+    with sqlite_write_guard():
+        _snapshot(db, graph)
+        db.commit()
+        db.refresh(graph)
     return to_out(graph)
 
 
@@ -143,8 +151,9 @@ def delete_graph(graph_id: str, db: Session = Depends(get_db)) -> Response:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Grafo não encontrado")
-    db.delete(graph)
-    db.commit()
+    with sqlite_write_guard():
+        db.delete(graph)
+        db.commit()
     return Response(status_code=204)
 
 
@@ -178,9 +187,10 @@ def restore_version(graph_id: str, version_id: str, db: Session = Depends(get_db
     graph.nodes_json = version.nodes_json
     graph.edges_json = version.edges_json
     graph.updated_at = datetime.now(timezone.utc)
-    _snapshot(db, graph)
-    db.commit()
-    db.refresh(graph)
+    with sqlite_write_guard():
+        _snapshot(db, graph)
+        db.commit()
+        db.refresh(graph)
     return to_out(graph)
 
 

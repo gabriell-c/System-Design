@@ -6,10 +6,12 @@ import DesignCanvas from "@/components/canvas/DesignCanvas";
 import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
+import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useGraphStore } from "@/lib/graph-store";
+import { useProjectStore } from "@/lib/project-store";
 import TopBar from "./TopBar";
 
 const FOCUS_KEY = "archia-focus-mode";
@@ -48,6 +50,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export default function EditorShell() {
   useAutoSave();
+  const { loadProjects } = useProjectStore();
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
@@ -60,15 +67,13 @@ export default function EditorShell() {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipFirst = useRef(true);
-  const [focusMode, setFocusMode] = useState(false);
-
-  useEffect(() => {
+  const [focusMode, setFocusMode] = useState(() => {
     try {
-      if (localStorage.getItem(FOCUS_KEY) === "1") setFocusMode(true);
+      return localStorage.getItem(FOCUS_KEY) === "1";
     } catch {
-      /* ignore */
+      return false;
     }
-  }, []);
+  });
 
   const setFocus = useCallback(
     (value: boolean) => {
@@ -155,16 +160,18 @@ export default function EditorShell() {
   }, [fingerprint]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {!focusMode && (
-        <TopBar onAnalyze={() => void runAnalyze()} onToggleFocus={toggleFocus} focusMode={focusMode} />
-      )}
-      <div className="flex min-h-0 flex-1">
+    <div className="flex h-full min-h-0">
+      <DiagramSidebar />
+      <div className="flex min-h-0 flex-1 flex-col">
         {!focusMode && (
-          <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
-            <ComponentPalette />
-          </ResizablePanel>
+          <TopBar onAnalyze={() => void runAnalyze()} onToggleFocus={toggleFocus} focusMode={focusMode} />
         )}
+        <div className="flex min-h-0 flex-1">
+          {!focusMode && (
+            <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
+              <ComponentPalette />
+            </ResizablePanel>
+          )}
         <main className="relative min-w-0 flex-1 bg-[#070b10]">
           <DomainNotice />
           <DesignCanvas />
@@ -201,6 +208,7 @@ export default function EditorShell() {
           </ResizablePanel>
         )}
       </div>
+    </div>
     </div>
   );
 }

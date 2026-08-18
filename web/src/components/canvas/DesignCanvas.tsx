@@ -15,15 +15,22 @@ import { Boxes, Keyboard, MousePointerClick, Share2, Unlink2 } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
-import { findBlockAtPoint, isBlockNode } from "@/lib/blocks";
+import ZoneNode from "@/components/nodes/ZoneNode";
+import DiagramLegend from "@/components/canvas/DiagramLegend";
+import TitleBlock from "@/components/canvas/TitleBlock";
+import { findContainerAtPoint, isContainerNode } from "@/lib/blocks";
 import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { computeSnap, type GuideLine } from "@/lib/snap";
-import type { CanvasNodeData, NodeKind } from "@/lib/types";
+import type { CanvasNodeData, NodeKind, ZoneKind } from "@/lib/types";
+import { ALL_ZONE_KINDS } from "@/lib/types";
+import { ZONE_META } from "@/lib/zones";
+import { FLOW_KIND_META } from "@/lib/edges";
 
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
   block: BlockNode,
+  zone: ZoneNode,
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -34,12 +41,16 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function CanvasInner() {
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
+  const name = useGraphStore((s) => s.name);
+  const nfr = useGraphStore((s) => s.nfr);
   const onNodesChange = useGraphStore((s) => s.onNodesChange);
   const onEdgesChange = useGraphStore((s) => s.onEdgesChange);
   const onConnect = useGraphStore((s) => s.onConnect);
   const addCatalogNode = useGraphStore((s) => s.addCatalogNode);
   const addBlock = useGraphStore((s) => s.addBlock);
+  const addZone = useGraphStore((s) => s.addZone);
   const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
+  const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
   const resolveNestingAfterDrag = useGraphStore((s) => s.resolveNestingAfterDrag);
   const checkpointDrag = useGraphStore((s) => s.checkpointDrag);
   const deleteSelected = useGraphStore((s) => s.deleteSelected);
@@ -87,15 +98,32 @@ function CanvasInner() {
   }, [deleteSelected, redo, undo]);
 
   const orderedNodes = useMemo(() => {
-    const blocks = nodes.filter((n) => isBlockNode(n));
-    const rest = nodes.filter((n) => !isBlockNode(n));
-    return [...blocks, ...rest];
+    const containers = nodes.filter((n) => isContainerNode(n));
+    const rest = nodes.filter((n) => !isContainerNode(n));
+    // parents before children for React Flow nesting
+    const depth = (n: (typeof nodes)[0]) => {
+      let d = 0;
+      let p = n.parentId;
+      while (p) {
+        d += 1;
+        p = nodes.find((x) => x.id === p)?.parentId;
+      }
+      return d;
+    };
+    containers.sort((a, b) => depth(a) - depth(b));
+    return [...containers, ...rest];
   }, [nodes]);
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      const zoneKind = event.dataTransfer.getData("application/system-design-zone") as ZoneKind | "";
+      if (zoneKind && ALL_ZONE_KINDS.includes(zoneKind)) {
+        addZone(zoneKind, { x: position.x - 120, y: position.y - 40 });
+        return;
+      }
 
       const blockDomain = event.dataTransfer.getData("application/system-design-block") as NodeKind | "";
       if (blockDomain) {
@@ -106,27 +134,36 @@ function CanvasInner() {
       const catalogId = event.dataTransfer.getData("application/system-design");
       if (!catalogId) return;
 
-      const block = findBlockAtPoint(nodes, position);
-      if (block) {
+      const container = findContainerAtPoint(nodes, position);
+      if (container) {
         const abs = {
-          x: block.position.x,
-          y: block.position.y,
+          x: container.position.x,
+          y: container.position.y,
         };
+        // If nested, absolutePosition would be needed — addCatalogNode handles parentId nest
         addCatalogNode(
           catalogId,
           {
             x: Math.max(16, position.x - abs.x - 100),
             y: Math.max(56, position.y - abs.y - 30),
           },
-          block.id,
+          container.id,
         );
         return;
       }
 
       addCatalogNode(catalogId, { x: position.x - 100, y: position.y - 30 });
     },
-    [addBlock, addCatalogNode, nodes, screenToFlowPosition],
+    [addBlock, addCatalogNode, addZone, nodes, screenToFlowPosition],
   );
+
+  function startWithZone(kind: ZoneKind) {
+    addZone(kind, { x: 80, y: 60 });
+    pushUiNotice({
+      type: "success",
+      text: `Zona ${ZONE_META[kind].label} criada. Arraste AZ/subnets ou serviços para dentro.`,
+    });
+  }
 
   function startWith(kind: NodeKind) {
     addBlock(kind, { x: 160, y: 120 });
@@ -146,31 +183,43 @@ function CanvasInner() {
               <li className="flex gap-3">
                 <Boxes className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                 <span>
-                  <strong className="text-slate-100">1. Bloco</strong> — área do domínio (Frontend, Backend…).
+                  <strong className="text-slate-100">1. Zona</strong> — Region / VPC / AZ / Plane (arquitetura real).
                 </span>
               </li>
               <li className="flex gap-3">
                 <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
                 <span>
-                  <strong className="text-slate-100">2. Cards</strong> — tecnologias do mesmo domínio dentro do bloco.
+                  <strong className="text-slate-100">2. Serviços</strong> — cards multi-cloud dentro das zonas.
                 </span>
               </li>
               <li className="flex gap-3">
                 <Share2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                 <span>
-                  <strong className="text-slate-100">3. Ligações</strong> — arraste entre os pontos. Duplo clique remove.
+                  <strong className="text-slate-100">3. Fluxos</strong> — ligações tipadas (sync/async) com número.
                 </span>
               </li>
             </ol>
             <div className="mt-5 grid grid-cols-2 gap-2">
-              {(["frontend", "backend", "database", "cloud"] as NodeKind[]).map((kind) => (
+              {(["region", "vpc", "plane", "security_boundary"] as ZoneKind[]).map((kind) => (
                 <button
                   key={kind}
                   type="button"
                   className="btn-ghost flex items-center justify-center gap-1.5 py-2"
+                  onClick={() => startWithZone(kind)}
+                >
+                  {ZONE_META[kind].short}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {(["frontend", "backend", "database", "cloud"] as NodeKind[]).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className="btn-ghost flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-slate-400"
                   onClick={() => startWith(kind)}
                 >
-                  {KIND_META[kind].label}
+                  Bloco {KIND_META[kind].label}
                 </button>
               ))}
             </div>
@@ -210,10 +259,30 @@ function CanvasInner() {
                 <kbd className="rounded bg-white/10 px-1">F</kbd> tela cheia ·{" "}
                 <kbd className="rounded bg-white/10 px-1">Esc</kbd> sai
               </li>
-              <li>Card só entra em bloco do mesmo domínio</li>
+              <li>Zonas aninham (VPC → AZ → Subnet); blocos de stack ainda exigem mesmo domínio</li>
               <li>Itens alinham automaticamente ao arrastar</li>
             </ul>
           )}
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10">
+        <div className="pointer-events-none rounded-xl border border-white/10 bg-[#0d1219]/90 px-3 py-2 text-[10px] text-slate-400 backdrop-blur">
+          <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Fluxos</p>
+          <ul className="space-y-1">
+            {(Object.keys(FLOW_KIND_META) as (keyof typeof FLOW_KIND_META)[]).map((k) => (
+              <li key={k} className="flex items-center gap-2">
+                <span
+                  className="inline-block h-0.5 w-6"
+                  style={{
+                    background: FLOW_KIND_META[k].stroke,
+                    borderTop: FLOW_KIND_META[k].dash ? `1px dashed ${FLOW_KIND_META[k].stroke}` : undefined,
+                  }}
+                />
+                {FLOW_KIND_META[k].label}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -258,10 +327,15 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        onSelectionChange={({ nodes: selected }) => {
+        onSelectionChange={({ nodes: selected, edges: selectedEdges }) => {
+          if (selectedEdges?.[0]) {
+            setSelectedEdgeId(selectedEdges[0].id);
+            return;
+          }
           setSelectedNodeId(selected[0]?.id ?? null);
         }}
+        onEdgeClick={(_e, edge) => setSelectedEdgeId(edge.id)}
+        nodeTypes={nodeTypes}
         onNodeDragStart={(event, node) => {
           checkpointDrag();
           // Store original positions of all nodes for snap
@@ -309,8 +383,23 @@ function CanvasInner() {
         <MiniMap
           className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0d1219]"
           maskColor="rgba(2,6,23,0.75)"
-          nodeColor={(node) => (node.type === "block" ? "#334155" : "#475569")}
+          nodeColor={(node) =>
+            node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : "#475569"
+          }
         />
+        {/* Title Block */}
+        <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
+          <TitleBlock
+            title={name || "Arquitetura"}
+            author="Arquiteto"
+            version="1.0"
+            nfr={nfr}
+          />
+        </div>
+        {/* Legend */}
+        <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
+          <DiagramLegend />
+        </div>
       </ReactFlow>
     </div>
   );

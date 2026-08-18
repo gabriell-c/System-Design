@@ -33,12 +33,9 @@ from app.schemas.simulation import (
 )
 from app.services.heuristic import estimate_monthly_cost
 from app.services.knowledge import (
-    CASCADE_EFFECTS,
     COMPONENT_CAPACITY_RPS,
-    CONNECTION_REQUIREMENTS,
     DEGRADATION,
     POSTGRES_PRACTICAL_ON_T3_MEDIUM,
-    THROUGHPUT_RPS,
 )
 
 DEFAULT_JOURNEY_STEPS: list[JourneyStep] = [
@@ -196,7 +193,7 @@ def estimate_component_capacities(nodes: list[dict], edges: list[dict]) -> tuple
     # Conta instâncias por tipo
     backend_count = sum(1 for n in nodes if _node_data(n).get("kind") == "backend") or 1
     db_count = sum(1 for n in nodes if _node_data(n).get("kind") == "database") or 1
-    cache_count = sum(1 for n in nodes if _node_data(n).get("kind") == "cloud" and cache_tech)
+    # cache_count not needed for capacity calculation (cache_cap derived from tech)
 
     # --- Backend capacity ---
     backend_cap = 120.0  # fallback genérico
@@ -383,7 +380,6 @@ def simulate_load(
     err_peak = 0.0
     sat_at: int | None = None
     sum_rps = 0.0
-    first_sat_second: int | None = None
 
     steps = max(1, min(duration, 60 if include_timeline else 12))
     step_s = duration / steps
@@ -422,12 +418,10 @@ def simulate_load(
         saturated = load_ratio >= DEGRADATION["saturation"]
         if saturated and sat_at is None:
             sat_at = t
-            first_sat_second = t
 
         # Modelo de erro realista baseado em degradação por componente
         base_err = 0.002
         critical_bottlenecks = [b for b in bottlenecks if b.severity == "critical"]
-        warning_bottlenecks = [b for b in bottlenecks if b.severity == "warning"]
 
         # Erro sobe de forma não-linear após 70% da capacidade
         if load_ratio > DEGRADATION["knee"]:

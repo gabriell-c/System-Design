@@ -10,11 +10,8 @@ Cobre:
 """
 from __future__ import annotations
 
-import pytest
 
 from app.schemas.simulation import (
-    ComponentCapacity,
-    EngineeringAudit,
     LoadScenario,
     SimulationRequest,
 )
@@ -22,7 +19,6 @@ from app.services.simulation import (
     build_engineering_audit,
     estimate_component_capacities,
     run_simulation,
-    simulate_load,
 )
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -424,8 +420,6 @@ class TestReproducibility:
 class TestEdgeCases:
     def test_empty_nodes_fails(self):
         """Testa erro com grafo vazio."""
-        from fastapi import HTTPException
-        from app.routes.simulations import run
 
         # Via HTTP deve retornar 400
         from app.main import app

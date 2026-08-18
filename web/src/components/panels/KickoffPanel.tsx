@@ -39,6 +39,13 @@ export default function KickoffPanel() {
         <p className="mt-1 text-xs text-slate-400">
           {score.ready ? "Base mínima ok para discutir go-live." : "Ainda há buracos críticos no desenho."}
         </p>
+        <p
+          className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            score.reviewReady ? "bg-emerald-500/20 text-emerald-200" : "bg-violet-500/15 text-violet-200"
+          }`}
+        >
+          {score.reviewReady ? "review-ready (arquiteto)" : "canvas ok ≠ review-ready"}
+        </p>
       </div>
 
       <ul className="space-y-2">

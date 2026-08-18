@@ -4,25 +4,29 @@ Canvas React Flow com **blocos** (containers) e **cards** (tecnologias).
 
 ## Fluxo principal (kickoff → desenho → julgamento)
 
-1. **Contexto** — brief + NFRs + template (MVP / SaaS / Marketplace / API interna).
+1. **Contexto** — brief + NFRs + template (stack **ou** arquitetura real AWS/Azure).
 2. **Kickoff** — checklist do que falta (auth, obs, dados, ambientes…).
-3. **Bloco + cards** — 8 domínios (FE/BE/Dados/Infra/Mensageria/Identidade/Obs/Integrações).
-4. **Analisar / Simular** — faz sentido? aguenta carga?
-5. **ADRs** (menu Mais) — decisões leves para copiar ao repo.
+3. **Zonas + cards** — Region/VPC/AZ/Subnet/Plane **ou** blocos de stack (FE/BE/…).
+4. **Fluxos tipados** — sync/async com número; edite na aba Props ao selecionar a linha.
+5. **Arquitetura / Analisar / Simular** — coerência AN/AD/AA/AI, riscos de zona, carga.
+6. **ADRs** (menu Mais) — decisões leves para copiar ao repo.
 
 ## UI
 
 | Área | Papel |
 |------|--------|
 | Top bar | Nome, undo/redo, **Tela cheia**, **Exportar**, **Salvar**, **Analisar**, menu **Mais** |
-| Paleta | Busca + blocos (grid) + cards por domínio com accordion colapsável |
-| Canvas | Empty state + atalhos; templates via Contexto; modo foco (só canvas) |
-| Inspetor | Contexto · Kickoff · Props · Análise · Simulação · Mais (ADRs, Revisão, Histórico, IA) |
+| Paleta | Zonas · Blocos · Cards multi-cloud (filtro AWS/Azure/GCP) |
+| Canvas | Empty state com zonas; legenda de tipos de fluxo; templates via Contexto |
+| Inspetor | Contexto · Kickoff · Props · **Arquitetura** · Análise · Simulação · Mais |
+
+Ver também: [arquitetura-real.md](./arquitetura-real.md).
 
 ## Paleta (sidebar esquerda)
 
-- **Passo 1 · Blocos** — grid 2 col, sempre visível.
-- **Cards por domínio** — cada seção tem accordion (clicável) com ícone, nome e contagem.
+- **Zonas de arquitetura** — Region, VPC, AZ, Subnets, Layer, Plane, Security.
+- **Passo 1 · Blocos** — grid 2 col (stack domains).
+- **Cards por domínio** — accordion + filtro de cloud provider.
 - Estado de colapso salvo em `localStorage` (`archia-palette-collapsed`).
 - Botão **Expandir / Recolher** tudo no topo.
 - Ao buscar, todas as seções abrem automaticamente.

@@ -1,6 +1,5 @@
 ﻿"""Integration tests for user CRUD (senior-only routes)."""
 
-import pytest
 
 def _login_senior(client):
     resp = client.post("/auth/login", json={

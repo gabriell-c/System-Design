@@ -43,9 +43,10 @@ export default function CustomSelect({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  useEffect(() => {
-    if (open) setHighlight(selectedIndex);
-  }, [open, selectedIndex]);
+  function openList() {
+    setHighlight(selectedIndex);
+    setOpen(true);
+  }
 
   function selectAt(index: number) {
     const item = items[index];
@@ -62,11 +63,14 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (open) setOpen(false);
+          else openList();
+        }}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setOpen(true);
+            openList();
           }
         }}
       >

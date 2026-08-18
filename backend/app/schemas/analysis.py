@@ -2,6 +2,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.arch_style import (
+    CohesionCoupling,
+    DomainCoherenceScore,
+    ReviewScorecard,
+    TradeOffEntry,
+)
+
 Severity = Literal["info", "warning", "critical"]
 
 
@@ -54,6 +61,14 @@ class AnalysisResult(BaseModel):
     ia_ok: bool
     ia_unavailable: bool
     agents_used: list[str]
+
+    arch_style: str | None = None
+    style_confidence: float = 0.0
+    domain_coherence: DomainCoherenceScore | None = None
+    cohesion_coupling: CohesionCoupling | None = None
+    trade_offs: list[TradeOffEntry] = Field(default_factory=list)
+    style_findings: list[Finding] = Field(default_factory=list)
+    review_scorecard: ReviewScorecard | None = None
 
 
 class ComparisonResult(BaseModel):

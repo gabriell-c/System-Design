@@ -44,6 +44,16 @@ export default function AnalysisPanel() {
 
   const nodeFindings = analysis.findings.filter((f) => f.node_id === selectedNodeId);
   const globalFindings = analysis.findings.filter((f) => !f.node_id);
+  const bottleneckFindings = analysis.findings
+    .filter(
+      (f) =>
+        Boolean(f.node_id) && (f.severity === "warning" || f.severity === "critical"),
+    )
+    .slice()
+    .sort((a, b) => {
+      const rank = (s: Finding["severity"]) => (s === "critical" ? 0 : s === "warning" ? 1 : 2);
+      return rank(a.severity) - rank(b.severity);
+    });
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -53,12 +63,43 @@ export default function AnalysisPanel() {
           <span className="text-2xl font-semibold tabular-nums text-slate-50">{analysis.score.toFixed(1)}</span>
         </div>
         <p className="mt-2 text-sm text-slate-300">{analysis.summary}</p>
+        {analysis.arch_style && (
+          <p className="mt-2 text-xs text-violet-300">
+            Estilo: <strong>{analysis.arch_style}</strong>
+            {typeof analysis.style_confidence === "number"
+              ? ` (${(analysis.style_confidence * 100).toFixed(0)}%)`
+              : ""}
+          </p>
+        )}
+        {analysis.review_scorecard && (
+          <p className="mt-2 text-xs text-slate-400">
+            Review scorecard:{" "}
+            <strong className="text-slate-200">{analysis.review_scorecard.overall.toFixed(1)}/10</strong>
+            {analysis.review_scorecard.review_ready ? (
+              <span className="ml-2 text-emerald-300">review-ready</span>
+            ) : (
+              <span className="ml-2 text-amber-200">meta ≥ 8.0 — ver aba Arquitetura</span>
+            )}
+          </p>
+        )}
         {!analysis.ia_ok && (
           <p className="mt-2 text-xs text-amber-300">
             IA indisponível — relatório heurístico local. {analysis.ia_unavailable ? "OmniRoute não respondeu." : ""}
           </p>
         )}
       </div>
+
+      {bottleneckFindings.length > 0 && (
+        <section>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-rose-300">
+            Bottlenecks ({bottleneckFindings.length})
+          </h3>
+          <p className="mb-2 text-[11px] text-slate-500">
+            Cards em pulse vermelho no canvas — o componente culpado, não o sintoma.
+          </p>
+          <FindingList items={bottleneckFindings} />
+        </section>
+      )}
 
       {selectedNodeId && (
         <section>

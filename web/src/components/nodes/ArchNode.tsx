@@ -3,6 +3,8 @@
 import { Position, type Node, type NodeProps } from "@xyflow/react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
 import { KIND_META } from "@/lib/catalog";
+import { useGraphStore } from "@/lib/graph-store";
+import { nodeOpacityForView } from "@/lib/architecture-view";
 import { TechIcon } from "@/lib/tech-icons";
 import type { ArchNodeData } from "@/lib/types";
 
@@ -14,6 +16,8 @@ function scoreTone(score?: number | null): string {
 }
 
 export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
+  const architectureView = useGraphStore((s) => s.architectureView);
+  const opacity = nodeOpacityForView(data, architectureView);
   const meta = KIND_META[data.kind];
   const subtitle =
     data.config.framework ||
@@ -25,8 +29,17 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
     <article
       className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
         selected ? "ring-2 ring-cyan-400/70" : ""
+      } ${
+        data.bottleneck
+          ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
+          : ""
       }`}
-      style={{ background: "#121821", borderColor: meta.border }}
+      style={{
+        background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : "#121821",
+        borderColor: data.bottleneck ? "rgb(244, 63, 94)" : meta.border,
+        opacity,
+      }}
+      title={data.bottleneck ? data.summary || "Gargalo detectado na análise" : undefined}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
       <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />
@@ -48,19 +61,28 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-semibold text-slate-100">{data.label}</p>
-            {data.score != null && (
+            {data.bottleneck ? (
+              <span
+                className="rounded-md border border-rose-400/50 bg-rose-500/25 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-100"
+                title={data.summary || "Gargalo"}
+              >
+                Gargalo
+              </span>
+            ) : data.score != null ? (
               <span
                 className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${scoreTone(data.score)}`}
                 title="Nota heurística do node"
               >
                 {data.score.toFixed(1)}
               </span>
-            )}
+            ) : null}
           </div>
-          <p className="text-[10px] uppercase tracking-wide" style={{ color: meta.accent }}>
+          <p className="text-[10px] uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
             {meta.label}
           </p>
-          <p className="mt-1 truncate text-xs text-slate-400">{subtitle}</p>
+          <p className="mt-1 truncate text-xs text-slate-400">
+            {data.bottleneck && data.summary ? data.summary : subtitle}
+          </p>
         </div>
       </div>
     </article>

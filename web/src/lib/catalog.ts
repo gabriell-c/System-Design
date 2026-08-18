@@ -1,4 +1,6 @@
 import type { CatalogCategory, CatalogItem, NodeKind } from "./types";
+import { MULTI_CLOUD_CATALOG } from "./catalog-multicloud";
+import { PATTERNS_CATALOG } from "./catalog-patterns";
 
 export const KIND_META: Record<
   NodeKind,
@@ -51,6 +53,12 @@ export const KIND_META: Record<
     accent: "#f97316",
     bg: "rgba(249, 115, 22, 0.12)",
     border: "rgba(251, 146, 60, 0.45)",
+  },
+  security: {
+    label: "Security",
+    accent: "#f472b6",
+    bg: "rgba(236, 72, 153, 0.12)",
+    border: "rgba(244, 114, 182, 0.45)",
   },
 };
 
@@ -1648,6 +1656,87 @@ export const CATALOG: CatalogItem[] = [
     defaults: { service: "Traefik" },
   },
 
+  // ── Security & Infrastructure ───────────────────────────────
+  {
+    id: "sec-waf",
+    kind: "security",
+    label: "WAF 防火墙",
+    tech: "WAF",
+    description: "Web 应用防火墙，防护 SQL 注入 / XSS / CC 攻击",
+    category: "security",
+    popularity: 9,
+    tags: ["security", "waf", "protection"],
+    defaults: { provider: "AWS", service: "AWS WAF" },
+  },
+  {
+    id: "sec-ddos",
+    kind: "security",
+    label: "DDoS 防护",
+    tech: "DDoS Protection",
+    description: "DDoS 缓解与抗攻击服务",
+    category: "security",
+    popularity: 8,
+    tags: ["security", "ddos", "protection"],
+    defaults: { provider: "Cloudflare", service: "Cloudflare DDoS" },
+  },
+  {
+    id: "sec-oidc",
+    kind: "security",
+    label: "OIDC / OAuth2",
+    tech: "OIDC/OAuth2",
+    description: "身份认证与授权协议",
+    category: "security",
+    popularity: 8,
+    tags: ["security", "auth", "oauth", "oidc"],
+    defaults: { service: "Keycloak" },
+  },
+  {
+    id: "sec-mtls",
+    kind: "security",
+    label: "mTLS 双向认证",
+    tech: "mTLS",
+    description: "服务间双向 TLS 认证，零信任架构",
+    category: "security",
+    popularity: 7,
+    tags: ["security", "mtls", "zero-trust"],
+    defaults: { service: "mTLS" },
+  },
+  {
+    id: "sec-secrets",
+    kind: "security",
+    label: "密钥管理 (KMS)",
+    tech: "KMS / Secrets Manager",
+    description: "加密密钥与敏感凭据管理",
+    category: "security",
+    popularity: 8,
+    tags: ["security", "kms", "secrets"],
+    defaults: { provider: "AWS", service: "AWS KMS" },
+  },
+  {
+    id: "sec-certs",
+    kind: "security",
+    label: "TLS 证书",
+    tech: "Certificate Manager",
+    description: "HTTPS 证书签发与管理",
+    category: "security",
+    popularity: 9,
+    tags: ["security", "tls", "certificate"],
+    defaults: { provider: "AWS", service: "ACM" },
+  },
+  {
+    id: "sec-sg",
+    kind: "security",
+    label: "安全组 / 网络 ACL",
+    tech: "Security Group",
+    description: "云主机入站/出站访问控制规则",
+    category: "security",
+    popularity: 9,
+    tags: ["security", "network", "firewall"],
+    defaults: { service: "Security Group" },
+  },
+
+  ...MULTI_CLOUD_CATALOG,
+  ...PATTERNS_CATALOG,
 ];
 
 export const UI_LIBS = ["Tailwind", "Material UI", "Chakra UI", "Design System próprio"];

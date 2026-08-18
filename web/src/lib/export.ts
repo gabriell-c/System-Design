@@ -1,5 +1,14 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { AnalysisResult, CanvasNodeData, GraphRecord, NodeKind, ProjectNfr } from "./types";
+import type {
+  AnalysisResult,
+  ArchNodeData,
+  BlockNodeData,
+  CanvasNodeData,
+  GraphRecord,
+  NodeKind,
+  ProjectNfr,
+  ZoneNodeData,
+} from "./types";
 
 const DOMAIN_LABELS: Record<NodeKind, string> = {
   frontend: "Frontend",
@@ -10,10 +19,19 @@ const DOMAIN_LABELS: Record<NodeKind, string> = {
   observability: "Observabilidade",
   integration: "Integrações",
   deploy: "Deploy",
+  security: "Security",
 };
 
-function isBlock(data: CanvasNodeData): boolean {
+function isBlockData(data: CanvasNodeData): data is BlockNodeData {
   return data.kind === "block";
+}
+
+function isZoneData(data: CanvasNodeData): data is ZoneNodeData {
+  return data.kind === "zone";
+}
+
+function isArchData(data: CanvasNodeData): data is ArchNodeData {
+  return data.kind !== "block" && data.kind !== "zone";
 }
 
 function summarizeNfr(nfr: ProjectNfr): string {
@@ -142,19 +160,19 @@ function domainLabel(kind: NodeKind): string {
 }
 
 function listByDomain(nodes: Node<CanvasNodeData>[]) {
-  const blocks = nodes.filter((n) => isBlock(n.data));
-  const cards = nodes.filter((n) => !isBlock(n.data));
+  const blocks = nodes.filter((n) => isBlockData(n.data));
+  const cards = nodes.filter((n) => isArchData(n.data));
   const groups = new Map<NodeKind, { blocks: Node<CanvasNodeData>[]; cards: Node<CanvasNodeData>[] }>();
 
   for (const block of blocks) {
-    if (!isBlock(block.data)) continue;
+    if (!isBlockData(block.data)) continue;
     const domain = block.data.domain;
     const entry = groups.get(domain) ?? { blocks: [], cards: [] };
     entry.blocks.push(block);
     groups.set(domain, entry);
   }
   for (const card of cards) {
-    if (isBlock(card.data)) continue;
+    if (!isArchData(card.data)) continue;
     const kind = card.data.kind;
     const entry = groups.get(kind) ?? { blocks: [], cards: [] };
     entry.cards.push(card);
@@ -167,7 +185,11 @@ function edgeLine(edge: Edge, nodes: Node<CanvasNodeData>[]): string {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const src = byId.get(edge.source);
   const tgt = byId.get(edge.target);
-  return `${src ? nodeLabel(src) : edge.source} → ${tgt ? nodeLabel(tgt) : edge.target}`;
+  const data = (edge.data ?? {}) as { flowNumber?: number; label?: string; flowKind?: string };
+  const prefix =
+    data.flowNumber != null ? `${data.flowNumber}. ` : data.flowKind ? `[${data.flowKind}] ` : "";
+  const suffix = data.label ? ` (${data.label})` : "";
+  return `${prefix}${src ? nodeLabel(src) : edge.source} → ${tgt ? nodeLabel(tgt) : edge.target}${suffix}`;
 }
 
 export function toArchitectureMarkdown(
@@ -194,14 +216,17 @@ export function toArchitectureMarkdown(
   }
 
   if (nfr) {
-    lines.push("## NFRs", "", `- Resumo: ${summarizeNfr(nfr)}`);
+    lines.push("## NFRs / SLOs", "", `- Resumo: ${summarizeNfr(nfr)}`);
     if (nfr.users_per_day != null) lines.push(`- Usuários/dia: ${nfr.users_per_day}`);
     if (nfr.budget_usd_month != null) lines.push(`- Orçamento (US$/mês): ${nfr.budget_usd_month}`);
-    if (nfr.availability_pct != null) lines.push(`- Disponibilidade: ${nfr.availability_pct}%`);
-    if (nfr.latency_p99_ms != null) lines.push(`- Latência p99: ${nfr.latency_p99_ms} ms`);
+    const avail = nfr.slo_availability_pct ?? nfr.availability_pct;
+    const lat = nfr.slo_latency_p99_ms ?? nfr.latency_p99_ms;
+    if (avail != null) lines.push(`- Disponibilidade (SLO): ${avail}%`);
+    if (lat != null) lines.push(`- Latência p99 (SLO): ${lat} ms`);
     if (nfr.team_size != null) lines.push(`- Time: ${nfr.team_size}`);
     if (nfr.deadline_weeks != null) lines.push(`- Prazo: ${nfr.deadline_weeks} semanas`);
     if (nfr.compliance.length) lines.push(`- Compliance: ${nfr.compliance.join(", ")}`);
+    if (nfr.arch_style) lines.push(`- Estilo: ${nfr.arch_style}`);
     const env = nfr.environments;
     const envFlags = [
       env.has_dev && "dev",
@@ -213,22 +238,78 @@ export function toArchitectureMarkdown(
     ].filter(Boolean);
     if (envFlags.length) lines.push(`- Ambientes: ${envFlags.join(", ")}`);
     lines.push("");
+
+    lines.push("## Vistas AN / AD / AA / AI", "");
+    lines.push("### AN — Negócio");
+    if (nfr.business_processes?.length) {
+      for (const p of nfr.business_processes) lines.push(`- ${p}`);
+    } else {
+      lines.push("_Sem processos declarados._");
+    }
+    lines.push("", "### AD — Dados");
+    if (nfr.data_entities?.length) {
+      for (const e of nfr.data_entities) lines.push(`- Entidade: ${e}`);
+    } else {
+      lines.push("_Sem entidades declaradas._");
+    }
+    if (nfr.data_governance?.length) {
+      for (const g of nfr.data_governance) lines.push(`- Governança: ${g}`);
+    }
+    lines.push(
+      "",
+      "### AA — Aplicação",
+      `- Estilo: ${nfr.arch_style ?? analysis?.arch_style ?? "_não declarado_"}`,
+      "",
+      "### AI — Runtime",
+      "_Ver zonas e componentes abaixo._",
+      "",
+    );
+
+    if (nfr.critical_path_edge_ids?.length || nfr.failure_modes?.length) {
+      lines.push("## Caminho crítico e falhas", "");
+      if (nfr.critical_path_edge_ids?.length) {
+        lines.push(`- Edges do caminho crítico: ${nfr.critical_path_edge_ids.join(", ")}`);
+      }
+      for (const e of edges) {
+        const d = e.data as { isCriticalPath?: boolean; failureBehavior?: string; label?: string } | undefined;
+        if (d?.isCriticalPath) {
+          lines.push(`- Crítico: ${edgeLine(e, nodes)}${d.failureBehavior ? ` [${d.failureBehavior}]` : ""}`);
+        }
+      }
+      for (const fm of nfr.failure_modes ?? []) {
+        lines.push(
+          `- **Falha** em \`${fm.component_id}\`: ${fm.mode} — impacto: ${fm.impact}; mitigação: ${fm.mitigation}`,
+        );
+      }
+      lines.push("");
+    }
   }
 
   lines.push("## Componentes", "");
   if (nodes.length === 0) {
     lines.push("_Nenhum componente no canvas._", "");
   } else {
+    const zones = nodes.filter((n) => isZoneData(n.data));
+    if (zones.length) {
+      lines.push("### Zonas de arquitetura", "");
+      for (const z of zones) {
+        if (!isZoneData(z.data)) continue;
+        lines.push(
+          `- **${z.data.zoneKind}:** ${z.data.label}${z.parentId ? ` (pai: ${z.parentId})` : ""}`,
+        );
+      }
+      lines.push("");
+    }
     for (const [domain, group] of groups) {
       lines.push(`### ${domainLabel(domain)}`, "");
       for (const block of group.blocks) {
-        if (!isBlock(block.data)) continue;
+        if (!isBlockData(block.data)) continue;
         lines.push(
           `- **Bloco:** ${block.data.label}${block.data.description ? ` — ${block.data.description}` : ""}`,
         );
       }
       for (const card of group.cards) {
-        if (isBlock(card.data)) continue;
+        if (!isArchData(card.data)) continue;
         const bits = [card.data.tech, card.data.catalogId].filter(Boolean);
         lines.push(`- **${card.data.label}**${bits.length ? ` (\`${bits.join(" · ")}\`)` : ""}`);
       }
@@ -256,6 +337,33 @@ export function toArchitectureMarkdown(
       analysis.summary,
       "",
     );
+    if (analysis.review_scorecard) {
+      const sc = analysis.review_scorecard;
+      lines.push(
+        "### Review scorecard",
+        "",
+        `- Geral: **${sc.overall.toFixed(1)}/10** ${sc.review_ready ? "(review-ready)" : ""}`,
+        `- Narrativa: ${sc.narrative.toFixed(1)}`,
+        `- Vistas: ${sc.views_completeness.toFixed(1)}`,
+        `- Placement: ${sc.placement.toFixed(1)}`,
+        `- Fluxos: ${sc.flow_continuity.toFixed(1)}`,
+        `- Operabilidade: ${sc.operability.toFixed(1)}`,
+        `- Decisão: ${sc.decision_quality.toFixed(1)}`,
+        "",
+      );
+      if (sc.gaps?.length) {
+        lines.push("Gaps:", "");
+        for (const g of sc.gaps) lines.push(`- ${g}`);
+        lines.push("");
+      }
+    }
+    if (analysis.trade_offs?.length) {
+      lines.push("### Trade-offs", "");
+      for (const t of analysis.trade_offs) {
+        lines.push(`- **${t.decisao}** vs ${t.alternativa_rejeitada}: + ${t.vantagem}; − ${t.desvantagem}`);
+      }
+      lines.push("");
+    }
     if (analysis.strengths.length) {
       lines.push("### Pontos fortes", "");
       for (const s of analysis.strengths) lines.push(`- ${s}`);
@@ -280,7 +388,16 @@ export function toArchitectureMarkdown(
     }
   }
 
-  lines.push("---", "", "_Gerado pelo editor Archia / system-design-saas._", "");
+  lines.push(
+    "## Como testar",
+    "",
+    "- Rodar Análise no Archia e conferir scorecard ≥ 8.0",
+    "- Usar presets de Simulação (load / journey / stress) no caminho crítico",
+    "- Validar failureBehavior (retry/DLQ/fallback) com testes de resiliência",
+    "",
+  );
+
+  lines.push("---", "", "_Architecture Package · Archia / system-design-saas._", "");
   return lines.join("\n");
 }
 

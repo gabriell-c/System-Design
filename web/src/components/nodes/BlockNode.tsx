@@ -3,10 +3,14 @@
 import { NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { Boxes, Link2 } from "lucide-react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
+import { nodeOpacityForView } from "@/lib/architecture-view";
 import { KIND_META } from "@/lib/catalog";
+import { useGraphStore } from "@/lib/graph-store";
 import type { BlockNodeData } from "@/lib/types";
 
 export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNodeData>>) {
+  const architectureView = useGraphStore((s) => s.architectureView);
+  const opacity = nodeOpacityForView(data, architectureView);
   const meta = KIND_META[data.domain];
 
   return (
@@ -17,6 +21,7 @@ export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNo
       style={{
         background: `linear-gradient(180deg, ${meta.bg} 0%, rgba(7,11,16,0.92) 48%)`,
         borderColor: selected ? "#22d3ee" : meta.border,
+        opacity,
       }}
     >
       <NodeResizer

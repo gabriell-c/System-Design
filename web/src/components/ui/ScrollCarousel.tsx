@@ -67,7 +67,6 @@ export function ScrollCarousel({ children, className = "", padLeft = 24 }: Props
           momentumRatio: 0.4,
           momentumVelocityRatio: 0.5,
           momentumBounce: false,
-          momentumThreshold: 4,
         }}
         mousewheel={{ forceToAxis: true }}
         grabCursor={true}

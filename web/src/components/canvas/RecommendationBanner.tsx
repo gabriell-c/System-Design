@@ -39,7 +39,7 @@ export default function RecommendationBanner({
             className="flex items-start gap-2 rounded-md bg-white/60 dark:bg-black/20 p-2"
           >
             <div className="mt-0.5 flex-shrink-0">
-              <TechIcon tech={rec.techId} size={20} />
+              <TechIcon catalogId={rec.techId} kind="backend" size={20} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-slate-800 dark:text-slate-100">

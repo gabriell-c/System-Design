@@ -1,10 +1,12 @@
 import type { Node } from "@xyflow/react";
 import type { BlockNodeData, CanvasNodeData, NodeKind } from "./types";
+import { canNestZoneInZone, isZoneNode, zoneKindOf, zoneSize } from "./zones";
 
 export const BLOCK_DEFAULT_SIZE = { width: 420, height: 280 };
 export const CARD_SIZE = { width: 220, height: 78 };
 
 export function blockSize(block: Node<CanvasNodeData>): { width: number; height: number } {
+  if (isZoneNode(block)) return zoneSize(block);
   const width = Number(
     block.width ?? (block.style as { width?: number } | undefined)?.width ?? BLOCK_DEFAULT_SIZE.width,
   );
@@ -21,6 +23,11 @@ export function isBlockNode(node: Node<CanvasNodeData>): boolean {
   return node.type === "block" || node.data.kind === "block";
 }
 
+/** Bloco de stack OU zona de arquitetura. */
+export function isContainerNode(node: Node<CanvasNodeData>): boolean {
+  return isBlockNode(node) || isZoneNode(node);
+}
+
 export function blockDefaults(domain: NodeKind): { label: string; description: string } {
   const map: Record<NodeKind, { label: string; description: string }> = {
     frontend: { label: "Bloco Frontend", description: "UI, frameworks e estado do cliente" },
@@ -31,6 +38,7 @@ export function blockDefaults(domain: NodeKind): { label: string; description: s
     observability: { label: "Bloco Observabilidade", description: "Logs, métricas, tracing e erros" },
     integration: { label: "Bloco Integrações", description: "Filas, pagamentos, e-mail, WhatsApp e webhooks" },
     deploy: { label: "Bloco Deploy", description: "CI/CD, containers, hosting e IaC" },
+    security: { label: "Bloco Security", description: "WAF, SGs, KMS, mTLS e certificados" },
   };
   return map[domain];
 }
@@ -78,16 +86,30 @@ export function findBlockAtPoint(
   point: { x: number; y: number },
   ignoreId?: string,
 ): Node<CanvasNodeData> | null {
-  const blocks = nodes.filter((n) => isBlockNode(n) && n.id !== ignoreId);
-  for (let i = blocks.length - 1; i >= 0; i -= 1) {
-    const block = blocks[i];
-    const abs = absolutePosition(block, nodes);
-    const { width, height } = blockSize(block);
+  return findContainerAtPoint(nodes, point, ignoreId);
+}
+
+/** Encontra o contêiner mais interno (zona ou bloco) sob o ponto. */
+export function findContainerAtPoint(
+  nodes: Node<CanvasNodeData>[],
+  point: { x: number; y: number },
+  ignoreId?: string,
+): Node<CanvasNodeData> | null {
+  const containers = nodes.filter((n) => isContainerNode(n) && n.id !== ignoreId);
+  let best: Node<CanvasNodeData> | null = null;
+  let bestArea = Number.POSITIVE_INFINITY;
+  for (const container of containers) {
+    const abs = absolutePosition(container, nodes);
+    const { width, height } = blockSize(container);
     if (point.x >= abs.x && point.x <= abs.x + width && point.y >= abs.y && point.y <= abs.y + height) {
-      return block;
+      const area = width * height;
+      if (area < bestArea) {
+        best = container;
+        bestArea = area;
+      }
     }
   }
-  return null;
+  return best;
 }
 
 export function nestInsideBlock(
@@ -100,9 +122,7 @@ export function nestInsideBlock(
   const { width, height } = blockSize(block);
   const relX = abs.x - blockAbs.x;
   const relY = abs.y - blockAbs.y;
-  // Se o card já está visualmente dentro do bloco, preserva o ponto; senão encaixa no slot.
-  const inside =
-    relX >= 0 && relY >= 0 && relX <= width - 40 && relY <= height - 40;
+  const inside = relX >= 0 && relY >= 0 && relX <= width - 40 && relY <= height - 40;
   const siblings = nodes.filter((n) => n.parentId === block.id && n.id !== node.id).length;
   const slotX = 24 + (siblings % 2) * 200;
   const slotY = 56 + Math.floor(siblings / 2) * 90;
@@ -113,8 +133,8 @@ export function nestInsideBlock(
     extent: "parent",
     expandParent: true,
     position: {
-      x: inside ? Math.max(16, Math.min(width - 200, relX)) : slotX,
-      y: inside ? Math.max(48, Math.min(height - 80, relY)) : slotY,
+      x: inside ? Math.max(16, Math.min(Math.max(16, width - 200), relX)) : slotX,
+      y: inside ? Math.max(48, Math.min(Math.max(48, height - 80), relY)) : slotY,
     },
   };
 }
@@ -140,11 +160,45 @@ const DOMAIN_LABEL: Record<NodeKind, string> = {
   observability: "Observabilidade",
   integration: "Integrações",
   deploy: "Deploy",
+  security: "Security",
 };
 
-/** Card só pode entrar em bloco do mesmo domínio. */
+/** Card só pode entrar em bloco de stack do mesmo domínio. Zonas aceitam qualquer card. */
 export function canNestCardInBlock(cardKind: NodeKind, blockDomain: NodeKind): boolean {
   return cardKind === blockDomain;
+}
+
+export function canNestIntoContainer(
+  child: Node<CanvasNodeData>,
+  parent: Node<CanvasNodeData>,
+  nodes?: Node<CanvasNodeData>[],
+): boolean {
+  if (parent.id === child.id) return false;
+  if (nodes) {
+    let walk: string | undefined = parent.parentId;
+    const seen = new Set<string>();
+    while (walk && !seen.has(walk)) {
+      if (walk === child.id) return false;
+      seen.add(walk);
+      walk = nodes.find((n) => n.id === walk)?.parentId;
+    }
+  }
+  if (isZoneNode(parent)) {
+    if (isZoneNode(child)) {
+      const parentZk = zoneKindOf(parent);
+      const childZk = zoneKindOf(child);
+      if (!parentZk || !childZk) return false;
+      return canNestZoneInZone(childZk, parentZk);
+    }
+    return true;
+  }
+  if (isBlockNode(parent)) {
+    if (isZoneNode(child) || isBlockNode(child)) return false;
+    const domain = blockDomainOf(parent);
+    if (!domain || child.data.kind === "block" || child.data.kind === "zone") return false;
+    return canNestCardInBlock(child.data.kind, domain);
+  }
+  return false;
 }
 
 export function nestDeniedMessage(

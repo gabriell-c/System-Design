@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import AdrPanel from "./AdrPanel";
 import AnalysisPanel from "./AnalysisPanel";
+import ArchitecturePanel from "./ArchitecturePanel";
 import ContextPanel from "./ContextPanel";
 import HistoryPanel from "./HistoryPanel";
 import KickoffPanel from "./KickoffPanel";
@@ -27,6 +28,7 @@ const PRIMARY = [
   { id: "context", label: "Contexto", icon: FileText },
   { id: "kickoff", label: "Kickoff", icon: ListChecks },
   { id: "props", label: "Props", icon: Wrench },
+  { id: "arch", label: "Arquitetura", icon: BookMarked },
   { id: "analysis", label: "Análise", icon: Sparkles },
   { id: "sim", label: "Simulação", icon: Zap },
 ] as const;
@@ -135,6 +137,7 @@ export default function Inspector() {
         {tab === "context" && <ContextPanel />}
         {tab === "kickoff" && <KickoffPanel />}
         {tab === "props" && <PropertiesPanel />}
+        {tab === "arch" && <ArchitecturePanel />}
         {tab === "analysis" && <AnalysisPanel />}
         {tab === "sim" && <SimulationPanel />}
         {tab === "adr" && <AdrPanel />}

@@ -1,16 +1,27 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layout, Plug, Plus, Rocket, Search, Server } from "lucide-react";
+import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layers, Layout, Plug, Plus, Rocket, Search, Server, Shield } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CatalogLibrary from "./CatalogLibrary";
-import { ALL_NODE_KINDS, type NodeKind } from "@/lib/types";
+import { ALL_NODE_KINDS, ALL_ZONE_KINDS, type CloudProvider, type NodeKind, type ZoneKind } from "@/lib/types";
 import { useCatalogPrefs } from "@/hooks/useCatalogPrefs";
 import RecommendationBanner from "@/components/canvas/RecommendationBanner";
+import { ZONE_META } from "@/lib/zones";
 
 const KINDS: NodeKind[] = ALL_NODE_KINDS;
+const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
+  region: Cloud,
+  vpc: Layers,
+  availability_zone: Server,
+  subnet_public: Layout,
+  subnet_private: Database,
+  layer: Layers,
+  plane: Boxes,
+  security_boundary: Shield,
+};
 
 const KIND_ICONS = {
   frontend: Layout,
@@ -25,7 +36,9 @@ const KIND_ICONS = {
 
 export default function ComponentPalette() {
   const [query, setQuery] = useState("");
+  const [providerFilter, setProviderFilter] = useState<CloudProvider | "all">("all");
   const addBlock = useGraphStore((s) => s.addBlock);
+  const addZone = useGraphStore((s) => s.addZone);
   const addCatalogNode = useGraphStore((s) => s.addCatalogNode);
   const nodes = useGraphStore((s) => s.nodes);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
@@ -65,28 +78,50 @@ export default function ComponentPalette() {
     return KINDS.map((kind) => {
       const items = visibleCatalog.filter((item) => {
         if (item.kind !== kind) return false;
+        if (providerFilter !== "all") {
+          const p = item.provider ?? item.defaults.provider;
+          if (p && p !== providerFilter && p !== "generic") return false;
+          if (providerFilter !== "generic" && !p && !item.tags?.some((t) => t.includes(providerFilter))) {
+            // keep stack items without provider always visible
+            if (["frontend", "backend"].includes(kind)) {
+              /* ok */
+            } else if (kind === "cloud" || kind === "identity" || kind === "integration" || kind === "observability" || kind === "database") {
+              if (!item.id.includes(providerFilter) && !item.tech.toLowerCase().includes(providerFilter)) return false;
+            }
+          }
+        }
         if (!q) return true;
         return (
           item.label.toLowerCase().includes(q) ||
           item.description.toLowerCase().includes(q) ||
           item.id.toLowerCase().includes(q) ||
+          item.capability?.toLowerCase().includes(q) ||
           item.tags?.some((t) => t.toLowerCase().includes(q))
         );
       });
       return { kind, items };
     }).filter((section) => section.items.length > 0 || !q);
-  }, [q, visibleCatalog]);
+  }, [q, visibleCatalog, providerFilter]);
 
   function placeBlock(kind: NodeKind) {
     const offset = nodes.length * 28;
     addBlock(kind, { x: 120 + offset, y: 100 + offset });
     pushUiNotice({
       type: "success",
-      text: `Bloco ${KIND_META[kind].label} adicionado. Agora solte cards do mesmo tipo dentro dele.`,
+      text: `Bloco ${KIND_META[kind].label} adicionado.`,
     });
   }
 
-function placeCard(catalogId: string) {
+  function placeZone(kind: ZoneKind) {
+    const offset = nodes.length * 24;
+    addZone(kind, { x: 60 + offset, y: 40 + offset });
+    pushUiNotice({
+      type: "success",
+      text: `Zona ${ZONE_META[kind].label} adicionada. Solte serviços ou sub-zonas dentro.`,
+    });
+  }
+
+  function placeCard(catalogId: string) {
     const item = findCatalog(catalogId);
     if (!item) return;
     const offset = nodes.length * 20;
@@ -128,11 +163,27 @@ function placeCard(catalogId: string) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar React, Python, Docker…"
+            placeholder="Buscar React, Lambda, VPC…"
             className="w-full rounded-lg border border-white/10 bg-[#0a0f16] py-2 pl-8 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
             aria-label="Buscar na paleta"
           />
         </label>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {(["all", "aws", "azure", "gcp"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setProviderFilter(p)}
+              className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition ${
+                providerFilter === p
+                  ? "bg-cyan-500/20 text-cyan-200"
+                  : "bg-white/5 text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              {p === "all" ? "Todos" : p}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
@@ -150,6 +201,46 @@ function placeCard(catalogId: string) {
             </span>
           </span>
         </button>
+
+        {(!q || "zona region vpc az".includes(q)) && (
+          <section aria-labelledby="palette-zones">
+            <h3
+              id="palette-zones"
+              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-violet-300"
+            >
+              <Layers size={12} />
+              Zonas de arquitetura
+            </h3>
+            <ul className="grid grid-cols-2 gap-1.5">
+              {ALL_ZONE_KINDS.map((kind) => {
+                const meta = ZONE_META[kind];
+                const Icon = ZONE_ICONS[kind];
+                return (
+                  <li key={`zone-${kind}`}>
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("application/system-design-zone", kind);
+                        event.dataTransfer.effectAllowed = "move";
+                      }}
+                      onClick={() => placeZone(kind)}
+                      className="flex w-full cursor-grab flex-col items-start gap-1 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 active:cursor-grabbing"
+                      style={{ borderColor: meta.border, background: meta.bg }}
+                      title="Zona aninhável (VPC → AZ → Subnet)"
+                    >
+                      <span className="flex w-full items-center justify-between">
+                        <Icon size={14} style={{ color: meta.accent }} />
+                        <Plus size={12} className="text-slate-500" />
+                      </span>
+                      <span className="text-xs font-semibold text-slate-100">{meta.short}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         {/* Pinned items */}
         {pinnedItems.length > 0 && !q && (

@@ -50,6 +50,55 @@ rate limit, secrets, IAM, exposição pública de bancos e buckets.
 {SCHEMA}
 """
 
+# NOVO: Agente de estilo arquitetural
+STYLE_PROMPT = f"""{KNOWLEDGE_PROMPT}
+Agente: style. Classifique o estilo arquitetural do sistema descrito.
+Responda com JSON contendo:
+{{
+  "arch_style": "monolithic|layered|microservices|event_driven|hexagonal|serverless|soa",
+  "confidence": 0.0-1.0,
+  "justification": "explicação clara da classificação",
+  "strengths": ["..."],
+  "risks": ["..."],
+  "findings": [{{"severity": "...", "title": "...", "detail": "..."}}]
+}}
+{SCHEMA}
+"""
+
+# NOVO: Agente de coerência entre domínios
+COHERENCE_PROMPT = f"""{KNOWLEDGE_PROMPT}
+Agente: coherence. Verifique coerência entre domínios AN/AD/AA/AI.
+Responda com JSON contendo:
+{{
+  "an_score": 0-10,
+  "ad_score": 0-10,
+  "aa_score": 0-10,
+  "ai_score": 0-10,
+  "general_score": 0-10,
+  "issues": ["problemas de coerência encontrados"],
+  "recommendations": ["sugestões para melhorar coerência"]
+}}
+{SCHEMA}
+"""
+
+# NOVO: Agente de trade-offs
+TRADEOFFS_PROMPT = f"""{KNOWLEDGE_PROMPT}
+Agente: tradeoffs. Identifique trade-offs arquiteturais no sistema descrito.
+Responda com JSON contendo:
+{{
+  "trade_offs": [{{
+    "decision": "decisão tomada",
+    "alternative": "alternativa rejeitada",
+    "pro": "vantagem",
+    "con": "desvantagem",
+    "rationale": "por que essa decisão foi feita"
+  }}],
+  "strengths": ["..."],
+  "risks": ["..."]
+}}
+{SCHEMA}
+"""
+
 CONSOLIDATOR_PROMPT = f"""{KNOWLEDGE_PROMPT}
 Agente: consolidator. Você recebe relatórios parciais e gera UM relatório final
 coerente, sem contradizer fatos claros, unificando nota e priorizando riscos.

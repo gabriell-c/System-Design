@@ -14,28 +14,35 @@ import { create } from "zustand";
 import {
   absolutePosition,
   blockDomainOf,
-  canNestCardInBlock,
+  canNestIntoContainer,
   createBlockNode,
   detachFromParent,
-  findBlockAtPoint,
+  findContainerAtPoint,
   isBlockNode,
+  isContainerNode,
   nestDeniedMessage,
   nestInsideBlock,
 } from "./blocks";
+import { buildArchEdge, nextFlowNumber, normalizeEdgeData, styleEdgeFromData } from "./edges";
 import { findCatalog } from "./catalog";
 import { checkRecommendations, type StackRecommendation } from "./stack-recommend";
 import type {
   AnalysisResult,
+  ArchEdgeData,
   ArchNodeData,
   CanvasNodeData,
+  CloudProvider,
   GraphRecord,
   NodeKind,
   ProjectNfr,
   UserRole,
+  ZoneKind,
 } from "./types";
-import { isArchData, isBlockData } from "./types";
+import { isArchData, isBlockData, isZoneData } from "./types";
 import { emptyNfr, normalizeNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates";
+import { createZoneNode, ensureZoneFitsChild, isZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
+import type { ArchitectureView } from "./architecture-view";
 
 export type UiNotice = {
   type: "error" | "info" | "success";
@@ -61,6 +68,7 @@ type GraphState = {
   nodes: Node<CanvasNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   analysis: AnalysisResult | null;
   analyzing: boolean;
   analyzeError: string | null;
@@ -71,12 +79,15 @@ type GraphState = {
   lastSavedAt: string | null;
   past: GraphSnapshot[];
   future: GraphSnapshot[];
+  architectureView: ArchitectureView;
   setName: (name: string) => void;
   setContext: (context: string) => void;
   setNfr: (nfr: ProjectNfr | ((prev: ProjectNfr) => ProjectNfr)) => void;
+  setArchitectureView: (view: ArchitectureView) => void;
   applyTemplate: (template: ProjectTemplate) => void;
   setUserRole: (role: UserRole) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setSelectedEdgeId: (id: string | null) => void;
   clearUiNotice: () => void;
   pushUiNotice: (notice: UiNotice) => void;
   dismissRecommendations: () => void;
@@ -91,6 +102,12 @@ type GraphState = {
     parentId?: string | null,
   ) => boolean;
   addBlock: (domain: NodeKind, position: { x: number; y: number }, label?: string) => void;
+  addZone: (
+    zoneKind: ZoneKind,
+    position: { x: number; y: number },
+    opts?: { label?: string; provider?: CloudProvider },
+  ) => void;
+  updateEdgeData: (edgeId: string, patch: Partial<ArchEdgeData>) => void;
   renameNode: (id: string, label: string) => void;
   attachNodeToBlock: (nodeId: string, blockId: string) => boolean;
   detachNode: (nodeId: string) => void;
@@ -190,6 +207,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  selectedEdgeId: null,
   analysis: null,
   analyzing: false,
   analyzeError: null,
@@ -200,6 +218,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   lastSavedAt: null,
   past: [],
   future: [],
+  architectureView: "ai",
 
   setName: (name) => {
     withHistory(get, set, () => set({ name, dirty: true }));
@@ -211,6 +230,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const next = typeof nfrOrFn === "function" ? nfrOrFn(get().nfr) : nfrOrFn;
     set({ nfr: normalizeNfr(next), dirty: true });
   },
+  setArchitectureView: (architectureView) => set({ architectureView }),
   applyTemplate: (template) => {
     withHistory(get, set, () => {
       const built = template.build();
@@ -233,7 +253,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
   },
   setUserRole: (userRole) => set({ userRole }),
-  setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId }),
+  setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId, selectedEdgeId: null }),
+  setSelectedEdgeId: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
   clearUiNotice: () => set({ uiNotice: null }),
   pushUiNotice: (notice) => {
     set({ uiNotice: notice });
@@ -297,7 +318,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       let next = applyNodeChanges(changes, get().nodes);
       // RF 12 guarda width/height no node; espelha no style p/ hit-test e layout estáveis
       next = next.map((n) => {
-        if (!isBlockNode(n)) return n;
+        if (!isContainerNode(n)) return n;
         const w = n.width ?? (n.style as { width?: number } | undefined)?.width;
         const h = n.height ?? (n.style as { height?: number } | undefined)?.height;
         if (w == null && h == null) return n;
@@ -350,16 +371,29 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     if (!connection.source || !connection.target) return;
     if (connection.source === connection.target) return;
     withHistory(get, set, () => {
+      const edges = get().edges;
+      const edge = buildArchEdge(
+        {
+          ...connection,
+          id: `e-${connection.source}-${connection.target}-${Date.now()}`,
+        },
+        nextFlowNumber(edges),
+      );
       set({
-        edges: addEdge(
-          {
-            ...connection,
-            type: "smoothstep",
-            animated: true,
-            style: { stroke: "#94a3b8", strokeWidth: 2 },
-          },
-          get().edges,
-        ),
+        edges: addEdge(edge, edges),
+        dirty: true,
+      });
+    });
+  },
+
+  updateEdgeData: (edgeId, patch) => {
+    withHistory(get, set, () => {
+      set({
+        edges: get().edges.map((e) => {
+          if (e.id !== edgeId) return e;
+          const data = normalizeEdgeData({ ...normalizeEdgeData(e.data), ...patch });
+          return { ...e, data, ...styleEdgeFromData(data) };
+        }),
         dirty: true,
       });
     });
@@ -431,36 +465,36 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const nodes = get().nodes;
     let notice: UiNotice | null = null;
 
-    const tryNest = (block: Node<CanvasNodeData>, asErrorOnly = false) => {
-      const domain = blockDomainOf(block);
-      if (domain && canNestCardInBlock(item.kind, domain)) {
-        if (asErrorOnly) return false;
-        node = nestInsideBlock(node, block, nodes);
-        notice = {
-          type: "success",
-          text: `${item.label} dentro de “${isBlockData(block.data) ? block.data.label : "bloco"}”.`,
-        };
-        return true;
+    const tryNest = (container: Node<CanvasNodeData>) => {
+      if (!canNestIntoContainer(node, container, nodes)) {
+        if (isBlockNode(container) && isArchData(node.data)) {
+          const domain = blockDomainOf(container);
+          if (domain) {
+            notice = {
+              type: "error",
+              text: nestDeniedMessage(
+                item.label,
+                item.kind,
+                isBlockData(container.data) ? container.data.label : "bloco",
+                domain,
+              ),
+            };
+          }
+        }
+        return false;
       }
-      if (domain) {
-        notice = {
-          type: "error",
-          text: nestDeniedMessage(
-            item.label,
-            item.kind,
-            isBlockData(block.data) ? block.data.label : "bloco",
-            domain,
-          ),
-        };
-      }
-      return false;
+      node = nestInsideBlock(node, container, nodes);
+      const label =
+        isZoneData(container.data) || isBlockData(container.data) ? container.data.label : "contêiner";
+      notice = { type: "success", text: `${item.label} dentro de “${label}”.` };
+      return true;
     };
 
     if (parentId) {
-      const block = nodes.find((n) => n.id === parentId && isBlockNode(n));
-      if (block) tryNest(block);
+      const container = nodes.find((n) => n.id === parentId && isContainerNode(n));
+      if (container) tryNest(container);
     } else {
-      const atPoint = findBlockAtPoint(nodes, {
+      const atPoint = findContainerAtPoint(nodes, {
         x: position.x + 110,
         y: position.y + 40,
       });
@@ -469,11 +503,15 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       } else {
         const selected = get().selectedNodeId;
         const selectedNode = selected ? nodes.find((n) => n.id === selected) : null;
-        const preferred =
-          selectedNode && isBlockNode(selectedNode) && blockDomainOf(selectedNode) === item.kind
-            ? selectedNode
-            : (nodes.find((n) => isBlockNode(n) && blockDomainOf(n) === item.kind) ?? null);
-        if (preferred) tryNest(preferred);
+        if (selectedNode && isZoneNode(selectedNode)) {
+          tryNest(selectedNode);
+        } else {
+          const preferred =
+            selectedNode && isBlockNode(selectedNode) && blockDomainOf(selectedNode) === item.kind
+              ? selectedNode
+              : (nodes.find((n) => isBlockNode(n) && blockDomainOf(n) === item.kind) ?? null);
+          if (preferred) tryNest(preferred);
+        }
       }
     }
 
@@ -482,9 +520,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
     if (notice) scheduleClearNotice(set);
 
-    // Check for stack recommendations
     const existingTechs = get().nodes
-      .filter((n) => !isBlockNode(n) && n.id !== id)
+      .filter((n) => !isContainerNode(n) && n.id !== id)
       .map((n) => (n.data as ArchNodeData).tech);
     const recs = checkRecommendations(catalogId, existingTechs);
     if (recs.length > 0) {
@@ -506,6 +543,41 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
   },
 
+  addZone: (zoneKind, position, opts) => {
+    const id = nextId("zone");
+    let zone = createZoneNode(id, zoneKind, position, opts);
+    const nodes = get().nodes;
+    const atPoint = findContainerAtPoint(nodes, {
+      x: position.x + 40,
+      y: position.y + 40,
+    });
+    let notice: UiNotice | null = null;
+    if (atPoint && canNestIntoContainer(zone, atPoint, nodes)) {
+      zone = nestInsideBlock(zone, atPoint, nodes) as typeof zone;
+      const parentLabel =
+        isZoneData(atPoint.data) || isBlockData(atPoint.data) ? atPoint.data.label : "zona";
+      notice = { type: "success", text: `Zona aninhada em “${parentLabel}”.` };
+    }
+    withHistory(get, set, () => {
+      let next = [...get().nodes, zone];
+      if (zone.parentId) {
+        const parent = next.find((n) => n.id === zone.parentId);
+        if (parent && isZoneNode(parent)) {
+          const size = ZONE_DEFAULT_SIZE[zoneKind];
+          const fitted = ensureZoneFitsChild(parent, zone.position, size);
+          next = next.map((n) => (n.id === parent.id ? fitted : n));
+        }
+      }
+      set({
+        nodes: next,
+        dirty: true,
+        selectedNodeId: id,
+        uiNotice: notice,
+      });
+    });
+    if (notice) scheduleClearNotice(set);
+  },
+
   renameNode: (id, label) => {
     const trimmed = label.trim() || "Sem nome";
     withHistory(get, set, () => {
@@ -522,14 +594,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const nodes = get().nodes;
     const node = nodes.find((n) => n.id === nodeId);
     const block = nodes.find((n) => n.id === blockId);
-    if (!node || !block || isBlockNode(node) || !isBlockNode(block) || !isArchData(node.data)) {
-      return false;
-    }
+    if (!node || !block || !isContainerNode(block)) return false;
     if (node.parentId === blockId) return true;
-
-    const domain = blockDomainOf(block);
-    if (!domain || !canNestCardInBlock(node.data.kind, domain)) {
-      denyNest(set, node.data.label, node.data.kind, block);
+    if (!canNestIntoContainer(node, block, nodes)) {
+      if (isArchData(node.data) && isBlockNode(block)) {
+        denyNest(set, node.data.label, node.data.kind, block);
+      } else {
+        set({
+          uiNotice: { type: "error", text: "Não é permitido aninhar neste contêiner." },
+        });
+        scheduleClearNotice(set);
+      }
       return false;
     }
 
@@ -558,6 +633,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
 
   deleteSelected: () => {
+    const edgeId = get().selectedEdgeId;
+    if (edgeId) {
+      withHistory(get, set, () => {
+        set({
+          edges: get().edges.filter((e) => e.id !== edgeId),
+          selectedEdgeId: null,
+          dirty: true,
+        });
+      });
+      return;
+    }
     const selected = get().selectedNodeId;
     if (!selected) return;
     const nodes = get().nodes;
@@ -565,7 +651,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     if (!target) return;
 
     withHistory(get, set, () => {
-      if (isBlockNode(target)) {
+      if (isContainerNode(target)) {
         const next = get()
           .nodes.filter((n) => n.id !== selected)
           .map((n) => (n.parentId === selected ? detachFromParent(n, get().nodes) : n));
@@ -597,22 +683,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
 
-    // Ao soltar um bloco, “adota” cards órfãos que estão visualmente dentro dele.
-    if (isBlockNode(node)) {
+    if (isContainerNode(node) && isBlockNode(node)) {
       get().reconcileOrphanCards();
       return;
     }
-    if (!isArchData(node.data)) return;
 
-    const absX = node.position.x + (node.parentId ? absoluteParentOffset(node.parentId, nodes).x : 0);
-    const absY = node.position.y + (node.parentId ? absoluteParentOffset(node.parentId, nodes).y : 0);
+    const abs = absolutePosition(node, nodes);
     const center = {
-      x: absX + 110,
-      y: absY + 40,
+      x: abs.x + (isContainerNode(node) ? 80 : 110),
+      y: abs.y + (isContainerNode(node) ? 60 : 40),
     };
-    const block = findBlockAtPoint(nodes, center, nodeId);
+    const container = findContainerAtPoint(nodes, center, nodeId);
 
-    if (!block) {
+    if (!container) {
       if (node.parentId) {
         withHistory(get, set, () => {
           set({
@@ -624,10 +707,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       return;
     }
 
-    if (node.parentId === block.id) return;
+    if (node.parentId === container.id) return;
 
-    const domain = blockDomainOf(block);
-    if (!domain || !canNestCardInBlock(node.data.kind, domain)) {
+    if (!canNestIntoContainer(node, container, nodes)) {
       if (node.parentId) {
         withHistory(get, set, () => {
           set({
@@ -636,19 +718,37 @@ export const useGraphStore = create<GraphState>((set, get) => ({
           });
         });
       }
-      denyNest(set, node.data.label, node.data.kind, block);
+      if (isArchData(node.data) && isBlockNode(container)) {
+        denyNest(set, node.data.label, node.data.kind, container);
+      }
       return;
     }
 
     const detached = node.parentId ? detachFromParent(node, nodes) : node;
-    const nested = nestInsideBlock(detached, block, nodes);
+    const nested = nestInsideBlock(detached, container, nodes);
     withHistory(get, set, () => {
+      let next = get().nodes.map((n) => (n.id === nodeId ? nested : n));
+      if (isZoneNode(container)) {
+        const parent = next.find((n) => n.id === container.id);
+        if (parent) {
+          const childSize = isZoneNode(nested)
+            ? ZONE_DEFAULT_SIZE[nested.data.kind === "zone" ? nested.data.zoneKind : "plane"]
+            : { width: 220, height: 78 };
+          const fitted = ensureZoneFitsChild(parent, nested.position, childSize);
+          next = next.map((n) => (n.id === parent.id ? fitted : n));
+        }
+      }
+      const label = isArchData(node.data)
+        ? node.data.label
+        : isZoneData(node.data) || isBlockData(node.data)
+          ? node.data.label
+          : "Item";
       set({
-        nodes: get().nodes.map((n) => (n.id === nodeId ? nested : n)),
+        nodes: next,
         dirty: true,
         uiNotice: {
           type: "success",
-          text: `${node.data.label} anexado ao bloco.`,
+          text: `${label} anexado ao contêiner.`,
         },
       });
     });
@@ -660,13 +760,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     let next = nodes;
     let changed = false;
     for (const card of nodes) {
-      if (isBlockNode(card) || !isArchData(card.data) || card.parentId) continue;
+      if (isContainerNode(card) || !isArchData(card.data) || card.parentId) continue;
       const abs = absolutePosition(card, next);
       const center = { x: abs.x + 110, y: abs.y + 40 };
-      const block = findBlockAtPoint(next, center, card.id);
+      const block = findContainerAtPoint(next, center, card.id);
       if (!block) continue;
-      const domain = blockDomainOf(block);
-      if (!domain || !canNestCardInBlock(card.data.kind, domain)) continue;
+      if (!canNestIntoContainer(card, block, next)) continue;
       const nested = nestInsideBlock(card, block, next);
       next = next.map((n) => (n.id === card.id ? nested : n));
       changed = true;
@@ -678,7 +777,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         dirty: true,
         uiNotice: {
           type: "info",
-          text: "Cards dentro do bloco foram associados (agora andam junto).",
+          text: "Cards dentro do contêiner foram associados (agora andam junto).",
         },
       });
     });
@@ -716,6 +815,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         ...node.data,
         score: analysis?.node_scores?.[node.id] ?? null,
         summary: analysis?.findings.find((f) => f.node_id === node.id)?.title,
+        bottleneck: Boolean(
+          analysis?.findings.some(
+            (f) => f.node_id === node.id && (f.severity === "warning" || f.severity === "critical"),
+          ),
+        ),
       },
     }));
     set({ nodes, analysis, analyzeError: null });
@@ -724,17 +828,22 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setAnalyzing: (analyzing, error = null) => set({ analyzing, analyzeError: error }),
 
   loadGraph: (graph) => {
+    const edges = ((graph.edges ?? []) as Edge[]).map((e) => {
+      const data = normalizeEdgeData(e.data);
+      return { ...e, data, ...styleEdgeFromData(data), type: e.type ?? "smoothstep" };
+    });
     set({
       graphId: graph.id,
       name: graph.name,
       context: graph.context ?? "",
       nfr: normalizeNfr(graph.nfr),
       nodes: (graph.nodes ?? []) as Node<CanvasNodeData>[],
-      edges: (graph.edges ?? []) as Edge[],
+      edges,
       analysis: graph.analysis,
       dirty: false,
       lastSavedAt: graph.updated_at,
       selectedNodeId: null,
+      selectedEdgeId: null,
       uiNotice: null,
       past: [],
       future: [],
@@ -767,6 +876,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         nodes: [],
         edges: [],
         selectedNodeId: null,
+        selectedEdgeId: null,
         analysis: null,
         analyzing: false,
         analyzeError: null,
