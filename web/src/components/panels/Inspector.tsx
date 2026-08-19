@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import AdrPanel from "./AdrPanel";
 import AnalysisPanel from "./AnalysisPanel";
 import ArchitecturePanel from "./ArchitecturePanel";
+import AuditTrailPanel from "./AuditTrailPanel";
 import ContextPanel from "./ContextPanel";
 import HistoryPanel from "./HistoryPanel";
 import KickoffPanel from "./KickoffPanel";
@@ -23,6 +24,15 @@ import PropertiesPanel from "./PropertiesPanel";
 import ReviewPanel from "./ReviewPanel";
 import SettingsPanel from "./SettingsPanel";
 import SimulationPanel from "./SimulationPanel";
+import DataArchitecturePanel from "./DataArchitecturePanel";
+import EventCatalogPanel from "./EventCatalogPanel";
+import PolyglotMapPanel from "./PolyglotMapPanel";
+import LineagePanel from "./LineagePanel";
+import ThreatAnalysisPanel from "./ThreatAnalysisPanel";
+import WellArchitectedPanel from "./WellArchitectedPanel";
+import AccessPanel from "./AccessPanel";
+import BoundaryPanel from "./BoundaryPanel";
+import DiffPanel from "./DiffPanel";
 
 const PRIMARY = [
   { id: "context", label: "Contexto", icon: FileText },
@@ -34,10 +44,20 @@ const PRIMARY = [
 ] as const;
 
 const MORE = [
+  { id: "data", label: "Dados", icon: BookMarked },
+  { id: "events", label: "Eventos", icon: BookMarked },
+  { id: "polyglot", label: "Polyglot map", icon: BookMarked },
+  { id: "lineage", label: "Lineage", icon: BookMarked },
+  { id: "threats", label: "Threats", icon: BookMarked },
+  { id: "wellarch", label: "Well-Architected", icon: BookMarked },
+  { id: "audit", label: "Audit Trail", icon: BookMarked },
   { id: "adr", label: "ADRs", icon: BookMarked },
   { id: "review", label: "Revisão humana", icon: ClipboardList },
   { id: "history", label: "Histórico", icon: History },
   { id: "settings", label: "Configuração de IA", icon: Settings2 },
+  { id: "access", label: "Acesso", icon: Shield },
+  { id: "boundary", label: "Borda", icon: Link2 },
+  { id: "diff", label: "Diff", icon: GitDiff },
 ] as const;
 
 type TabId = (typeof PRIMARY)[number]["id"] | (typeof MORE)[number]["id"];
@@ -140,6 +160,16 @@ export default function Inspector() {
         {tab === "arch" && <ArchitecturePanel />}
         {tab === "analysis" && <AnalysisPanel />}
         {tab === "sim" && <SimulationPanel />}
+        {tab === "data" && <DataArchitecturePanel />}
+        {tab === "events" && <EventCatalogPanel />}
+        {tab === "polyglot" && <PolyglotMapPanel />}
+        {tab === "lineage" && <LineagePanel />}
+        {tab === "threats" && <ThreatAnalysisPanel />}
+        {tab === "wellarch" && <WellArchitectedPanel />}
+        {tab === "audit" && <AuditTrailPanel />}
+        {tab === "access" && <AccessPanel graphId={graphId} />}
+        {tab === "boundary" && <BoundaryPanel graphId={graphId} />}
+        {tab === "diff" && <DiffPanel graphId={graphId} />}
         {tab === "adr" && <AdrPanel />}
         {tab === "review" && <ReviewPanel />}
         {tab === "history" && <HistoryPanel />}

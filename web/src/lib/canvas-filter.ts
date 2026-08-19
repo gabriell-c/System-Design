@@ -1,5 +1,5 @@
 import type { Node } from "@xyflow/react";
-import type { CanvasNodeData, CloudProvider, NodeKind, ZoneKind } from "./types";
+import type { C4Level, CanvasNodeData, CloudProvider, NodeKind, PiiSensitivity, ZoneKind } from "./types";
 
 export type LayerView = "all" | "storage" | "auth" | "media" | "search" | "network" | "cicd";
 
@@ -21,6 +21,10 @@ export type CanvasFilter = {
   layerView: LayerView;
   ownerTeam: string;
   catalogId: string;
+  /** P2.1.2 — filtrar por sensibilidade PII */
+  piiSensitivity: PiiSensitivity | "all";
+  /** P2.1.2 — filtrar por nível C4 */
+  c4Level: C4Level | "all";
 };
 
 export const EMPTY_CANVAS_FILTER: CanvasFilter = {
@@ -31,6 +35,8 @@ export const EMPTY_CANVAS_FILTER: CanvasFilter = {
   layerView: "all",
   ownerTeam: "",
   catalogId: "",
+  piiSensitivity: "all",
+  c4Level: "all",
 };
 
 export function isFilterActive(filter: CanvasFilter): boolean {
@@ -41,7 +47,9 @@ export function isFilterActive(filter: CanvasFilter): boolean {
     filter.provider !== "all" ||
     filter.layerView !== "all" ||
     filter.ownerTeam.trim().length > 0 ||
-    filter.catalogId.trim().length > 0
+    filter.catalogId.trim().length > 0 ||
+    filter.piiSensitivity !== "all" ||
+    filter.c4Level !== "all"
   );
 }
 
@@ -105,6 +113,16 @@ export function nodeMatchesFilter(data: CanvasNodeData, filter: CanvasFilter, ow
   }
   const q = filter.query.trim().toLowerCase();
   if (q && !blob(data).includes(q)) return false;
+  if (filter.piiSensitivity !== "all") {
+    if (data.kind === "zone" || data.kind === "block") return false;
+    const pii = data.piiSensitivity ?? "none";
+    if (pii !== filter.piiSensitivity) return false;
+  }
+  if (filter.c4Level !== "all") {
+    if (data.kind === "zone" || data.kind === "block") return false;
+    const level = data.c4Level ?? "container";
+    if (level !== filter.c4Level) return false;
+  }
   return true;
 }
 

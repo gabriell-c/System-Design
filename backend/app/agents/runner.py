@@ -32,6 +32,9 @@ from app.services.architecture_heuristics import (
 )
 from app.services.heuristic import analyze_graph
 from app.services.omniroute import complete_json
+from app.services.threat_analysis import enrich_threat_analysis
+from app.services.well_architected import calculate_well_architected_score
+from app.services.p1_analysis import enrich_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +264,7 @@ async def analyze_architecture(
             }
         )
 
-    return _merge(
+    merged = _merge(
         heuristic,
         reports,
         consolidator,
@@ -273,3 +276,6 @@ async def analyze_architecture(
         style_findings=style_findings,
         review_scorecard=review_scorecard,
     )
+    from app.services.p1_analysis import enrich_analysis
+
+    return enrich_analysis(merged, nodes, edges, nfr)

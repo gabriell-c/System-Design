@@ -44,6 +44,9 @@ import type { ProjectTemplate } from "./templates";
 import { createZoneNode, ensureZoneFitsChild, isZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
 import type { ArchitectureView } from "./architecture-view";
 import { EMPTY_CANVAS_FILTER, type CanvasFilter } from "./canvas-filter";
+import { applyFixAction } from "./fix-actions";
+import { saveSavedView } from "./saved-views";
+import type { SavedView } from "./types";
 
 export type UiNotice = {
   type: "error" | "info" | "success";
@@ -82,8 +85,12 @@ type GraphState = {
   future: GraphSnapshot[];
   architectureView: ArchitectureView;
   canvasFilter: CanvasFilter;
+  savedViewsTick: number;
   focusedZoneId: string | null;
   ownerTeam: string;
+  canvasComments: import("./types").CanvasComment[];
+  highlightNodeIds: string[];
+  diffHighlights: import("./diff-highlight").DiffHighlight[];
   _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
   _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
@@ -91,8 +98,14 @@ type GraphState = {
   setNfr: (nfr: ProjectNfr | ((prev: ProjectNfr) => ProjectNfr)) => void;
   setArchitectureView: (view: ArchitectureView) => void;
   setCanvasFilter: (filter: CanvasFilter) => void;
+  saveView: (name: string, tags?: string[]) => SavedView;
+  loadView: (view: SavedView) => void;
   setFocusedZoneId: (id: string | null) => void;
   setOwnerTeam: (team: string) => void;
+  setCanvasComments: (comments: import("./types").CanvasComment[]) => void;
+  setHighlightNodeIds: (ids: string[]) => void;
+  addPatternNodes: (nodes: Node<CanvasNodeData>[]) => void;
+  applyFixFromFinding: (action: import("./types").FixAction) => boolean;
   applyTemplate: (template: ProjectTemplate) => void;
   setUserRole: (role: UserRole) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -114,7 +127,7 @@ type GraphState = {
   addZone: (
     zoneKind: ZoneKind,
     position: { x: number; y: number },
-    opts?: { label?: string; provider?: CloudProvider },
+    opts?: { label?: string; provider?: CloudProvider; boundedContext?: string },
   ) => void;
   updateEdgeData: (edgeId: string, patch: Partial<ArchEdgeData>) => void;
   renameNode: (id: string, label: string) => void;
@@ -124,7 +137,7 @@ type GraphState = {
   resolveNestingAfterDrag: (nodeId: string) => void;
   reconcileOrphanCards: () => void;
   checkpointDrag: () => void;
-  updateNodeData: (id: string, patch: Partial<ArchNodeData>) => void;
+  updateNodeData: (id: string, patch: Partial<ArchNodeData> | Partial<import("./types").ZoneNodeData>) => void;
   updateNodeConfig: (id: string, config: ArchNodeData["config"]) => void;
   setAnalysis: (analysis: AnalysisResult | null) => void;
   setAnalyzing: (value: boolean, error?: string | null) => void;
@@ -229,8 +242,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   future: [],
   architectureView: "ai",
   canvasFilter: EMPTY_CANVAS_FILTER,
+  savedViewsTick: 0,
   focusedZoneId: null,
   ownerTeam: "",
+  canvasComments: [],
+  highlightNodeIds: [],
+  diffHighlights: [],
   _pendingNodesChanges: null,
   _pendingTimeout: null,
 
@@ -246,8 +263,32 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
   setArchitectureView: (architectureView) => set({ architectureView }),
   setCanvasFilter: (canvasFilter) => set({ canvasFilter }),
+  saveView: (name, tags) => {
+    const { graphId, canvasFilter, savedViewsTick } = get();
+    const view = saveSavedView(graphId, { name, tags, filter: canvasFilter });
+    set({ savedViewsTick: savedViewsTick + 1 });
+    get().pushUiNotice({ type: "success", text: `View "${view.name}" salva.` });
+    return view;
+  },
+  loadView: (view) => {
+    set({ canvasFilter: { ...view.filter } });
+    get().pushUiNotice({ type: "info", text: `View "${view.name}" aplicada.` });
+  },
   setFocusedZoneId: (focusedZoneId) => set({ focusedZoneId }),
   setOwnerTeam: (ownerTeam) => set({ ownerTeam, dirty: true }),
+  setCanvasComments: (canvasComments) => set({ canvasComments }),
+  setHighlightNodeIds: (highlightNodeIds) => set({ highlightNodeIds }),
+  setDiffHighlights: (diffHighlights) => set({ diffHighlights }),
+  addPatternNodes: (patternNodes) => {
+    withHistory(get, set, () => {
+      set({
+        nodes: [...get().nodes, ...patternNodes],
+        dirty: true,
+        selectedNodeId: patternNodes[0]?.id ?? get().selectedNodeId,
+      });
+    });
+  },
+  applyFixFromFinding: (action) => applyFixAction(get(), action),
   applyTemplate: (template) => {
     withHistory(get, set, () => {
       const built = template.build();
@@ -810,8 +851,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     withHistory(get, set, () => {
       set({
         nodes: get().nodes.map((node) => {
-          if (node.id !== id || !isArchData(node.data)) return node;
-          return { ...node, data: { ...node.data, ...patch } };
+          if (node.id !== id) return node;
+          return { ...node, data: { ...node.data, ...patch } as CanvasNodeData };
         }),
         dirty: true,
       });
@@ -831,6 +872,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
 
   setAnalysis: (analysis) => {
+    const criticalIds = analysis?.score_breakdown?.critical_node_ids ?? [];
     const nodes = get().nodes.map((node) => ({
       ...node,
       data: {
@@ -844,7 +886,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         ),
       },
     }));
-    set({ nodes, analysis, analyzeError: null });
+    set({ nodes, analysis, analyzeError: null, highlightNodeIds: criticalIds });
   },
 
   setAnalyzing: (analyzing, error = null) => set({ analyzing, analyzeError: error }),

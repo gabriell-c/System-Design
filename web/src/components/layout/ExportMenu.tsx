@@ -20,6 +20,9 @@ import { exportArchitecturePdf, exportArchitecturePng } from "@/lib/export-canva
 import { exportToDrawio } from "@/lib/export-drawio";
 import { exportToPlantuml } from "@/lib/export-plantuml";
 import { exportToMermaid } from "@/lib/export-mermaid";
+import { exportToC4Plantuml } from "@/lib/export-c4-plantuml";
+import { prepareCleanExport } from "@/lib/export-quality";
+import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 
 type Props = {
@@ -37,6 +40,7 @@ export default function ExportMenu({ onDone }: Props) {
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
   const analysis = useGraphStore((s) => s.analysis);
+  const graphId = useGraphStore((s) => s.graphId);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
 
   useEffect(() => {
@@ -49,7 +53,9 @@ export default function ExportMenu({ onDone }: Props) {
 
   const base = slugifyFilename(name);
 
-  async function run(kind: "json" | "md" | "png" | "pdf" | "drawio" | "plantuml" | "mermaid") {
+  async function run(
+    kind: "json" | "md" | "png" | "png-clean" | "pdf" | "drawio" | "plantuml" | "mermaid" | "c4" | "embed",
+  ) {
     try {
       if (kind === "json") {
         downloadJson(
@@ -65,6 +71,11 @@ export default function ExportMenu({ onDone }: Props) {
         setBusy("png");
         await exportArchitecturePng(`${base}.png`, nodes);
         pushUiNotice({ type: "success", text: "Imagem PNG exportada." });
+      } else if (kind === "png-clean") {
+        setBusy("png");
+        prepareCleanExport(nodes, { hideChrome: true });
+        await exportArchitecturePng(`${base}-clean.png`, nodes);
+        pushUiNotice({ type: "success", text: "PNG sem chrome exportado." });
       } else if (kind === "pdf") {
         setBusy("pdf");
         await exportArchitecturePdf(name, nodes, edges, { context, nfr, analysis, includeDiagram: true });
@@ -84,6 +95,15 @@ export default function ExportMenu({ onDone }: Props) {
         const md = exportToMermaid(nodes, edges, name);
         downloadText(`${base}.mmd`, md, "text/plain;charset=utf-8");
         pushUiNotice({ type: "success", text: "Mermaid exportado." });
+      } else if (kind === "c4") {
+        const c4 = exportToC4Plantuml(nodes, edges, name);
+        downloadText(`${base}-c4.puml`, c4, "text/plain;charset=utf-8");
+        pushUiNotice({ type: "success", text: "C4-PlantUML exportado." });
+      } else if (kind === "embed") {
+        if (!graphId) throw new Error("Salve o diagrama antes de gerar embed.");
+        const token = await api.getEmbedToken(graphId);
+        await navigator.clipboard.writeText(token.iframe_snippet);
+        pushUiNotice({ type: "success", text: "Snippet iframe copiado." });
       }
       setOpen(false);
       onDone?.();
@@ -133,6 +153,13 @@ export default function ExportMenu({ onDone }: Props) {
             onClick={() => void run("png")}
           />
           <ExportItem
+            icon={<FileImage size={14} />}
+            label="PNG sem chrome"
+            hint="Diagrama limpo (sem UI)"
+            disabled={nodes.length === 0 || busy != null}
+            onClick={() => void run("png-clean")}
+          />
+          <ExportItem
             icon={<FileText size={14} />}
             label="Markdown"
             hint="Doc para README / PR"
@@ -156,6 +183,19 @@ export default function ExportMenu({ onDone }: Props) {
             label="PlantUML"
             hint="Diagrama de sequência/componentes"
             onClick={() => void run("plantuml")}
+          />
+          <ExportItem
+            icon={<FileCode2 size={14} />}
+            label="C4-PlantUML"
+            hint="C4 Container diagram"
+            onClick={() => void run("c4")}
+          />
+          <ExportItem
+            icon={<FileCode2 size={14} />}
+            label="Embed iframe"
+            hint="Copia snippet read-only"
+            disabled={!graphId}
+            onClick={() => void run("embed")}
           />
           <ExportItem
             icon={<FileCode2 size={14} />}

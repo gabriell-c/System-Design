@@ -78,4 +78,71 @@ class Comment(Base):
     node_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     author: Mapped[str] = mapped_column(String(200), nullable=False)
+    position_x: Mapped[float | None] = mapped_column(nullable=True)
+    position_y: Mapped[float | None] = mapped_column(nullable=True)
+    resolved: Mapped[bool] = mapped_column(default=False)
+    assignee: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    mentions_json: Mapped[str] = mapped_column(Text, default="[]")
+    thread_parent_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SimulationScenario(Base):
+    __tablename__ = "simulation_scenarios"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("graphs.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AuditEntry(Base):
+    __tablename__ = "audit_entries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("graphs.id", ondelete="CASCADE"), index=True)
+    user_email: Mapped[str] = mapped_column(String(200), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    previous_state: Mapped[str] = mapped_column(Text, default="{}")
+    new_state: Mapped[str] = mapped_column(Text, default="{}")
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class GraphAccess(Base):
+    """P2.2.3 — ACL por squad/owner_team em grafos.
+
+    Um squad (ex: 'ads-team') pode ter permissões diferentes
+    sobre o mesmo grafo: read, write ou admin.
+    """
+    __tablename__ = "graph_access"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("graphs.id", ondelete="CASCADE"), index=True)
+    team: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="read")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class GraphBoundaryContract(Base):
+    """P2.2.2 — Contrato de borda entre subsystems (zonas).
+
+    Define como dois subsystems se comunicam: protocolo, descrição, SLA.
+    """
+    __tablename__ = "graph_boundary_contracts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("graphs.id", ondelete="CASCADE"), index=True)
+    source_zone: Mapped[str] = mapped_column(String(100), nullable=False)
+    target_zone: Mapped[str] = mapped_column(String(100), nullable=False)
+    protocol: Mapped[str] = mapped_column(String(50), nullable=False, default="async")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    sla_ms: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -19,6 +20,9 @@ import {
 } from "lucide-react";
 import CustomSelect from "@/components/ui/Select";
 import { useSimulation } from "@/hooks/useSimulation";
+import { api } from "@/lib/api";
+import { useGraphStore } from "@/lib/graph-store";
+import type { SimulationScenarioRecord } from "@/lib/types";
 
 function pct(n: number): string {
   return `${(n * 100).toFixed(1)}%`;
@@ -68,6 +72,24 @@ export default function SimulationPanel() {
     newSeedAndRun,
     canRun,
   } = useSimulation();
+  const graphId = useGraphStore((s) => s.graphId);
+  const [scenarios, setScenarios] = useState<SimulationScenarioRecord[]>([]);
+  const [scenarioName, setScenarioName] = useState("");
+
+  useEffect(() => {
+    if (!graphId) return;
+    void api.listSimulationScenarios(graphId).then(setScenarios).catch(() => setScenarios([]));
+  }, [graphId, result]);
+
+  async function saveScenario() {
+    if (!graphId || !result) return;
+    const row = await api.createSimulationScenario(graphId, {
+      name: scenarioName.trim() || `Cenário ${scenarios.length + 1}`,
+      payload: { presetId, seed, realism, testMode, result_summary: result.summary },
+    });
+    setScenarios((prev) => [row, ...prev]);
+    setScenarioName("");
+  }
 
   const selected = presets.find((p) => p.id === presetId);
 
@@ -419,6 +441,41 @@ export default function SimulationPanel() {
           {/* Timeline */}
           {result.load && result.load.timeline.length > 0 && (
             <MiniTimeline points={result.load.timeline} capacity={result.estimated_capacity_rps} />
+          )}
+
+          {graphId && (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cenários salvos</p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="flex-1 rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-xs text-slate-100"
+                  placeholder="Nome do cenário"
+                  value={scenarioName}
+                  onChange={(e) => setScenarioName(e.target.value)}
+                />
+                <button type="button" className="btn-ghost text-xs" onClick={() => void saveScenario()}>
+                  Salvar
+                </button>
+              </div>
+              <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
+                {scenarios.map((s) => (
+                  <li key={s.id} className="flex justify-between gap-2">
+                    <span>{s.name}</span>
+                    <button
+                      type="button"
+                      className="text-rose-300"
+                      onClick={() =>
+                        void api.deleteSimulationScenario(graphId, s.id).then(() =>
+                          setScenarios((prev) => prev.filter((x) => x.id !== s.id)),
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}

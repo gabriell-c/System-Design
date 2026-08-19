@@ -71,6 +71,12 @@ class GraphUpdate(BaseModel):
     owner_team: str | None = Field(default=None, max_length=80)
 
 
+class TeamAccess(BaseModel):
+    """P2.2.3 — permissão por squad."""
+    team: str
+    role: Literal["read", "write", "admin"]
+
+
 class GraphOut(BaseModel):
     id: str
     name: str

@@ -619,6 +619,16 @@ def detect_bottlenecks(
         nfr.arch_style == "serverless" if nfr.arch_style else False
     )
 
+    # P1.2.2 — Anti-FP: monolith pequeno / MVP não dispara regras de escala enterprise
+    arch_style = nfr.arch_style or ""
+    if users < 5_000 and arch_style in {"monolithic", "layered", ""}:
+        return findings
+    if users < 20_000 and arch_style == "monolithic" and len(backend_cards) <= 2:
+        # Skip queue/LB rules for tiny monoliths
+        users_threshold_scale = True
+    else:
+        users_threshold_scale = False
+
     # 1. Compute overload
     if users > 100_000 and len(compute_cards) == 1:
         node = compute_cards[0]
@@ -669,8 +679,8 @@ def detect_bottlenecks(
             )
         )
 
-    # 4. Sem fila em alta escala
-    if users > 100_000 and not queue_cards and not is_serverless and backend_cards:
+    # 4. Sem fila em alta escala — skip for small monolith MVP (P1.2.2)
+    if not users_threshold_scale and users > 100_000 and not queue_cards and not is_serverless and backend_cards:
         node = backend_cards[0]
         findings.append(
             Finding(
@@ -684,8 +694,8 @@ def detect_bottlenecks(
             )
         )
 
-    # 5. Sem LB com vários backends
-    if len(backend_cards) > 2 and not lb_cards:
+    # 5. Sem LB com vários backends — skip for small monolith MVP (P1.2.2)
+    if not users_threshold_scale and len(backend_cards) > 2 and not lb_cards:
         for node in backend_cards:
             findings.append(
                 Finding(

@@ -15,6 +15,7 @@ import { Boxes, Keyboard, MousePointerClick, Share2, Unlink2 } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
+import SagaNode from "@/components/nodes/SagaNode";
 import ZoneNode from "@/components/nodes/ZoneNode";
 import DiagramLegend from "@/components/canvas/DiagramLegend";
 import TitleBlock from "@/components/canvas/TitleBlock";
@@ -27,11 +28,15 @@ import { ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 import { FLOW_KIND_META } from "@/lib/edges";
 import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
+import CanvasComments from "@/components/canvas/CanvasComments";
+import LineageView from "@/components/canvas/LineageView";
+import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
 
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
   block: BlockNode,
   zone: ZoneNode,
+  saga: SagaNode,
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -67,6 +72,12 @@ function CanvasInner() {
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
   const snapRef = useRef({ active: false, originalPositions: new Map<string, { x: number; y: number }>() });
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  // P2.1.1 + P2.1.3 — LOD: ajustar configurações conforme a escala
+  const _lod = useMemo(() => lodConfig(nodes.length), [nodes.length]);
+
+  // P2.1.3 — zoom semântico: badge mostra nível de zoom atual
 
   // Cards que só “parecem” dentro do bloco (sem parentId) passam a andar junto
   useEffect(() => {
@@ -301,6 +312,17 @@ function CanvasInner() {
             ))}
           </ul>
         </div>
+        {/* P2.1.1 — badge de escala */}
+        <div className="pointer-events-none mt-1 rounded-xl border border-white/10 bg-[#0d1219]/90 px-2 py-1.5 text-[10px] text-slate-500 backdrop-blur">
+          <span className={nodes.length >= 500 ? "text-amber-400" : nodes.length >= 150 ? "text-cyan-400" : ""}>
+            {nodes.length} nós · {_lod.snapEnabled ? "snap" : "no-snap"}
+          </span>
+          {/* P2.1.3 — zoom semântico LOD */}
+          <span className="ml-2 text-slate-600">·</span>
+          <span className="ml-1">
+            {zoomLevel < 0.3 ? "zoom-out" : zoomLevel < 0.8 ? "subsystem" : zoomLevel < 1.3 ? "service" : "resource"}
+          </span>
+        </div>
       </div>
 
       {/* Alignment guidelines */}
@@ -363,6 +385,10 @@ function CanvasInner() {
         }}
         onNodeDrag={(event, draggedNode) => {
           if (!snapRef.current.active || !draggedNode) return;
+          if (!_lod.snapEnabled) {
+            setGuidelines([]);
+            return;
+          }
           const allNodes = useGraphStore.getState().nodes;
           if (allNodes.length > 120) {
             setGuidelines([]);
@@ -393,8 +419,12 @@ function CanvasInner() {
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode={null}
         connectionLineStyle={{ stroke: "#22d3ee", strokeWidth: 2 }}
-        defaultEdgeOptions={{ type: "smoothstep", animated: nodes.length < 80 }}
-        onlyRenderVisibleElements={nodes.length >= 80}
+        defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
+        onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length)}
+        onZoom={(state) => {
+          // P2.1.3 — tracking zoom level for semantic LOD
+          setZoomLevel(state.transform[2]);
+        }}
         proOptions={{ hideAttribution: true }}
         aria-label="Canvas de arquitetura"
         minZoom={0.08}
@@ -423,6 +453,8 @@ function CanvasInner() {
           <DiagramLegend />
         </div>
       </ReactFlow>
+      <CanvasComments />
+      <LineageView />
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import DesignCanvas from "@/components/canvas/DesignCanvas";
 import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
 import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
 import SearchFilter from "@/components/sidebar/SearchFilter";
+import SavedViewsPanel from "@/components/sidebar/SavedViewsPanel";
 import ViewTabs from "@/components/sidebar/ViewTabs";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
@@ -173,6 +174,7 @@ export default function EditorShell() {
             <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
               <div className="flex h-full min-h-0 flex-col">
                 <SearchFilter />
+                <SavedViewsPanel />
                 <ViewTabs />
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ComponentPalette />

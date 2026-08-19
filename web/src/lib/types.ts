@@ -46,7 +46,12 @@ export type ZoneKind =
   | "peering"
   | "vpn"
   | "privatelink"
-  | "express_route";
+  | "express_route"
+  | "data_mesh"
+  | "tgw"
+  | "nat_gateway"
+  | "prefix_list"
+  | "dr_region";
 
 export const ALL_ZONE_KINDS: ZoneKind[] = [
   "region",
@@ -61,6 +66,11 @@ export const ALL_ZONE_KINDS: ZoneKind[] = [
   "vpn",
   "privatelink",
   "express_route",
+  "data_mesh",
+  "tgw",
+  "nat_gateway",
+  "prefix_list",
+  "dr_region",
 ];
 
 export type FlowKind = "sync" | "async" | "data" | "control" | "management";
@@ -88,10 +98,28 @@ export type FirewallRule = {
 
 export type NodeComment = {
   id: string;
-  nodeId: string;
+  nodeId?: string | null;
+  node_id?: string | null;
   text: string;
   author: string;
   created_at: string;
+  position_x?: number | null;
+  position_y?: number | null;
+  resolved?: boolean;
+  assignee?: string | null;
+  mentions?: string[];
+  thread_parent_id?: string | null;
+};
+
+export type CanvasComment = NodeComment;
+
+export type SimulationScenarioRecord = {
+  id: string;
+  graph_id: string;
+  name: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ArchStyle =
@@ -116,6 +144,19 @@ export type ArchNodeConfig = {
   capability?: string;
 };
 
+export type PiiSensitivity = "none" | "low" | "medium" | "high" | "restricted";
+
+export type C4Level = "system" | "container" | "component" | "code";
+
+export const ALL_C4_LEVELS: C4Level[] = ["system", "container", "component", "code"];
+
+export type CapacityContract = {
+  max_rps?: number;
+  p99_latency_ms?: number;
+  max_connections?: number;
+  notes?: string;
+};
+
 export type ArchNodeData = {
   kind: NodeKind;
   label: string;
@@ -126,6 +167,12 @@ export type ArchNodeData = {
   summary?: string;
   /** Gargalo detectado na análise (pulse vermelho no canvas). */
   bottleneck?: boolean;
+  /** P1.1.5 — classificação PII para cards de banco */
+  piiSensitivity?: PiiSensitivity;
+  /** P2.1.2 — nível C4 do elemento no diagrama */
+  c4Level?: C4Level;
+  /** P1.3.5 — contrato de capacidade editável */
+  capacityContract?: CapacityContract;
 };
 
 export type BlockNodeData = {
@@ -144,6 +191,8 @@ export type ZoneNodeData = {
   label: string;
   provider?: CloudProvider;
   description?: string;
+  /** P1.1.1 — bounded context name for DDD/data mesh */
+  boundedContext?: string;
   score?: number | null;
   summary?: string;
   bottleneck?: boolean;
@@ -170,12 +219,39 @@ export type MetricEstimate = {
   is_estimate: true;
 };
 
+export type FixAction = {
+  action_type: string;
+  label: string;
+  payload: Record<string, unknown>;
+};
+
 export type Finding = {
   node_id?: string | null;
   severity: Severity;
   title: string;
   detail: string;
   metric?: MetricEstimate | null;
+  fix_action?: FixAction | null;
+};
+
+export type ScoreFactor = {
+  label: string;
+  impact: number;
+  detail?: string;
+};
+
+export type ScoreBreakdown = {
+  base_score: number;
+  explained_score: number;
+  factors: ScoreFactor[];
+  critical_node_ids: string[];
+  finding_counts: Record<string, number>;
+};
+
+export type DomainBenchmark = {
+  domain: string;
+  triggered_rules: string[];
+  status: "pass" | "fail";
 };
 
 export type GrowthScenario = {
@@ -233,6 +309,20 @@ export type AnalysisResult = {
     review_ready: boolean;
     gaps: string[];
   } | null;
+  score_breakdown?: ScoreBreakdown | null;
+  benchmarks?: DomainBenchmark[];
+  threat_findings?: Finding[];
+  well_architected?: {
+    narrative: number;
+    views_completeness: number;
+    placement: number;
+    flow_continuity: number;
+    operability: number;
+    decision_quality: number;
+    overall: number;
+    review_ready: boolean;
+    gaps: string[];
+  } | null;
 };
 
 export type EnvironmentPlan = {
@@ -267,16 +357,23 @@ export type ApiContract = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   protocol?: 'rest' | 'graphql' | 'grpc' | 'async';
   schema_url?: string;
+  openapi_url?: string;
+  asyncapi_url?: string;
+  flow_exists?: boolean;
   version?: string;
+  description?: string;
 };
 
 export type EventTopic = {
   name: string;
   protocol?: 'kafka' | 'rabbitmq' | 'sns' | 'pubsub';
   schema_type?: 'avro' | 'protobuf' | 'jsonschema' | 'json';
+  schema_version?: string;
+  schema_registry_url?: string;
   retention_hours?: number;
   consumers?: string[];
   producers?: string[];
+  dlq?: string;
 };
 
 export type ConsistencyPattern = 'strong' | 'eventual' | 'causal' | 'session';
@@ -371,6 +468,24 @@ export type CatalogItem = {
   provider?: CloudProvider;
   /** Capability para paridade AWS/Azure/GCP */
   capability?: string;
+  /** Limites de capacidade (RPS, conexões, throughput) */
+  limits?: {
+    max_rps?: number;
+    max_connections?: number;
+    max_throughput_mbps?: number;
+  };
+  /** Modelo de alta disponibilidade */
+  ha_model?: "single-az" | "multi-az" | "multi-region" | "global";
+  /** Regiões disponíveis */
+  regions?: string[];
+  /** Tier de pricing (free, basic, standard, premium, enterprise) */
+  pricing_tier?: "free" | "basic" | "standard" | "premium" | "enterprise";
+  /** Recomendação de RPS baseada em benchmarks */
+  rps_guidance?: string;
+  /** SLA garantido (%) */
+  sla_pct?: number;
+  /** Tempo médio de recuperação (minutos) */
+  mttr_minutes?: number;
 };
 
 /** Preferências do usuário sobre quais componentes aparecem na paleta */
@@ -421,4 +536,29 @@ export type AdrEntry = {
   context: string;
   decision: string;
   consequences: string[];
+  jira_key?: string;
+  confluence_url?: string;
+};
+
+export type ReviewTemplateItem = {
+  id: string;
+  label: string;
+  required: boolean;
+  checked: boolean;
+};
+
+/** P2.2.4 — view salva (filtros + camada) por usuário/diagrama */
+export type SavedView = {
+  id: string;
+  name: string;
+  tags: string[];
+  filter: import("./canvas-filter").CanvasFilter;
+  created_at: string;
+  updated_at: string;
+};
+
+/** P2.2.3 — permissão por squad em um grafo */
+export type TeamAccess = {
+  team: string;
+  role: "read" | "write" | "admin";
 };

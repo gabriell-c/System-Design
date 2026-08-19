@@ -220,20 +220,80 @@ export default function DataArchitecturePanel() {
 
           <div className="space-y-2">
             {apiContracts.map((entry, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                <div>
-                  <p className="text-sm font-medium text-slate-200">{entry.service}</p>
-                  <p className="text-xs text-slate-400">{entry.protocol?.toUpperCase()} · {entry.method}</p>
+              <div key={idx} className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-200">{entry.service}</p>
+                    <p className="text-xs text-slate-400">
+                      {entry.protocol?.toUpperCase()} · {entry.method} · v{entry.version ?? '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeApiContract(idx)}
+                    className="p-1 text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeApiContract(idx)}
-                  className="p-1 text-red-400 hover:text-red-300"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <input
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  placeholder="OpenAPI URL (rest/graphql/grpc)"
+                  value={entry.openapi_url ?? ""}
+                  onChange={(e) =>
+                    setNfr((prev) => {
+                      const contracts = [...(prev.api_contracts ?? [])];
+                      contracts[idx] = { ...contracts[idx], openapi_url: e.target.value };
+                      return { ...prev, api_contracts: contracts };
+                    })
+                  }
+                />
+                <input
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  placeholder="AsyncAPI URL (async)"
+                  value={entry.asyncapi_url ?? ""}
+                  onChange={(e) =>
+                    setNfr((prev) => {
+                      const contracts = [...(prev.api_contracts ?? [])];
+                      contracts[idx] = { ...contracts[idx], asyncapi_url: e.target.value };
+                      return { ...prev, api_contracts: contracts };
+                    })
+                  }
+                />
+                <input
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  placeholder="Endpoints separados por vírgula (ex: /api/v1/users, /api/v1/orders)"
+                  value={entry.endpoint ?? ""}
+                  onChange={(e) =>
+                    setNfr((prev) => {
+                      const contracts = [...(prev.api_contracts ?? [])];
+                      contracts[idx] = { ...contracts[idx], endpoint: e.target.value };
+                      return { ...prev, api_contracts: contracts };
+                    })
+                  }
+                />
+                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={entry.flow_exists ?? false}
+                    onChange={(e) =>
+                      setNfr((prev) => {
+                        const contracts = [...(prev.api_contracts ?? [])];
+                        contracts[idx] = { ...contracts[idx], flow_exists: e.target.checked };
+                        return { ...prev, api_contracts: contracts };
+                      })
+                    }
+                  />
+                  Fluxo existe no diagrama (conectado a nós)
+                </label>
               </div>
             ))}
           </div>
+
+          {apiContracts.some(c => !c.flow_exists) && (
+            <p className="text-xs text-amber-400">
+              ⚠ {apiContracts.filter(c => !c.flow_exists).length} contrato(s) sem fluxo conectado no diagrama
+            </p>
+          )}
         </div>
       )}
 
@@ -259,17 +319,41 @@ export default function DataArchitecturePanel() {
 
           <div className="space-y-2">
             {eventTopics.map((entry, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                <div>
+              <div key={idx} className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-slate-200">{entry.name}</p>
-                  <p className="text-xs text-slate-400">{entry.protocol} · {entry.schema_type}</p>
+                  <button onClick={() => removeEventTopic(idx)} className="p-1 text-red-400 hover:text-red-300">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeEventTopic(idx)}
-                  className="p-1 text-red-400 hover:text-red-300"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <p className="text-xs text-slate-400">
+                  {entry.protocol} · {entry.schema_type}
+                  {entry.schema_version ? ` v${entry.schema_version}` : ""}
+                </p>
+                <input
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  placeholder="Schema registry URL"
+                  value={entry.schema_registry_url ?? ""}
+                  onChange={(e) =>
+                    setNfr((prev) => {
+                      const topics = [...(prev.event_topics ?? [])];
+                      topics[idx] = { ...topics[idx], schema_registry_url: e.target.value };
+                      return { ...prev, event_topics: topics };
+                    })
+                  }
+                />
+                <input
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  placeholder="DLQ topic"
+                  value={entry.dlq ?? ""}
+                  onChange={(e) =>
+                    setNfr((prev) => {
+                      const topics = [...(prev.event_topics ?? [])];
+                      topics[idx] = { ...topics[idx], dlq: e.target.value };
+                      return { ...prev, event_topics: topics };
+                    })
+                  }
+                />
               </div>
             ))}
           </div>

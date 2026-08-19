@@ -52,6 +52,7 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
           <p className="truncate text-sm font-semibold text-slate-50">{data.label}</p>
           <p className="text-[10px] uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
             Zona · {meta.short}
+            {data.boundedContext ? ` · ${data.boundedContext}` : ""}
             {data.provider && data.provider !== "generic" ? ` · ${data.provider.toUpperCase()}` : ""}
           </p>
         </div>

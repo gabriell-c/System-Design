@@ -17,6 +17,11 @@ function scoreTone(score?: number | null): string {
 
 export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);
+  const highlightNodeIds = useGraphStore((s) => s.highlightNodeIds);
+  const diffHighlights = useGraphStore((s) => s.diffHighlights);
+  const highlighted = highlightNodeIds.includes(id);
+  const diffStatus = diffHighlights.find((h) => h.nodeId === id)?.status;
+  const diffColor = diffStatus === "added" ? "#22c55e" : diffStatus === "removed" ? "#ef4444" : diffStatus === "changed" ? "#eab308" : null;
   const opacity = nodeOpacityForView(data, architectureView);
   const meta = KIND_META[data.kind];
   const subtitle =
@@ -28,16 +33,18 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
   return (
     <article
       className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
-        selected ? "ring-2 ring-cyan-400/70" : ""
+        selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
       } ${
         data.bottleneck
           ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
-          : ""
-      }`}
+          : highlighted
+            ? "border-cyan-400 shadow-cyan-500/20"
+            : ""
+      } ${diffStatus === "added" ? "border-emerald-500 ring-2 ring-emerald-500/50" : diffStatus === "removed" ? "border-rose-500 ring-2 ring-rose-500/50" : diffStatus === "changed" ? "border-amber-500 ring-2 ring-amber-500/50" : ""}`}
       style={{
-        background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : "#121821",
-        borderColor: data.bottleneck ? "rgb(244, 63, 94)" : meta.border,
-        opacity,
+        background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : diffStatus === "removed" ? "rgba(127, 29, 29, 0.2)" : "#121821",
+        borderColor: data.bottleneck ? "rgb(244, 63, 94)" : diffColor ?? meta.border,
+        opacity: diffStatus === "removed" ? 0.4 : opacity,
       }}
       title={data.bottleneck ? data.summary || "Gargalo detectado na análise" : undefined}
     >
@@ -79,6 +86,11 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
           </div>
           <p className="text-[10px] uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
             {meta.label}
+            {data.kind === "database" && data.piiSensitivity && data.piiSensitivity !== "none" && (
+              <span className="ml-1 rounded bg-rose-500/20 px-1 text-[9px] text-rose-200">
+                PII {data.piiSensitivity}
+              </span>
+            )}
           </p>
           <p className="mt-1 truncate text-xs text-slate-400">
             {data.bottleneck && data.summary ? data.summary : subtitle}

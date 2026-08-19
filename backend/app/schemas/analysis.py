@@ -19,12 +19,39 @@ class MetricEstimate(BaseModel):
     is_estimate: Literal[True] = True
 
 
+class FixAction(BaseModel):
+    action_type: str
+    label: str
+    payload: dict = Field(default_factory=dict)
+
+
+class ScoreFactor(BaseModel):
+    label: str
+    impact: float
+    detail: str = ""
+
+
+class ScoreBreakdown(BaseModel):
+    base_score: float
+    explained_score: float
+    factors: list[ScoreFactor] = Field(default_factory=list)
+    critical_node_ids: list[str] = Field(default_factory=list)
+    finding_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class DomainBenchmark(BaseModel):
+    domain: str
+    triggered_rules: list[str] = Field(default_factory=list)
+    status: str = "pass"
+
+
 class Finding(BaseModel):
     node_id: str | None = None
     severity: Severity
     title: str
     detail: str
     metric: MetricEstimate | None = None
+    fix_action: FixAction | None = None
 
 
 class GrowthScenario(BaseModel):
@@ -69,6 +96,10 @@ class AnalysisResult(BaseModel):
     trade_offs: list[TradeOffEntry] = Field(default_factory=list)
     style_findings: list[Finding] = Field(default_factory=list)
     review_scorecard: ReviewScorecard | None = None
+    score_breakdown: ScoreBreakdown | None = None
+    benchmarks: list[DomainBenchmark] = Field(default_factory=list)
+    threat_findings: list[Finding] = Field(default_factory=list)
+    well_architected: ReviewScorecard | None = None
 
 
 class ComparisonResult(BaseModel):

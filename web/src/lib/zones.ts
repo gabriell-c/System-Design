@@ -14,6 +14,11 @@ export const ZONE_DEFAULT_SIZE: Record<ZoneKind, { width: number; height: number
   vpn: { width: 360, height: 240 },
   privatelink: { width: 360, height: 220 },
   express_route: { width: 360, height: 220 },
+  data_mesh: { width: 480, height: 320 },
+  tgw: { width: 380, height: 200 },
+  nat_gateway: { width: 260, height: 140 },
+  prefix_list: { width: 220, height: 100 },
+  dr_region: { width: 920, height: 640 },
 };
 
 export const ZONE_META: Record<
@@ -104,12 +109,47 @@ export const ZONE_META: Record<
     bg: "rgba(234, 88, 12, 0.1)",
     border: "rgba(253, 186, 116, 0.5)",
   },
+  data_mesh: {
+    label: "Data Mesh Zone",
+    short: "Data Mesh",
+    accent: "#c084fc",
+    bg: "rgba(168, 85, 247, 0.1)",
+    border: "rgba(192, 132, 252, 0.55)",
+  },
+  tgw: {
+    label: "Transit Gateway",
+    short: "TGW",
+    accent: "#60a5fa",
+    bg: "rgba(37, 99, 235, 0.08)",
+    border: "rgba(96, 165, 250, 0.5)",
+  },
+  nat_gateway: {
+    label: "NAT Gateway",
+    short: "NAT",
+    accent: "#fbbf24",
+    bg: "rgba(245, 158, 11, 0.08)",
+    border: "rgba(251, 191, 36, 0.5)",
+  },
+  prefix_list: {
+    label: "Prefix List",
+    short: "Prefix",
+    accent: "#94a3b8",
+    bg: "rgba(100, 116, 139, 0.08)",
+    border: "rgba(148, 163, 184, 0.45)",
+  },
+  dr_region: {
+    label: "Disaster Recovery Region",
+    short: "DR",
+    accent: "#f472b6",
+    bg: "rgba(236, 72, 153, 0.08)",
+    border: "rgba(244, 114, 182, 0.5)",
+  },
 };
 
 /** Filhos zoneKind permitidos dentro de um pai. */
 const ZONE_CHILD_ALLOWED: Record<ZoneKind, ZoneKind[]> = {
-  region: ["vpc", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "express_route"],
-  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink"],
+  region: ["vpc", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "express_route", "data_mesh", "tgw", "nat_gateway", "prefix_list", "dr_region"],
+  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "data_mesh", "tgw", "nat_gateway", "prefix_list"],
   availability_zone: ["subnet_public", "subnet_private", "layer", "plane"],
   subnet_public: ["layer", "plane"],
   subnet_private: ["layer", "plane", "security_boundary", "privatelink"],
@@ -120,6 +160,7 @@ const ZONE_CHILD_ALLOWED: Record<ZoneKind, ZoneKind[]> = {
   vpn: ["layer", "security_boundary"],
   privatelink: ["layer", "security_boundary"],
   express_route: ["layer", "vpn"],
+  data_mesh: ["layer", "plane", "security_boundary"],
 };
 
 export function isZoneNode(node: Node<CanvasNodeData>): boolean {
@@ -149,7 +190,7 @@ export function createZoneNode(
   id: string,
   zoneKind: ZoneKind,
   position: { x: number; y: number },
-  opts?: { label?: string; provider?: CloudProvider; parentId?: string },
+  opts?: { label?: string; provider?: CloudProvider; parentId?: string; boundedContext?: string },
 ): Node<ZoneNodeData> {
   const size = ZONE_DEFAULT_SIZE[zoneKind];
   const defaults = zoneDefaults(zoneKind, opts?.provider);
@@ -169,6 +210,7 @@ export function createZoneNode(
       label: opts?.label ?? defaults.label,
       provider: opts?.provider ?? "generic",
       description: defaults.description,
+      boundedContext: opts?.boundedContext,
       score: null,
     },
   };

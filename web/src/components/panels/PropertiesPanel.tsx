@@ -7,8 +7,8 @@ import { FLOW_KIND_META, normalizeEdgeData } from "@/lib/edges";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CustomSelect from "@/components/ui/Select";
-import type { FailureBehavior, FirewallRule, FlowKind, FlowProtocol, NodeComment } from "@/lib/types";
-import { isArchData, isBlockData, isZoneData } from "@/lib/types";
+import type { FailureBehavior, FirewallRule, FlowKind, FlowProtocol, NodeComment, PiiSensitivity, C4Level } from "@/lib/types";
+import { ALL_C4_LEVELS, isArchData, isBlockData, isZoneData } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 
 const FLOW_KINDS: FlowKind[] = ["sync", "async", "data", "control", "management"];
@@ -29,6 +29,7 @@ export default function PropertiesPanel() {
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
   const selectedEdgeId = useGraphStore((s) => s.selectedEdgeId);
   const updateNodeConfig = useGraphStore((s) => s.updateNodeConfig);
+  const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const updateEdgeData = useGraphStore((s) => s.updateEdgeData);
   const renameNode = useGraphStore((s) => s.renameNode);
   const detachNode = useGraphStore((s) => s.detachNode);
@@ -253,6 +254,20 @@ export default function PropertiesPanel() {
             onChange={(e) => renameNode(node.id, e.target.value)}
           />
         </div>
+        {(node.data.zoneKind === "data_mesh" || node.data.boundedContext != null) && (
+          <div>
+            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="bounded-context">
+              Bounded context
+            </label>
+            <input
+              id="bounded-context"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+              value={node.data.boundedContext ?? ""}
+              onChange={(e) => updateNodeData(node.id, { boundedContext: e.target.value || undefined })}
+              placeholder="Ex.: Orders, Billing"
+            />
+          </div>
+        )}
         <p className="text-xs text-slate-400">
           Tipo: <strong className="text-slate-200">{node.data.zoneKind}</strong>
           {node.data.provider ? ` · ${node.data.provider}` : ""}
@@ -313,8 +328,9 @@ export default function PropertiesPanel() {
 
   if (!isArchData(node.data)) return null;
 
-  const catalog = findCatalog(node.data.catalogId);
-  const cfg = node.data.config;
+  const archData = node.data;
+  const catalog = findCatalog(archData.catalogId);
+  const cfg = archData.config;
   const parent = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
   const stackBlocks = compatibleParents.filter((n) => isBlockNode(n));
   const zones = compatibleParents.filter((n) => isZoneData(n.data));
@@ -332,7 +348,7 @@ export default function PropertiesPanel() {
         <input
           id="node-label"
           className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
-          value={node.data.label}
+          value={archData.label}
           onChange={(e) => renameNode(node.id, e.target.value)}
         />
       </div>
@@ -366,7 +382,7 @@ export default function PropertiesPanel() {
         )}
       </div>
 
-      {node.data.kind === "frontend" && (
+      {archData.kind === "frontend" && (
         <>
           <SelectField
             label="Biblioteca UI"
@@ -389,17 +405,67 @@ export default function PropertiesPanel() {
         </>
       )}
 
-      {node.data.kind === "backend" && (
+      {archData.kind === "backend" && (
         <p className="text-xs text-slate-400">
           Framework: <strong className="text-slate-200">{cfg.framework}</strong>
         </p>
       )}
-      {node.data.kind === "database" && (
-        <p className="text-xs text-slate-400">
-          Engine: <strong className="text-slate-200">{cfg.engine}</strong>
-        </p>
+      {archData.kind === "database" && (
+        <>
+          <p className="text-xs text-slate-400">
+            Engine: <strong className="text-slate-200">{cfg.engine}</strong>
+          </p>
+          <SelectField
+            label="Sensibilidade PII"
+            value={archData.piiSensitivity ?? "none"}
+            options={["none", "low", "medium", "high", "restricted"] as PiiSensitivity[]}
+            onChange={(piiSensitivity) =>
+              updateNodeData(node.id, { piiSensitivity: piiSensitivity as PiiSensitivity })
+            }
+          />
+        </>
       )}
-      {(node.data.kind === "cloud" || catalog?.provider) && (
+
+      <SelectField
+        label="Nível C4"
+        value={archData.c4Level ?? "container"}
+        options={ALL_C4_LEVELS}
+        onChange={(c4Level) => updateNodeData(node.id, { c4Level: c4Level as C4Level })}
+      />
+
+      <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Contrato de capacidade</p>
+        <input
+          type="number"
+          className="w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100"
+          placeholder="Max RPS"
+          value={archData.capacityContract?.max_rps ?? ""}
+          onChange={(e) =>
+            updateNodeData(node.id, {
+              capacityContract: {
+                ...archData.capacityContract,
+                max_rps: e.target.value ? Number(e.target.value) : undefined,
+              },
+            })
+          }
+        />
+        <input
+          type="number"
+          className="w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100"
+          placeholder="P99 latency (ms)"
+          value={archData.capacityContract?.p99_latency_ms ?? ""}
+          onChange={(e) =>
+            updateNodeData(node.id, {
+              capacityContract: {
+                ...archData.capacityContract,
+                p99_latency_ms: e.target.value ? Number(e.target.value) : undefined,
+              },
+            })
+          }
+        />
+      </div>
+
+      {(archData.kind === "cloud" || catalog?.provider) && (
         <p className="text-xs text-slate-400">
           {cfg.provider ?? catalog?.provider} · {cfg.service ?? catalog?.capability}
         </p>

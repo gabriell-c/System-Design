@@ -513,7 +513,7 @@ export default function ContextPanel() {
               <span className="flex-1 text-xs text-slate-300 font-mono">{key}</span>
               <select
                 className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
-                value={value}
+                value={String(value)}
                 onChange={(e) => updateConsistencyPattern(key, e.target.value as ConsistencyPattern)}
               >
                 <option value="strong">Strong</option>

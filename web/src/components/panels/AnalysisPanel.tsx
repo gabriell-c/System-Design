@@ -87,7 +87,36 @@ export default function AnalysisPanel() {
             IA indisponível — relatório heurístico local. {analysis.ia_unavailable ? "OmniRoute não respondeu." : ""}
           </p>
         )}
+        {analysis.score_breakdown && (
+          <div className="mt-3 rounded-lg border border-violet-500/25 bg-violet-500/10 p-2">
+            <p className="text-[11px] font-semibold text-violet-200">Por que {analysis.score.toFixed(1)}?</p>
+            <ul className="mt-1 space-y-1 text-[11px] text-slate-300">
+              {analysis.score_breakdown.factors.map((f) => (
+                <li key={f.label}>
+                  {f.label}: {f.impact >= 0 ? "+" : ""}
+                  {f.impact.toFixed(1)} — {f.detail}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
+
+      {(analysis.benchmarks?.length ?? 0) > 0 && (
+        <section>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Benchmarks por domínio
+          </h3>
+          <ul className="space-y-1.5">
+            {analysis.benchmarks!.map((b) => (
+              <li key={b.domain} className="rounded-lg border border-white/10 px-2 py-1.5 text-xs">
+                <span className={b.status === "fail" ? "text-rose-300" : "text-emerald-300"}>{b.domain}</span>
+                <span className="text-slate-500"> · {b.triggered_rules.length} regra(s)</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {bottleneckFindings.length > 0 && (
         <section>
@@ -155,6 +184,8 @@ export default function AnalysisPanel() {
 }
 
 function FindingList({ items }: { items: Finding[] }) {
+  const applyFix = useGraphStore((s) => s.applyFixFromFinding);
+  const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   if (items.length === 0) {
     return <p className="text-xs text-slate-500">Nenhum achado.</p>;
   }
@@ -170,6 +201,22 @@ function FindingList({ items }: { items: Finding[] }) {
               {item.metric.unit ? ` ${item.metric.unit}` : ""}
               <span className="rounded bg-white/10 px-1">estimativa</span>
             </p>
+          )}
+          {item.fix_action && (
+            <button
+              type="button"
+              className="mt-2 rounded-md border border-cyan-400/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-medium text-cyan-100 hover:bg-cyan-500/25"
+              onClick={() => {
+                const ok = applyFix(item.fix_action!);
+                pushUiNotice(
+                  ok
+                    ? { type: "success", text: `Fix aplicado: ${item.fix_action!.label}` }
+                    : { type: "error", text: "Não foi possível aplicar o fix." },
+                );
+              }}
+            >
+              Aplicar fix — {item.fix_action.label}
+            </button>
           )}
         </li>
       ))}

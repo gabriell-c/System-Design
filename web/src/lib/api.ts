@@ -135,13 +135,87 @@ export const api = {
     }>(`/api/v1/graphs/${graphId}/diff/${versionId}`),
   // Comments
   listComments: (graphId: string) => request<NodeComment[]>(`/graphs/${graphId}/comments`),
-  createComment: (graphId: string, payload: { node_id?: string; text: string }) =>
+  createComment: (
+    graphId: string,
+    payload: {
+      node_id?: string;
+      text: string;
+      position_x?: number;
+      position_y?: number;
+      assignee?: string;
+    },
+  ) =>
     request<NodeComment>(`/graphs/${graphId}/comments`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   deleteComment: (graphId: string, commentId: string) =>
     request<void>(`/graphs/${graphId}/comments/${commentId}`, { method: "DELETE" }),
+  updateComment: (
+    graphId: string,
+    commentId: string,
+    payload: { text?: string; resolved?: boolean; assignee?: string },
+  ) =>
+    request<NodeComment>(`/graphs/${graphId}/comments/${commentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  polyglotMap: (graphId: string) =>
+    request<{
+      services: Array<{ service: string; databases: Array<{ database_id: string; database_label: string; engine: string; pii_sensitivity: string }>; polyglot: boolean }>;
+      shared_databases: Array<{ database_id: string; database_label: string; services: string[]; anti_pattern: boolean }>;
+      summary: { service_count: number; database_count: number; shared_db_count: number; polyglot_services: number };
+    }>(`/api/v1/graphs/${graphId}/polyglot-map`),
+  lineage: (graphId: string) =>
+    request<{
+      lineage_edges: Array<{ source_label: string; target_label: string; transform?: string; origin?: string }>;
+      entities: string[];
+      edge_count: number;
+    }>(`/api/v1/graphs/${graphId}/lineage`),
+  listAuditEntries: (
+    graphId: string,
+    params: { limit?: number; offset?: number } = {},
+  ) =>
+    request<{ entries: Array<{ id: string; action: string; user_email: string; entity_type: string; entity_id: string | null; ip_address: string | null; created_at: string }>; total: number }>(
+      `/api/v1/audit/${graphId}?limit=${params.limit ?? 20}&offset=${params.offset ?? 0}`,
+    ),
+  listSimulationScenarios: (graphId: string) =>
+    request<import("./types").SimulationScenarioRecord[]>(`/api/v1/graphs/${graphId}/simulation-scenarios`),
+  createSimulationScenario: (graphId: string, payload: { name: string; payload: Record<string, unknown> }) =>
+    request<import("./types").SimulationScenarioRecord>(`/api/v1/graphs/${graphId}/simulation-scenarios`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteSimulationScenario: (graphId: string, scenarioId: string) =>
+    request<void>(`/api/v1/graphs/${graphId}/simulation-scenarios/${scenarioId}`, { method: "DELETE" }),
+  getEmbed: (graphId: string) =>
+    request<{ graph_id: string; name: string; nodes: unknown[]; edges: unknown[]; read_only: boolean }>(
+      `/api/v1/embed/${graphId}`,
+    ),
+  getEmbedToken: (graphId: string) =>
+    request<{ embed_url: string; iframe_snippet: string }>(`/api/v1/embed/${graphId}/token`),
+  // P2.2.3 — ACL por squad
+  listAccess: (graphId: string) =>
+    request<Array<{ team: string; role: "read" | "write" | "admin" }>>(`/api/v1/graphs/${graphId}/access`),
+  setAccess: (graphId: string, team: string, role: "read" | "write" | "admin") =>
+    request<{ team: string; role: string }>(`/api/v1/graphs/${graphId}/access`, {
+      method: "POST",
+      body: JSON.stringify({ team, role }),
+    }),
+  deleteAccess: (graphId: string, team: string) =>
+    request<void>(`/api/v1/graphs/${graphId}/access/${team}`, { method: "DELETE" }),
+  // P2.2.2 — contratos de borda entre subsystems
+  listBoundaryContracts: (graphId: string) =>
+    request<Array<{ id: string; source_zone: string; target_zone: string; protocol: string; description: string; sla_ms?: number }>>(
+      `/api/v1/graphs/${graphId}/boundary-contracts`,
+    ),
+  createBoundaryContract: (graphId: string, body: { source_zone: string; target_zone: string; protocol?: string; description?: string; sla_ms?: number }) =>
+    request<{ ok: boolean }>(`/api/v1/graphs/${graphId}/boundary-contracts`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  deleteBoundaryContract: (graphId: string, contractId: string) =>
+    request<void>(`/api/v1/graphs/${graphId}/boundary-contracts/${contractId}`, { method: "DELETE" }),
 };
 
 export type AiProvider = "omniroute" | "openai" | "anthropic" | "custom";

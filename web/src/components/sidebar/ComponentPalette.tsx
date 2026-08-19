@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, Layers, Layout, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
+import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -10,6 +10,8 @@ import { ALL_NODE_KINDS, ALL_ZONE_KINDS, type CloudProvider, type NodeKind, type
 import { useCatalogPrefs } from "@/hooks/useCatalogPrefs";
 import RecommendationBanner from "@/components/canvas/RecommendationBanner";
 import { ZONE_META } from "@/lib/zones";
+import { PATTERNS_CATALOG } from "@/lib/catalog-patterns";
+import { applyPattern } from "@/lib/pattern-apply";
 
 const KINDS: NodeKind[] = ALL_NODE_KINDS;
 const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
@@ -25,6 +27,11 @@ const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
   vpn: Shield,
   privatelink: Plug,
   express_route: Rocket,
+  data_mesh: Database,
+  tgw: Share2,
+  nat_gateway: Server,
+  prefix_list: Boxes,
+  dr_region: HeartPulse,
 };
 
 const KIND_ICONS: Record<NodeKind, typeof Layout> = {
@@ -45,6 +52,7 @@ export default function ComponentPalette() {
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
   const addCatalogNode = useGraphStore((s) => s.addCatalogNode);
+  const addPatternNodes = useGraphStore((s) => s.addPatternNodes);
   const nodes = useGraphStore((s) => s.nodes);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
 
@@ -392,6 +400,29 @@ export default function ComponentPalette() {
         {q && filteredByKind.every((s) => s.items.length === 0) && (
           <p className="px-1 text-xs text-slate-500">Nada encontrado para “{query}”.</p>
         )}
+
+        <section className="mt-4 border-t border-white/8 pt-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-violet-300">Patterns</p>
+          <ul className="space-y-1.5">
+            {PATTERNS_CATALOG.filter((p) => ["pat-saga", "pat-outbox", "pat-cqrs", "pat-event-driven"].includes(p.id)).map(
+              (pat) => (
+                <li key={pat.id}>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-left text-xs text-slate-200 hover:bg-violet-500/20"
+                    onClick={() => {
+                      const pos = { x: 120 + nodes.length * 24, y: 120 + nodes.length * 12 };
+                      addPatternNodes(applyPattern(pat.id, pos));
+                      pushUiNotice({ type: "success", text: `Pattern ${pat.label} aplicado.` });
+                    }}
+                  >
+                    {pat.label}
+                  </button>
+                </li>
+              ),
+            )}
+          </ul>
+        </section>
       </div>
       {/* AI Recommendation */}
       {recommendations.length > 0 && (

@@ -31,6 +31,24 @@ test("filter matches catalog and layer views", () => {
   assert.equal(isFilterActive(EMPTY_CANVAS_FILTER), false);
 });
 
+test("filter matches PII and C4 level", () => {
+  const db: ArchNodeData = {
+    kind: "database",
+    label: "Postgres PII",
+    catalogId: "db-postgres",
+    tech: "PostgreSQL",
+    config: { provider: "aws" },
+    piiSensitivity: "high",
+    c4Level: "container",
+  };
+  assert.equal(nodeMatchesFilter(db, { ...EMPTY_CANVAS_FILTER, piiSensitivity: "high" }), true);
+  assert.equal(nodeMatchesFilter(db, { ...EMPTY_CANVAS_FILTER, piiSensitivity: "low" }), false);
+  assert.equal(nodeMatchesFilter(db, { ...EMPTY_CANVAS_FILTER, c4Level: "container" }), true);
+  assert.equal(nodeMatchesFilter(db, { ...EMPTY_CANVAS_FILTER, c4Level: "system" }), false);
+  assert.equal(isFilterActive({ ...EMPTY_CANVAS_FILTER, piiSensitivity: "high" }), true);
+  assert.equal(isFilterActive({ ...EMPTY_CANVAS_FILTER, c4Level: "component" }), true);
+});
+
 test("zone filter only matches zones", () => {
   const zone: ZoneNodeData = {
     kind: "zone",
