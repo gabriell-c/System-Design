@@ -24,12 +24,15 @@ from app.routes.audit import router as audit_router
 from app.routes.boundary import router as boundary_router
 from app.routes.comments import router as comments_router
 from app.routes.embed import router as embed_router
+from app.routes.governance import router as governance_router
 from app.routes.graphs import router as graphs_router
 from app.routes.health import router as health_router
 from app.routes.p1 import router as p1_router
 from app.routes.private_catalog import router as private_catalog_router
 from app.routes.profile import router as profile_router
 from app.routes.projects import router as projects_router
+from app.routes.network import router as network_router
+from app.routes.resilience import router as resilience_router
 from app.routes.settings import router as settings_router
 from app.routes.simulations import router as simulations_router
 from app.routes.users import router as users_router
@@ -95,6 +98,14 @@ def _ensure_sqlite_columns() -> None:
             c["name"] for c in inspector.get_columns("graphs")
         }:
             conn.execute(text("ALTER TABLE graphs ADD COLUMN owner_team VARCHAR(80) NULL"))
+        graph_cols = {c["name"] for c in inspector.get_columns("graphs")} if "graphs" in existing else set()
+        for col, ddl in [
+            ("diagram_kind", "ALTER TABLE graphs ADD COLUMN diagram_kind VARCHAR(32) NULL"),
+            ("parent_graph_id", "ALTER TABLE graphs ADD COLUMN parent_graph_id VARCHAR(36) NULL"),
+            ("c4_parent_node_id", "ALTER TABLE graphs ADD COLUMN c4_parent_node_id VARCHAR(36) NULL"),
+        ]:
+            if "graphs" in existing and col not in graph_cols:
+                conn.execute(text(ddl))
         if "comments" in existing:
             cols = {c["name"] for c in inspector.get_columns("comments")}
             for col, ddl in [
@@ -174,6 +185,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(acl_router)
 app.include_router(boundary_router)
+app.include_router(governance_router)
 app.include_router(graphs_router)
 app.include_router(comments_router)
 app.include_router(audit_router)
@@ -186,3 +198,5 @@ app.include_router(simulations_router)
 app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(users_router)
+app.include_router(resilience_router)
+app.include_router(network_router)

@@ -22,6 +22,7 @@ import { exportToPlantuml } from "@/lib/export-plantuml";
 import { exportToMermaid } from "@/lib/export-mermaid";
 import { exportToC4Plantuml } from "@/lib/export-c4-plantuml";
 import { prepareCleanExport } from "@/lib/export-quality";
+import { downloadSvg, renderSvg } from "@/lib/export-svg";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 
@@ -54,7 +55,7 @@ export default function ExportMenu({ onDone }: Props) {
   const base = slugifyFilename(name);
 
   async function run(
-    kind: "json" | "md" | "png" | "png-clean" | "pdf" | "drawio" | "plantuml" | "mermaid" | "c4" | "embed",
+    kind: "json" | "md" | "png" | "png-clean" | "png-board" | "pdf" | "svg" | "drawio" | "plantuml" | "mermaid" | "c4" | "embed",
   ) {
     try {
       if (kind === "json") {
@@ -69,20 +70,47 @@ export default function ExportMenu({ onDone }: Props) {
         pushUiNotice({ type: "success", text: "Architecture Package (Markdown) exportado." });
       } else if (kind === "png") {
         setBusy("png");
-        await exportArchitecturePng(`${base}.png`, nodes);
+        await exportArchitecturePng(`${base}.png`, nodes, {
+          boardReady: false,
+          meta: { title: name, nfr, provider: nfr?.arch_style },
+        });
         pushUiNotice({ type: "success", text: "Imagem PNG exportada." });
       } else if (kind === "png-clean") {
         setBusy("png");
         prepareCleanExport(nodes, { hideChrome: true });
-        await exportArchitecturePng(`${base}-clean.png`, nodes);
+        await exportArchitecturePng(`${base}-clean.png`, nodes, { boardReady: false });
         pushUiNotice({ type: "success", text: "PNG sem chrome exportado." });
+      } else if (kind === "png-board") {
+        setBusy("png");
+        await exportArchitecturePng(`${base}-board-ready.png`, nodes, {
+          boardReady: true,
+          meta: {
+            title: name,
+            nfr,
+            author: "Arquiteto",
+            version: "1.0",
+            classification: "Confidencial — uso interno",
+            provider: nfr?.arch_style,
+          },
+        });
+        pushUiNotice({ type: "success", text: "PNG board-ready (title block + legenda) exportado." });
       } else if (kind === "pdf") {
         setBusy("pdf");
-        await exportArchitecturePdf(name, nodes, edges, { context, nfr, analysis, includeDiagram: true });
+        await exportArchitecturePdf(name, nodes, edges, {
+          context,
+          nfr,
+          analysis,
+          includeDiagram: true,
+          meta: { title: name, nfr, author: "Arquiteto", version: "1.0" },
+        });
         pushUiNotice({
           type: "success",
           text: "PDF: escolha “Salvar como PDF” na impressão.",
         });
+      } else if (kind === "svg") {
+        const svg = renderSvg(nodes, edges, { title: name });
+        downloadSvg(svg, `${base}.svg`);
+        pushUiNotice({ type: "success", text: "SVG vetorial exportado." });
       } else if (kind === "drawio") {
         const xml = exportToDrawio(nodes, edges);
         downloadText(`${base}.drawio`, xml, "application/xml;charset=utf-8");
@@ -160,6 +188,13 @@ export default function ExportMenu({ onDone }: Props) {
             onClick={() => void run("png-clean")}
           />
           <ExportItem
+            icon={<FileImage size={14} />}
+            label="PNG board-ready"
+            hint="Title block + legenda no artefato"
+            disabled={nodes.length === 0 || busy != null}
+            onClick={() => void run("png-board")}
+          />
+          <ExportItem
             icon={<FileText size={14} />}
             label="Markdown"
             hint="Doc para README / PR"
@@ -171,6 +206,13 @@ export default function ExportMenu({ onDone }: Props) {
             hint="Impressão → Salvar como PDF"
             disabled={busy != null}
             onClick={() => void run("pdf")}
+          />
+          <ExportItem
+            icon={<Download size={14} />}
+            label="SVG vetorial"
+            hint="Vetor, editável em Illustrator/Figma"
+            disabled={nodes.length === 0 || busy != null}
+            onClick={() => void run("svg")}
           />
           <ExportItem
             icon={<FileCode2 size={14} />}

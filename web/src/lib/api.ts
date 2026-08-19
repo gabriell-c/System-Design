@@ -49,6 +49,9 @@ export type GraphPayload = {
   edges: unknown[];
   project_id?: string | null;
   owner_team?: string | null;
+  diagram_kind?: string | null;
+  parent_graph_id?: string | null;
+  c4_parent_node_id?: string | null;
 };
 
 export const api = {
@@ -216,6 +219,48 @@ export const api = {
     }),
   deleteBoundaryContract: (graphId: string, contractId: string) =>
     request<void>(`/api/v1/graphs/${graphId}/boundary-contracts/${contractId}`, { method: "DELETE" }),
+  failureInjection: (
+    graphId: string,
+    body: { node_id: string; mode?: string; max_hops?: number },
+  ) =>
+    request<import("./types").FailureInjectionResult>(`/api/v1/graphs/${graphId}/failure-injection`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  blastRadius: (graphId: string, body: { node_id: string; mode?: string; max_hops?: number }) =>
+    request<import("./types").BlastRadiusResult>(`/api/v1/graphs/${graphId}/blast-radius`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  circuitBreakers: (graphId: string) =>
+    request<{ breakers: unknown[]; breaker_count: number; gaps: string[]; recommendation: string }>(
+      `/api/v1/graphs/${graphId}/circuit-breakers`,
+    ),
+  costEstimate: (graphId: string) =>
+    request<import("./types").CostBreakdown>(`/api/v1/graphs/${graphId}/cost-estimate`),
+  liveDoc: (graphId: string) =>
+    request<import("./types").LiveDocResult>(`/api/v1/graphs/${graphId}/doc`),
+  networkPolicy: (graphId: string) =>
+    request<import("./types").NetworkPolicyResult>(`/api/v1/graphs/${graphId}/network-policy`),
+  deploymentFlows: (graphId: string) =>
+    request<import("./types").DeploymentFlowsResult>(`/api/v1/graphs/${graphId}/deployment-flows`),
+  projectConsistency: (projectId: string) =>
+    request<{ ok: boolean; issues: unknown[]; graph_count: number }>(`/api/v1/projects/${projectId}/consistency`),
+  projectPolicy: (projectId: string) =>
+    request<{ ok: boolean; findings: unknown[] }>(`/api/v1/projects/${projectId}/policy`),
+  projectRaci: (projectId: string) =>
+    request<{ roles: string[]; rows: unknown[] }>(`/api/v1/projects/${projectId}/raci`),
+  graphSlo: (graphId: string) =>
+    request<{ services: unknown[]; error_budget: Record<string, unknown> }>(`/api/v1/graphs/${graphId}/slo`),
+  graphBenchmark: (graphId: string, targetNodes = 500) =>
+    request<Record<string, unknown>>(`/api/v1/graphs/${graphId}/benchmark?target_nodes=${targetNodes}`, {
+      method: "POST",
+    }),
+  exportProjectAdrs: (projectId: string, adrs: unknown[]) =>
+    request<{ written: string[]; count: number }>(`/api/v1/projects/${projectId}/adrs/export`, {
+      method: "POST",
+      body: JSON.stringify({ adrs }),
+    }),
 };
 
 export type AiProvider = "omniroute" | "openai" | "anthropic" | "custom";

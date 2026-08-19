@@ -22,6 +22,14 @@ body {
   color: var(--foreground);
 }
 
+/* P0.2.9 — light theme for presentation mode */
+.archia-presentation-light {
+  background: #f8fafc !important;
+}
+.archia-presentation-light .react-flow__pane {
+  background: #f8fafc;
+}
+
 .btn-ghost {
   border-radius: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);

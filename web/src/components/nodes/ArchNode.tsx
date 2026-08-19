@@ -6,6 +6,7 @@ import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { nodeOpacityForView } from "@/lib/architecture-view";
 import { TechIcon } from "@/lib/tech-icons";
+import { getOfficialIcon, useOfficialIconMode } from "@/lib/catalog-icons";
 import type { ArchNodeData } from "@/lib/types";
 import NodeGlossaryTooltip from "@/components/canvas/NodeGlossaryTooltip";
 
@@ -19,8 +20,13 @@ function scoreTone(score?: number | null): string {
 export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);
   const highlightNodeIds = useGraphStore((s) => s.highlightNodeIds);
+  const blastUnreachable = useGraphStore((s) => s.blastUnreachableIds);
+  const blastDegraded = useGraphStore((s) => s.blastDegradedIds);
   const diffHighlights = useGraphStore((s) => s.diffHighlights);
+  const officialIcon = useOfficialIconMode() ? getOfficialIcon(data.catalogId) : null;
   const highlighted = highlightNodeIds.includes(id);
+  const blastDown = blastUnreachable.includes(id);
+  const blastDegradedNode = blastDegraded.includes(id);
   const diffStatus = diffHighlights.find((h) => h.nodeId === id)?.status;
   const diffColor = diffStatus === "added" ? "#22c55e" : diffStatus === "removed" ? "#ef4444" : diffStatus === "changed" ? "#eab308" : null;
   const opacity = nodeOpacityForView(data, architectureView);
@@ -37,15 +43,33 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
         className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
           selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
         } ${
-          data.bottleneck
+          blastDown
+            ? "animate-pulse border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/40"
+            : blastDegradedNode
+              ? "border-amber-500 ring-2 ring-amber-500/40"
+              : data.bottleneck
             ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
             : highlighted
               ? "border-cyan-400 shadow-cyan-500/20"
               : ""
         } ${diffStatus === "added" ? "border-emerald-500 ring-2 ring-emerald-500/50" : diffStatus === "removed" ? "border-rose-500 ring-2 ring-rose-500/50" : diffStatus === "changed" ? "border-amber-500 ring-2 ring-amber-500/50" : ""}`}
         style={{
-          background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : diffStatus === "removed" ? "rgba(127, 29, 29, 0.2)" : "#121821",
-          borderColor: data.bottleneck ? "rgb(244, 63, 94)" : diffColor ?? meta.border,
+          background: blastDown
+            ? "rgba(127, 29, 29, 0.45)"
+            : blastDegradedNode
+              ? "rgba(120, 53, 15, 0.35)"
+              : data.bottleneck
+                ? "rgba(127, 29, 29, 0.35)"
+                : diffStatus === "removed"
+                  ? "rgba(127, 29, 29, 0.2)"
+                  : "#121821",
+          borderColor: blastDown
+            ? "rgb(244, 63, 94)"
+            : blastDegradedNode
+              ? "rgb(245, 158, 11)"
+              : data.bottleneck
+                ? "rgb(244, 63, 94)"
+                : (diffColor ?? meta.border),
           opacity: diffStatus === "removed" ? 0.4 : opacity,
         }}
         title={data.bottleneck ? data.summary || "Gargalo detectado na análise" : undefined}
@@ -64,11 +88,16 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
 
         <div className="flex items-start gap-2">
           <span
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-            style={{ background: meta.bg, color: meta.accent }}
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[9px] font-bold uppercase"
+            style={{
+              background: officialIcon ? `${officialIcon.color}22` : meta.bg,
+              color: officialIcon?.color ?? meta.accent,
+              border: officialIcon ? `1px solid ${officialIcon.color}55` : undefined,
+            }}
             aria-hidden
+            title={officialIcon ? `${officialIcon.provider} · ${officialIcon.service}` : undefined}
           >
-            <TechIcon catalogId={data.catalogId} kind={data.kind} size={16} />
+            {officialIcon ? officialIcon.service.slice(0, 3) : <TechIcon catalogId={data.catalogId} kind={data.kind} size={16} />}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">

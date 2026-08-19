@@ -6,6 +6,8 @@ import {
   FilePlus2,
   FolderOpen,
   GitCompareArrows,
+  LayoutGrid,
+  Route,
   Maximize2,
   Redo2,
   Save,
@@ -60,6 +62,13 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
   const architectureView = useGraphStore((s) => s.architectureView);
   const setArchitectureView = useGraphStore((s) => s.setArchitectureView);
   const ownerTeam = useGraphStore((s) => s.ownerTeam);
+  const diagramKind = useGraphStore((s) => s.diagramKind);
+  const parentGraphId = useGraphStore((s) => s.parentGraphId);
+  const c4ParentNodeId = useGraphStore((s) => s.c4ParentNodeId);
+  const applyAutoLayout = useGraphStore((s) => s.applyAutoLayout);
+  const highlightCriticalPath = useGraphStore((s) => s.highlightCriticalPath);
+  const setSequenceMode = useGraphStore((s) => s.setSequenceMode);
+  const sequenceMode = useGraphStore((s) => s.sequenceMode);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -74,7 +83,17 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
 
   async function save() {
     try {
-      const payload = { name, context, nfr, nodes, edges, owner_team: ownerTeam || null };
+      const payload = {
+        name,
+        context,
+        nfr,
+        nodes,
+        edges,
+        owner_team: ownerTeam || null,
+        diagram_kind: diagramKind,
+        parent_graph_id: parentGraphId,
+        c4_parent_node_id: c4ParentNodeId,
+      };
       const saved = graphId ? await api.updateGraph(graphId, payload) : await api.createGraph(payload);
       markSaved(saved.id);
       pushUiNotice({ type: "success", text: "Arquitetura salva." });
@@ -258,6 +277,32 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
                     onChange={(value) => setUserRole(value === "other" ? "other" : "senior")}
                   />
                 </div>
+                <MenuItem
+                  icon={<LayoutGrid size={14} />}
+                  label="Organizar por zonas"
+                  disabled={nodes.length === 0}
+                  onClick={() => {
+                    applyAutoLayout();
+                    setMoreOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon={<Route size={14} />}
+                  label="Destacar caminho crítico"
+                  disabled={edges.length === 0}
+                  onClick={() => {
+                    highlightCriticalPath();
+                    setMoreOpen(false);
+                  }}
+                />
+                <MenuItem
+                  icon={<GitCompareArrows size={14} />}
+                  label={sequenceMode ? "Sair modo sequência" : "Modo sequência"}
+                  onClick={() => {
+                    setSequenceMode(!sequenceMode);
+                    setMoreOpen(false);
+                  }}
+                />
                 <MenuItem
                   icon={<Upload size={14} />}
                   label="Importar JSON"

@@ -44,6 +44,9 @@ export default function AnalysisPanel() {
 
   const nodeFindings = analysis.findings.filter((f) => f.node_id === selectedNodeId);
   const globalFindings = analysis.findings.filter((f) => !f.node_id);
+  const criticalNodeIds = analysis.score_breakdown?.critical_node_ids ?? [];
+  const highlightCriticalNodes = useGraphStore((s) => s.highlightNodeIds);
+  const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
   const bottleneckFindings = analysis.findings
     .filter(
       (f) =>
@@ -118,6 +121,30 @@ export default function AnalysisPanel() {
         </section>
       )}
 
+      {criticalNodeIds.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-rose-300">
+              Nós críticos ({criticalNodeIds.length})
+            </h3>
+            <button
+              type="button"
+              className="text-[10px] text-cyan-300 hover:text-cyan-100"
+              onClick={() => setHighlightNodeIds(highlightCriticalNodes.length ? [] : criticalNodeIds)}
+            >
+              {highlightCriticalNodes.length ? "Limpar destaque" : "Destacar no canvas"}
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {criticalNodeIds.map((id) => (
+              <li key={id} className="rounded border border-rose-500/20 bg-rose-500/10 px-2 py-1 text-xs text-rose-200">
+                {id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {bottleneckFindings.length > 0 && (
         <section>
           <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-rose-300">
@@ -186,6 +213,7 @@ export default function AnalysisPanel() {
 function FindingList({ items }: { items: Finding[] }) {
   const applyFix = useGraphStore((s) => s.applyFixFromFinding);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
+  const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
   if (items.length === 0) {
     return <p className="text-xs text-slate-500">Nenhum achado.</p>;
   }
@@ -218,6 +246,15 @@ function FindingList({ items }: { items: Finding[] }) {
               Aplicar fix — {item.fix_action.label}
             </button>
           )}
+          {item.evidence_node_ids?.length ? (
+            <button
+              type="button"
+              className="mt-1 rounded border border-slate-500/30 bg-slate-500/10 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-500/20"
+              onClick={() => setHighlightNodeIds(item.evidence_node_ids!)}
+            >
+              Ver evidência no canvas ({item.evidence_node_ids.length} nó(s))
+            </button>
+          ) : null}
         </li>
       ))}
     </ul>

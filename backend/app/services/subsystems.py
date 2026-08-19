@@ -66,6 +66,64 @@ SUBSYSTEMS: dict[str, dict] = {
             {"id": "e-ci-3", "source": "c-gha", "target": "c-k8s", "data": {"flowKind": "control", "flowNumber": 3, "label": "deploy"}},
         ],
     },
+    "encoding": {
+        "name": "Encoding (multi-bitrate + DRM)",
+        "owner_team": "media",
+        "nodes": [
+            {"id": "z-enc", "type": "zone", "position": {"x": 40, "y": 40}, "width": 480, "height": 320, "data": {"kind": "zone", "zoneKind": "layer", "label": "Encoding farm", "provider": "aws"}},
+            {"id": "c-kafka", "type": "arch", "parentId": "z-enc", "position": {"x": 24, "y": 48}, "data": {"kind": "integration", "label": "Job queue", "catalogId": "int-kafka", "tech": "Kafka", "config": {}}},
+            {"id": "c-ecs", "type": "arch", "parentId": "z-enc", "position": {"x": 200, "y": 48}, "data": {"kind": "cloud", "label": "Transcode workers", "catalogId": "cloud-aws-ecs", "tech": "ECS", "config": {"provider": "aws"}}},
+            {"id": "c-s3", "type": "arch", "parentId": "z-enc", "position": {"x": 200, "y": 160}, "data": {"kind": "cloud", "label": "Renditions", "catalogId": "cloud-aws-s3", "tech": "S3", "config": {"provider": "aws"}}},
+            {"id": "c-drm", "type": "arch", "parentId": "z-enc", "position": {"x": 24, "y": 160}, "data": {"kind": "security", "label": "DRM keys", "catalogId": "sec-secrets", "tech": "Secrets Manager", "config": {}}},
+            {"id": "c-thumbs", "type": "arch", "parentId": "z-enc", "position": {"x": 360, "y": 48}, "data": {"kind": "backend", "label": "Thumbnails", "catalogId": "be-fastapi", "tech": "FastAPI", "config": {}}},
+        ],
+        "edges": [
+            {"id": "e-enc-1", "source": "c-kafka", "target": "c-ecs", "data": {"flowKind": "async", "protocol": "kafka", "flowNumber": 1, "label": "jobs"}},
+            {"id": "e-enc-2", "source": "c-ecs", "target": "c-s3", "data": {"flowKind": "data", "protocol": "s3", "flowNumber": 2, "label": "renditions"}},
+            {"id": "e-enc-3", "source": "c-ecs", "target": "c-drm", "data": {"flowKind": "control", "flowNumber": 3, "label": "license"}},
+            {"id": "e-enc-4", "source": "c-ecs", "target": "c-thumbs", "data": {"flowKind": "async", "flowNumber": 4, "label": "thumbs"}},
+        ],
+    },
+    "recommendations": {
+        "name": "Recommendations",
+        "owner_team": "discovery",
+        "nodes": [
+            {"id": "z-rec", "type": "zone", "position": {"x": 40, "y": 40}, "width": 400, "height": 260, "data": {"kind": "zone", "zoneKind": "layer", "label": "Recs", "provider": "aws"}},
+            {"id": "c-rec", "type": "arch", "parentId": "z-rec", "position": {"x": 24, "y": 48}, "data": {"kind": "backend", "label": "Ranking API", "catalogId": "be-fastapi", "tech": "FastAPI", "config": {}}},
+            {"id": "c-redis", "type": "arch", "parentId": "z-rec", "position": {"x": 200, "y": 48}, "data": {"kind": "database", "label": "Feature cache", "catalogId": "db-redis", "tech": "Redis", "config": {}}},
+            {"id": "c-kafka", "type": "arch", "parentId": "z-rec", "position": {"x": 24, "y": 140}, "data": {"kind": "integration", "label": "Watch events", "catalogId": "int-kafka", "tech": "Kafka", "config": {}}},
+        ],
+        "edges": [
+            {"id": "e-rec-1", "source": "c-kafka", "target": "c-rec", "data": {"flowKind": "async", "protocol": "kafka", "flowNumber": 1}},
+            {"id": "e-rec-2", "source": "c-rec", "target": "c-redis", "data": {"flowKind": "data", "flowNumber": 2, "label": "features"}},
+        ],
+    },
+    "ads": {
+        "name": "Ads auction",
+        "owner_team": "monetization",
+        "nodes": [
+            {"id": "z-ads", "type": "zone", "position": {"x": 40, "y": 40}, "width": 400, "height": 260, "data": {"kind": "zone", "zoneKind": "layer", "label": "Ads", "provider": "aws"}},
+            {"id": "c-ads", "type": "arch", "parentId": "z-ads", "position": {"x": 24, "y": 48}, "data": {"kind": "backend", "label": "Auction", "catalogId": "be-nest", "tech": "NestJS", "config": {}}},
+            {"id": "c-redis", "type": "arch", "parentId": "z-ads", "position": {"x": 200, "y": 48}, "data": {"kind": "database", "label": "Bid cache", "catalogId": "db-redis", "tech": "Redis", "config": {}}},
+        ],
+        "edges": [
+            {"id": "e-ads-1", "source": "c-ads", "target": "c-redis", "data": {"flowKind": "data", "flowNumber": 1, "isCriticalPath": True}},
+        ],
+    },
+    "live": {
+        "name": "Live streaming",
+        "owner_team": "media",
+        "nodes": [
+            {"id": "z-live", "type": "zone", "position": {"x": 40, "y": 40}, "width": 440, "height": 280, "data": {"kind": "zone", "zoneKind": "plane", "label": "Live", "provider": "aws"}},
+            {"id": "c-api", "type": "arch", "parentId": "z-live", "position": {"x": 24, "y": 48}, "data": {"kind": "backend", "label": "Live API", "catalogId": "be-fastapi", "tech": "FastAPI", "config": {}}},
+            {"id": "c-media", "type": "arch", "parentId": "z-live", "position": {"x": 200, "y": 48}, "data": {"kind": "cloud", "label": "MediaLive", "catalogId": "cloud-aws-media", "tech": "MediaLive", "config": {"provider": "aws"}}},
+            {"id": "c-s3", "type": "arch", "parentId": "z-live", "position": {"x": 200, "y": 140}, "data": {"kind": "cloud", "label": "Archive", "catalogId": "cloud-aws-s3", "tech": "S3", "config": {"provider": "aws"}}},
+        ],
+        "edges": [
+            {"id": "e-live-1", "source": "c-api", "target": "c-media", "data": {"flowKind": "data", "flowNumber": 1, "label": "RTMP", "isCriticalPath": True}},
+            {"id": "e-live-2", "source": "c-media", "target": "c-s3", "data": {"flowKind": "data", "protocol": "s3", "flowNumber": 2, "label": "archive"}},
+        ],
+    },
 }
 
 

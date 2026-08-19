@@ -6,7 +6,8 @@ import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CatalogLibrary from "./CatalogLibrary";
-import { ALL_NODE_KINDS, ALL_ZONE_KINDS, type CloudProvider, type NodeKind, type ZoneKind } from "@/lib/types";
+import { ALL_NODE_KINDS, ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS, type CloudProvider, type NodeKind, type SwimlaneKind, type ZoneKind } from "@/lib/types";
+import { SWIMLANE_META } from "@/lib/swimlanes";
 import { useCatalogPrefs } from "@/hooks/useCatalogPrefs";
 import RecommendationBanner from "@/components/canvas/RecommendationBanner";
 import { ZONE_META } from "@/lib/zones";
@@ -51,6 +52,10 @@ export default function ComponentPalette() {
   const [providerFilter, setProviderFilter] = useState<CloudProvider | "all">("all");
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
+  const addSwimlane = useGraphStore((s) => s.addSwimlane);
+  const addNote = useGraphStore((s) => s.addNote);
+  const addCidrBlock = useGraphStore((s) => s.addCidrBlock);
+  const addTenantBoundary = useGraphStore((s) => s.addTenantBoundary);
   const addCatalogNode = useGraphStore((s) => s.addCatalogNode);
   const addPatternNodes = useGraphStore((s) => s.addPatternNodes);
   const nodes = useGraphStore((s) => s.nodes);
@@ -122,6 +127,15 @@ export default function ComponentPalette() {
     pushUiNotice({
       type: "success",
       text: `Bloco ${KIND_META[kind].label} adicionado.`,
+    });
+  }
+
+  function placeSwimlane(kind: SwimlaneKind) {
+    const offset = nodes.length * 20;
+    addSwimlane(kind, { x: 40 + offset, y: 80 + offset });
+    pushUiNotice({
+      type: "success",
+      text: `Swimlane ${SWIMLANE_META[kind].label} adicionada.`,
     });
   }
 
@@ -251,6 +265,74 @@ export default function ComponentPalette() {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        )}
+
+        {(!q || "swimlane frontend backend database dev user".includes(q)) && (
+          <section aria-labelledby="palette-swimlanes">
+            <h3
+              id="palette-swimlanes"
+              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-300"
+            >
+              <Layout size={12} />
+              Swimlanes (camadas)
+            </h3>
+            <ul className="grid grid-cols-2 gap-1.5">
+              {ALL_SWIMLANE_KINDS.map((kind) => {
+                const meta = SWIMLANE_META[kind];
+                return (
+                  <li key={`lane-${kind}`}>
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("application/system-design-swimlane", kind);
+                        event.dataTransfer.effectAllowed = "move";
+                      }}
+                      onClick={() => placeSwimlane(kind)}
+                      className="flex w-full cursor-grab flex-col items-start gap-1 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 active:cursor-grabbing"
+                      style={{ borderColor: meta.border, background: meta.bg }}
+                      title="Faixa horizontal para separar camadas ou fluxos"
+                    >
+                      <span className="flex w-full items-center justify-between">
+                        <Layout size={14} style={{ color: meta.accent }} />
+                        <Plus size={12} className="text-slate-500" />
+                      </span>
+                      <span className="text-xs font-semibold text-slate-100">{meta.short}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {(!q || "nota cidr tenant sticky".includes(q)) && (
+          <section aria-labelledby="palette-annotations">
+            <h3 id="palette-annotations" className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-amber-200">
+              Anotações & multi-tenant
+            </h3>
+            <ul className="grid grid-cols-1 gap-1.5">
+              <li>
+                <button type="button" className="btn-ghost w-full justify-start text-xs" onClick={() => addNote({ x: 120, y: 120 })}>
+                  Sticky note
+                </button>
+              </li>
+              <li>
+                <button type="button" className="btn-ghost w-full justify-start text-xs" onClick={() => addCidrBlock({ x: 160, y: 160 })}>
+                  CIDR block
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="btn-ghost w-full justify-start text-xs"
+                  onClick={() => addTenantBoundary({ x: 200, y: 200 }, { tenantMode: "silo" })}
+                >
+                  Tenant boundary
+                </button>
+              </li>
             </ul>
           </section>
         )}

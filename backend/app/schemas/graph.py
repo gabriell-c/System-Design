@@ -49,6 +49,9 @@ class ProjectNfr(BaseModel):
     rpo_hours: float | None = Field(default=None, ge=0)
     rto_minutes: int | None = Field(default=None, ge=0)
 
+    # P1.2.5: Cenários de simulação persistidos
+    simulation_scenarios: list[dict[str, Any]] = Field(default_factory=list)
+
 
 class GraphPayload(BaseModel):
     name: str = Field(min_length=1, max_length=200)
@@ -58,6 +61,9 @@ class GraphPayload(BaseModel):
     edges: list[dict[str, Any]] = Field(default_factory=list)
     project_id: str | None = Field(default=None, max_length=36)
     owner_team: str | None = Field(default=None, max_length=80)
+    diagram_kind: str | None = Field(default=None, max_length=32)
+    parent_graph_id: str | None = Field(default=None, max_length=36)
+    c4_parent_node_id: str | None = Field(default=None, max_length=36)
 
 
 class GraphUpdate(BaseModel):
@@ -69,6 +75,9 @@ class GraphUpdate(BaseModel):
     analysis: dict[str, Any] | None = None
     project_id: str | None = Field(default=None, max_length=36)
     owner_team: str | None = Field(default=None, max_length=80)
+    diagram_kind: str | None = Field(default=None, max_length=32)
+    parent_graph_id: str | None = Field(default=None, max_length=36)
+    c4_parent_node_id: str | None = Field(default=None, max_length=36)
 
 
 class TeamAccess(BaseModel):
@@ -90,6 +99,9 @@ class GraphOut(BaseModel):
     reviewer_role: str | None
     project_id: str | None = None
     owner_team: str | None = None
+    diagram_kind: str | None = None
+    parent_graph_id: str | None = None
+    c4_parent_node_id: str | None = None
     created_at: datetime
     updated_at: datetime
 

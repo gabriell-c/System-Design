@@ -1,6 +1,8 @@
 import type { Node } from "@xyflow/react";
 import type { CanvasNodeData } from "./types";
 
+import type { BoardExportMeta } from "./export-board";
+
 export type ExportQualityOptions = {
   /** Hide UI chrome (minimap, controls, title block) */
   hideChrome?: boolean;
@@ -47,3 +49,6 @@ export function prepareCleanExport(nodes: Node<CanvasNodeData>[], opts: ExportQu
 export function exportChromeClass(hide: boolean): string {
   return hide ? "archia-export-clean" : "";
 }
+
+export type { BoardExportMeta };
+export { renderLegendHtml, renderTitleBlockHtml } from "./export-board";

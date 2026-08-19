@@ -3,16 +3,23 @@
 import {
   BookMarked,
   ClipboardList,
+  DollarSign,
   FileText,
+  GitDiff,
   History,
+  Layers,
+  Link2,
   ListChecks,
   MoreHorizontal,
   Settings2,
+  Shield,
+  Skull,
   Sparkles,
   Wrench,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useGraphStore } from "@/lib/graph-store";
 import AdrPanel from "./AdrPanel";
 import AnalysisPanel from "./AnalysisPanel";
 import ArchitecturePanel from "./ArchitecturePanel";
@@ -33,6 +40,12 @@ import WellArchitectedPanel from "./WellArchitectedPanel";
 import AccessPanel from "./AccessPanel";
 import BoundaryPanel from "./BoundaryPanel";
 import DiffPanel from "./DiffPanel";
+import TogafPanel from "./TogafPanel";
+import ResiliencePanel from "./ResiliencePanel";
+import CostPanel from "./CostPanel";
+import ConsistencyPanel from "./ConsistencyPanel";
+import GovernancePanel from "./GovernancePanel";
+import SloPanel from "./SloPanel";
 
 const PRIMARY = [
   { id: "context", label: "Contexto", icon: FileText },
@@ -41,6 +54,10 @@ const PRIMARY = [
   { id: "arch", label: "Arquitetura", icon: BookMarked },
   { id: "analysis", label: "Análise", icon: Sparkles },
   { id: "sim", label: "Simulação", icon: Zap },
+  { id: "resilience", label: "Falha", icon: Skull },
+  { id: "consistency", label: "Pacote", icon: Layers },
+  { id: "governance", label: "Gov", icon: Shield },
+  { id: "slo", label: "SLO", icon: Zap },
 ] as const;
 
 const MORE = [
@@ -50,6 +67,8 @@ const MORE = [
   { id: "lineage", label: "Lineage", icon: BookMarked },
   { id: "threats", label: "Threats", icon: BookMarked },
   { id: "wellarch", label: "Well-Architected", icon: BookMarked },
+  { id: "cost", label: "Custos", icon: DollarSign },
+  { id: "wiki", label: "Wiki", icon: FileText },
   { id: "audit", label: "Audit Trail", icon: BookMarked },
   { id: "adr", label: "ADRs", icon: BookMarked },
   { id: "review", label: "Revisão humana", icon: ClipboardList },
@@ -58,11 +77,13 @@ const MORE = [
   { id: "access", label: "Acesso", icon: Shield },
   { id: "boundary", label: "Borda", icon: Link2 },
   { id: "diff", label: "Diff", icon: GitDiff },
+  { id: "togaf", label: "TOGAF", icon: Layers },
 ] as const;
 
 type TabId = (typeof PRIMARY)[number]["id"] | (typeof MORE)[number]["id"];
 
 export default function Inspector() {
+  const graphId = useGraphStore((s) => s.graphId);
   const [tab, setTab] = useState<TabId>("context");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -160,16 +181,23 @@ export default function Inspector() {
         {tab === "arch" && <ArchitecturePanel />}
         {tab === "analysis" && <AnalysisPanel />}
         {tab === "sim" && <SimulationPanel />}
+        {tab === "resilience" && <ResiliencePanel />}
+        {tab === "consistency" && <ConsistencyPanel />}
+        {tab === "governance" && <GovernancePanel />}
+        {tab === "slo" && <SloPanel />}
         {tab === "data" && <DataArchitecturePanel />}
         {tab === "events" && <EventCatalogPanel />}
         {tab === "polyglot" && <PolyglotMapPanel />}
         {tab === "lineage" && <LineagePanel />}
         {tab === "threats" && <ThreatAnalysisPanel />}
         {tab === "wellarch" && <WellArchitectedPanel />}
+        {tab === "cost" && <CostPanel />}
+        {tab === "wiki" && <WikiPanel />}
         {tab === "audit" && <AuditTrailPanel />}
         {tab === "access" && <AccessPanel graphId={graphId} />}
         {tab === "boundary" && <BoundaryPanel graphId={graphId} />}
         {tab === "diff" && <DiffPanel graphId={graphId} />}
+        {tab === "togaf" && <TogafPanel />}
         {tab === "adr" && <AdrPanel />}
         {tab === "review" && <ReviewPanel />}
         {tab === "history" && <HistoryPanel />}

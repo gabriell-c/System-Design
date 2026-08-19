@@ -8,10 +8,29 @@ import {
   toArchitecturePrintHtml,
 } from "./export";
 import type { AnalysisResult, CanvasNodeData, ProjectNfr } from "./types";
+import {
+  BOARD_LEGEND_HEIGHT,
+  BOARD_LEGEND_WIDTH,
+  BOARD_PADDING,
+  BOARD_TITLE_BLOCK_HEIGHT,
+  type BoardExportMeta,
+  renderLegendHtml,
+  renderTitleBlockHtml,
+} from "./export-board";
+
+export type CaptureCanvasOptions = {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  padding?: number;
+  /** Inclui title block + legenda no artefato exportado (board-ready). */
+  boardReady?: boolean;
+  meta?: BoardExportMeta;
+};
 
 export async function captureCanvasPng(
   nodes: Node<CanvasNodeData>[],
-  options?: { width?: number; height?: number; backgroundColor?: string; padding?: number; titleBlock?: boolean },
+  options?: CaptureCanvasOptions,
 ): Promise<string> {
   if (nodes.length === 0) {
     throw new Error("Canvas vazio — adicione blocos ou cards antes de exportar a imagem.");
@@ -21,51 +40,70 @@ export async function captureCanvasPng(
     throw new Error("Canvas não encontrado na página.");
   }
 
-  const width = options?.width ?? 1600;
-  const height = options?.height ?? 900;
+  const diagramWidth = options?.width ?? 1600;
+  const diagramHeight = options?.height ?? 900;
   const padding = options?.padding ?? 0.15;
   const backgroundColor = options?.backgroundColor ?? "#070b10";
-  const bounds = getNodesBounds(nodes);
-  const { x, y, zoom } = getViewportForBounds(bounds, width, height, 0.25, 1.75, padding);
+  const boardReady = options?.boardReady ?? false;
+  const meta: BoardExportMeta = options?.meta ?? { title: "Arquitetura" };
 
-  // Build optional title block HTML below the diagram
-  const titleBlockHtml = options?.titleBlock
-    ? `<div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:rgba(7,11,16,0.95);border-top:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:11px;color:#94a3b8;">
-         <span>Diagrama · Arquitetura de Software</span>
-         <span style="color:#64748b">Exportado do Archia</span>
-       </div>`
-    : "";
+  const bounds = getNodesBounds(nodes);
+  const { x, y, zoom } = getViewportForBounds(bounds, diagramWidth, diagramHeight, 0.25, 1.75, padding);
+
+  const footerHeight = boardReady ? BOARD_TITLE_BLOCK_HEIGHT + BOARD_PADDING : 0;
+  const legendColumn = boardReady ? BOARD_LEGEND_WIDTH + BOARD_PADDING : 0;
+  const totalWidth = diagramWidth + legendColumn + (boardReady ? BOARD_PADDING * 2 : 0);
+  const totalHeight = diagramHeight + footerHeight + (boardReady ? BOARD_PADDING * 2 : 0);
 
   const wrapper = document.createElement("div");
-  wrapper.style.position = "relative";
-  wrapper.style.width = `${width}px`;
-  wrapper.style.height = `${height + (options?.titleBlock ? 60 : 0)}px`;
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-10000px";
+  wrapper.style.top = "0";
+  wrapper.style.width = `${totalWidth}px`;
+  wrapper.style.height = `${totalHeight}px`;
   wrapper.style.background = backgroundColor;
 
   const vpClone = viewport.cloneNode(true) as HTMLElement;
   vpClone.style.position = "absolute";
-  vpClone.style.top = "0";
-  vpClone.style.left = "0";
-  vpClone.style.width = `${width}px`;
-  vpClone.style.height = `${height}px`;
+  vpClone.style.top = `${boardReady ? BOARD_PADDING : 0}px`;
+  vpClone.style.left = `${boardReady ? BOARD_PADDING : 0}px`;
+  vpClone.style.width = `${diagramWidth}px`;
+  vpClone.style.height = `${diagramHeight}px`;
   vpClone.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
   vpClone.style.overflow = "hidden";
   wrapper.appendChild(vpClone);
 
-  if (titleBlockHtml) {
-    const tb = document.createElement("div");
-    tb.innerHTML = titleBlockHtml;
-    tb.style.position = "absolute";
-    tb.style.bottom = "0";
-    tb.style.left = "0";
-    tb.style.right = "0";
-    wrapper.appendChild(tb);
+  if (boardReady) {
+    const footer = document.createElement("div");
+    footer.style.position = "absolute";
+    footer.style.left = `${BOARD_PADDING}px`;
+    footer.style.right = `${BOARD_LEGEND_WIDTH + BOARD_PADDING * 2}px`;
+    footer.style.bottom = `${BOARD_PADDING}px`;
+    footer.style.height = `${BOARD_TITLE_BLOCK_HEIGHT}px`;
+    footer.style.padding = "12px 16px";
+    footer.style.background = "rgba(13,18,25,0.98)";
+    footer.style.border = "1px solid rgba(255,255,255,0.1)";
+    footer.style.borderRadius = "8px";
+    footer.innerHTML = renderTitleBlockHtml(meta);
+    wrapper.appendChild(footer);
+
+    const legend = document.createElement("div");
+    legend.style.position = "absolute";
+    legend.style.right = `${BOARD_PADDING}px`;
+    legend.style.bottom = `${BOARD_PADDING}px`;
+    legend.style.width = `${BOARD_LEGEND_WIDTH}px`;
+    legend.style.minHeight = `${BOARD_LEGEND_HEIGHT}px`;
+    legend.style.padding = "12px";
+    legend.style.background = "rgba(13,18,25,0.98)";
+    legend.style.border = "1px solid rgba(255,255,255,0.1)";
+    legend.style.borderRadius = "8px";
+    legend.innerHTML = renderLegendHtml();
+    wrapper.appendChild(legend);
   }
 
   document.body.appendChild(wrapper);
   try {
-    const dataUrl = await toPng(wrapper, { backgroundColor, width, height: height + (options?.titleBlock ? 60 : 0) });
-    return dataUrl;
+    return await toPng(wrapper, { backgroundColor, width: totalWidth, height: totalHeight, pixelRatio: 2 });
   } finally {
     document.body.removeChild(wrapper);
   }
@@ -74,9 +112,12 @@ export async function captureCanvasPng(
 export async function exportArchitecturePng(
   filename: string,
   nodes: Node<CanvasNodeData>[],
-  options?: { titleBlock?: boolean },
+  options?: { boardReady?: boolean; meta?: BoardExportMeta },
 ): Promise<void> {
-  const dataUrl = await captureCanvasPng(nodes, { ...options, titleBlock: options?.titleBlock ?? true });
+  const dataUrl = await captureCanvasPng(nodes, {
+    boardReady: options?.boardReady ?? true,
+    meta: options?.meta,
+  });
   downloadDataUrl(filename, dataUrl);
 }
 
@@ -89,12 +130,18 @@ export async function exportArchitecturePdf(
     nfr?: ProjectNfr | null;
     analysis?: AnalysisResult | null;
     includeDiagram?: boolean;
+    meta?: BoardExportMeta;
   },
 ): Promise<void> {
   let diagramDataUrl: string | null = null;
   if (options?.includeDiagram !== false && nodes.length > 0) {
     try {
-      diagramDataUrl = await captureCanvasPng(nodes, { width: 1400, height: 800 });
+      diagramDataUrl = await captureCanvasPng(nodes, {
+        width: 1400,
+        height: 780,
+        boardReady: true,
+        meta: options?.meta ?? { title: name, nfr: options?.nfr },
+      });
     } catch {
       diagramDataUrl = null;
     }

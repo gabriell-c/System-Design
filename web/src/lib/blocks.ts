@@ -1,12 +1,15 @@
 import type { Node } from "@xyflow/react";
 import type { BlockNodeData, CanvasNodeData, NodeKind } from "./types";
+import { isArchData } from "./types";
 import { canNestZoneInZone, isZoneNode, zoneKindOf, zoneSize } from "./zones";
+import { isSwimlaneNode, swimlaneKindOf, swimlaneSize } from "./swimlanes";
 
 export const BLOCK_DEFAULT_SIZE = { width: 420, height: 280 };
 export const CARD_SIZE = { width: 220, height: 78 };
 
 export function blockSize(block: Node<CanvasNodeData>): { width: number; height: number } {
   if (isZoneNode(block)) return zoneSize(block);
+  if (isSwimlaneNode(block)) return swimlaneSize(block);
   const width = Number(
     block.width ?? (block.style as { width?: number } | undefined)?.width ?? BLOCK_DEFAULT_SIZE.width,
   );
@@ -23,9 +26,9 @@ export function isBlockNode(node: Node<CanvasNodeData>): boolean {
   return node.type === "block" || node.data.kind === "block";
 }
 
-/** Bloco de stack OU zona de arquitetura. */
+/** Bloco de stack, zona de arquitetura ou swimlane. */
 export function isContainerNode(node: Node<CanvasNodeData>): boolean {
-  return isBlockNode(node) || isZoneNode(node);
+  return isBlockNode(node) || isZoneNode(node) || isSwimlaneNode(node);
 }
 
 export function blockDefaults(domain: NodeKind): { label: string; description: string } {
@@ -193,10 +196,21 @@ export function canNestIntoContainer(
     return true;
   }
   if (isBlockNode(parent)) {
-    if (isZoneNode(child) || isBlockNode(child)) return false;
+    if (isZoneNode(child) || isBlockNode(child) || isSwimlaneNode(child)) return false;
     const domain = blockDomainOf(parent);
-    if (!domain || child.data.kind === "block" || child.data.kind === "zone") return false;
+    if (!domain || child.data.kind === "block" || child.data.kind === "zone" || child.data.kind === "swimlane")
+      return false;
     return canNestCardInBlock(child.data.kind, domain);
+  }
+  if (isSwimlaneNode(parent)) {
+    if (isZoneNode(child) || isBlockNode(child) || isSwimlaneNode(child)) return false;
+    if (!isArchData(child.data)) return false;
+    const lane = swimlaneKindOf(parent);
+    if (!lane || lane === "dev_flow" || lane === "user_flow") return true;
+    if (lane === "frontend") return child.data.kind === "frontend";
+    if (lane === "backend") return child.data.kind === "backend" || child.data.kind === "integration";
+    if (lane === "database") return child.data.kind === "database" || child.data.kind === "cloud";
+    return true;
   }
   return false;
 }

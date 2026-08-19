@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/status-em%20desenvolvimento-3fb950?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/status-100%25_confian%C3%A7a_arquitetural-3fb950?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/tests-257_passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/gaps-53%2F53_Feito-3fb950?style=for-the-badge" alt="Gaps">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.141-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js">
@@ -17,6 +19,8 @@
 O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componentes + conexões) arrastando e soltando blocos em um canvas, e recebe em troca uma **análise completa**: over/under-engineering, gargalos, riscos de segurança, custo mensal estimado e nota justificada. Tudo isso combinando **IA** (via OmniRoute/OpenAI/Anthropic) com **heurísticas locais determinísticas** que funcionam mesmo sem conexão com provedores de IA.
 
 > 💡 **Caso de uso principal:** arquitetos e devs seniores usam o Archia para validar uma proposta de stack antes de escrever código — o editor entrega recomendações, compara alternativas lado a lado e simula o comportamento da arquitetura sob carga.
+
+> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 257 testes passando). Ver [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md).
 
 ---
 
@@ -132,6 +136,67 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 - **Versionamento automático** a cada edição salva + restauração de versões anteriores.
 - **Fluxo de revisão** com status `draft → analyzed → approved`.
 - Metadados ricos: **contexto** e **NFRs** (usuários/dia, orçamento, disponibilidade, latência p99, compliance, ambientes).
+
+### 🎨 Diagramas multi-visual
+
+- **Biblioteca de diagramas** (`DiagramLibrary`) com vistas tipadas: Contexto, Aplicação, Dados, Runtime, Segurança, DR, Sequência.
+- **Drill-down C4** com breadcrumb — navegue de região → AZ → serviço → componente.
+- **Diagrama de sequência** — visualização numerada de fluxos (request path).
+- **Consistência cross-diagram** — valida nós/arestas entre vistas do mesmo projeto.
+- **Auto-layout por zonas** — reposicionamento inteligente baseado em zonas VPC/AZ.
+- **Caminho crítico** — destaque visual dos nós/arestas que mais impactam a nota.
+
+### 🔒 Governança e SRE
+
+- **ADRs** (Architectural Decision Records) persistidos em Markdown (`docs/adr/`).
+- **Policy as code** — avaliações de PII, security groups, trust boundaries.
+- **RACI matrix** — gera Responsible, Accountable, Consulted, Informed por squad.
+- **SLI/SLO** por serviço com error budget burn rate.
+- **Circuit breakers** — visualização de padrões de resiliência.
+- **Cost model** — estimativa de custo por serviço/região/tier.
+- **Failure injection** — injeta falha em nó e vê blast radius no canvas.
+
+### 🔐 Autenticação e colaboração
+
+- **SSO/OIDC** configurável via env (`GET /auth/sso/config`).
+- **Audit trail** — registro de todas as mutações no grafo (`audit_entries`).
+- **Comentários no canvas** — pin, @mentions, assignee, resolved (estilo Figma).
+- **Views salvas** por usuário com filtros combinados (DOM, provider, owner, C4, PII).
+- **Diff visual** — compare v1 vs v2 com highlights verde/vermelho/amarelo no canvas.
+
+### 📊 Análise avançada
+
+- **Evidence nos findings** — botão "Ver evidência no canvas" mostra nós/arestas que puxaram cada eixo do scorecard.
+- **Nós críticos** — seção no scorecard lista nós com findings críticos.
+- **STRIDE/LINDDUN** — análise de ameaças por trust boundary.
+- **Well-Architected** — scorecard paralelo AWS/Azure/GCP (5 pilares).
+- **ATAM** — cenários de qualidade ligados a nós/arestas.
+- **Fix actions** — 12+ categorias automáticas (bottleneck, CDN, cache, fila, LB, SG, zona, DB, saga, PII, SLO, custo).
+
+### 📐 Catálogo rico
+
+- **100+ tecnologias** com atributos reais: `limits`, `ha_model`, `regions`, `pricing_tier`, `rps_guidance`.
+- **Patterns library aplicável** — saga, outbox, CQRS, event-driven, sidecar, strangler materializam nós/arestas no canvas.
+- **Catálogo privado** — CRUD com ACL por `owner_team`.
+- **Contrato de capacidade** — `capacityContract` editável no card (max_rps, p99_latency_ms).
+
+### 🌐 Interoperabilidade
+
+- **Export**: JSON, PNG, SVG vetorial, PDF, Markdown, PlantUML, Mermaid, C4-PlantUML, draw.io XML.
+- **Import draw.io** — upload XML de diagramas existentes.
+- **Embed vivo** — SVG vetorial com tema claro/escuro para Notion/Confluence.
+- **Wiki viva** — `GET /doc` com Markdown, âncoras estáveis, links para ADR/nós.
+
+### 🎬 Apresentação
+
+- **Presentation Mode** — steps com spotlight, teclas ←→ Espaço T Esc, tema claro/escuro.
+- **Sequence mode** — arestas 1..N acesas conforme narrative.
+- **Board-ready exports** — title block, legenda, fundo limpo.
+
+### ♿ Acessibilidade
+
+- **WCAG 2.1 AA** — skip links, aria labels, focus outlines visíveis.
+- **Atalhos de teclado** — F (focus), Esc (fechar), Del (deletar), Tab (navegar).
 
 ## 📋 Pré-requisitos
 

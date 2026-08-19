@@ -273,3 +273,18 @@ def reset_password(reset_data: PasswordReset, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Password reset successfully"}
+
+
+@router.get("/sso/config")
+def sso_config() -> dict:
+    """P1.4.3 — SSO OAuth/SAML configurável via env (stub operacional)."""
+    import os
+
+    return {
+        "enabled": os.environ.get("ARCHIA_SSO_ENABLED", "false").lower() == "true",
+        "provider": os.environ.get("ARCHIA_SSO_PROVIDER", "oidc"),
+        "issuer_url": os.environ.get("ARCHIA_SSO_ISSUER_URL", ""),
+        "client_id": os.environ.get("ARCHIA_SSO_CLIENT_ID", ""),
+        "saml_metadata_url": os.environ.get("ARCHIA_SSO_SAML_METADATA_URL", ""),
+        "audit_logging": True,
+    }

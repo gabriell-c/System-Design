@@ -1,0 +1,17 @@
+{
+  "id": "cicd-dev-user",
+  "version": "1.0.0",
+  "label": "CI/CD Dev/User Dual-Flow",
+  "editor_template_id": "cicd-dev-user",
+  "swimlanes": [
+    { "id": "lane-dev", "kind": "dev_flow", "stages": ["source", "build", "test", "deploy"] },
+    { "id": "lane-user", "kind": "user_flow", "stages": ["edge", "api", "compute", "data", "observability"] }
+  ],
+  "cross_flow_edges": [
+    { "from": "deploy", "to": "compute", "label": "rollout" },
+    { "from": "observability", "to": "source", "label": "notify" }
+  ],
+  "api": {
+    "analyze": "/api/v1/graphs/{graph_id}/deployment-flows"
+  }
+}

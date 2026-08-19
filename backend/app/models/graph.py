@@ -29,6 +29,9 @@ class Graph(Base):
     review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewer_role: Mapped[str | None] = mapped_column(String(16), nullable=True)
     owner_team: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    diagram_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    parent_graph_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    c4_parent_node_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

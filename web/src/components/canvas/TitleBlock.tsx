@@ -6,7 +6,11 @@ interface TitleBlockProps {
   version?: string;
   date?: string;
   provider?: string;
+  classification?: string;
   nfr?: ProjectNfr | null;
+  /** overlay = canvas UI; inline = dentro de export/composição */
+  variant?: 'overlay' | 'inline';
+  className?: string;
 }
 
 export default function TitleBlock({
@@ -15,20 +19,27 @@ export default function TitleBlock({
   version = '1.0',
   date = new Date().toLocaleDateString('pt-BR'),
   provider,
+  classification = 'Confidencial — uso interno',
   nfr,
+  variant = 'overlay',
+  className = '',
 }: TitleBlockProps) {
+  const shell =
+    variant === 'overlay'
+      ? 'bg-zinc-900/95 backdrop-blur border border-zinc-700 rounded-lg shadow-xl p-3 text-xs'
+      : 'bg-[#0d1219] border border-white/10 rounded-lg p-3 text-xs';
+
   return (
-    <div className="fixed bottom-4 left-4 z-40 bg-zinc-900/95 backdrop-blur border border-zinc-700 rounded-lg shadow-xl p-3 text-xs">
+    <div className={`${shell} ${className}`.trim()}>
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-zinc-100 truncate">{title}</p>
           <p className="text-zinc-400 mt-0.5">
             {author} · v{version} · {date}
           </p>
-          {provider && (
-            <p className="text-zinc-500 mt-0.5">
-              Provider: {provider}
-            </p>
+          {provider && <p className="text-zinc-500 mt-0.5">Provider: {provider}</p>}
+          {classification && (
+            <p className="text-zinc-500 mt-1 text-[10px] uppercase tracking-wide">{classification}</p>
           )}
         </div>
         {nfr && (

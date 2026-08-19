@@ -162,6 +162,72 @@ def attach_fix_actions(findings: list[Finding]) -> list[Finding]:
                 label="Adicionar observabilidade",
                 payload={"catalogId": "pat-prometheus"},
             )
+        elif "redis" in title_lower or "cache" in title_lower:
+            fix = FixAction(
+                action_type="add_catalog_node",
+                label="Adicionar Redis/Cache",
+                payload={"catalogId": "db-redis"},
+            )
+        elif "queue" in title_lower or "kafka" in title_lower or "sqs" in title_lower:
+            fix = FixAction(
+                action_type="add_catalog_node",
+                label="Adicionar fila",
+                payload={"catalogId": "int-kafka"},
+            )
+        elif "lb" in title_lower or "load balancer" in title_lower or "alb" in title_lower:
+            fix = FixAction(
+                action_type="add_catalog_node",
+                label="Adicionar Load Balancer",
+                payload={"catalogId": "cloud-aws-alb"},
+            )
+        elif "security group" in title_lower or "sg" in title_lower or "firewall" in title_lower:
+            fix = FixAction(
+                action_type="add_catalog_node",
+                label="Adicionar Security Group",
+                payload={"catalogId": "sec-sg"},
+            )
+        elif "zone" in title_lower or "subnet" in title_lower or "vpc" in title_lower:
+            fix = FixAction(
+                action_type="add_zone",
+                label="Adicionar zona",
+                payload={"zoneKind": "availability_zone"},
+            )
+        elif "database" in title_lower or "db" in title_lower:
+            fix = FixAction(
+                action_type="add_catalog_node",
+                label="Adicionar banco",
+                payload={"catalogId": "db-postgres"},
+            )
+        elif "multi" in title_lower or "redundancy" in title_lower or "ha" in title_lower:
+            fix = FixAction(
+                action_type="add_zone",
+                label="Adicionar multi-AZ",
+                payload={"zoneKind": "availability_zone"},
+            )
+        elif "saga" in title_lower or "outbox" in title_lower or "transaction" in title_lower:
+            fix = FixAction(
+                action_type="apply_pattern",
+                label="Aplicar Saga/Outbox",
+                payload={"patternIds": ["pat-saga", "pat-outbox"]},
+            )
+        elif "pii" in title_lower or "lgpd" in title_lower or "sensitive" in title_lower:
+            fix = FixAction(
+                action_type="update_node",
+                label="Configurar PII/LGPD",
+                payload={"piiSensitivity": "high"},
+            )
+        elif "slo" in title_lower or "availability" in title_lower or "uptime" in title_lower:
+            fix = FixAction(
+                action_type="set_nfr",
+                label="Configurar SLO",
+                payload={"slo_availability_pct": 99.9},
+            )
+        elif "cost" in title_lower or "pricing" in title_lower:
+            fix = FixAction(
+                action_type="note",
+                label="Revisar custo",
+                payload={"note": "Revisar tier de pricing e custos regionais"},
+            )
         elif f.node_id:
             fix = FixAction(
                 action_type="select_node",
@@ -261,9 +327,10 @@ def extract_domain_benchmarks(nodes: list[dict], edges: list[dict], nfr: dict | 
 
 
 def enrich_analysis(result: AnalysisResult, nodes: list[dict], edges: list[dict], nfr: dict | None) -> AnalysisResult:
-    """Apply all P1 analysis enrichments."""
+    """Apply all P1 analysis enrichments + ATAM scenarios."""
     from app.services.threat_analysis import enrich_threat_analysis
     from app.services.well_architected import calculate_well_architected_score
+    from app.services.atam_analysis import ATAM_SCENARIOS, analyze_atam_scenarios, link_atam_to_nodes
 
     # Threat analysis (STRIDE + LINDDUN)
     threat_findings = enrich_threat_analysis([], nodes, edges, nfr)
@@ -271,19 +338,24 @@ def enrich_analysis(result: AnalysisResult, nodes: list[dict], edges: list[dict]
     # Well-Architected scorecard
     wa_scorecard = calculate_well_architected_score(nodes, edges, nfr)
 
+    # ATAM scenario analysis
+    atam_findings = analyze_atam_scenarios(nodes, edges, nfr)
+    atam_links = link_atam_to_nodes(nodes, edges, list(ATAM_SCENARIOS.keys()))
+
     # Existing enrichments
     extra = (
         check_bounded_context_vs_shared_db(nodes, edges)
         + check_pii_in_sensitive_flow(nodes, edges)
         + check_saga_for_distributed_tx(nodes, edges, nfr)
     )
-    all_findings = attach_fix_actions(list(result.findings) + extra)
+    all_findings = attach_fix_actions(list(result.findings) + extra + atam_findings)
     benchmarks = extract_domain_benchmarks(nodes, edges, nfr)
     updated = result.model_copy(update={
         "findings": all_findings,
         "benchmarks": benchmarks,
         "threat_findings": threat_findings,
         "well_architected": wa_scorecard,
+        "atam_scenarios": atam_links,
     })
     breakdown = compute_score_breakdown(updated, nodes)
     return updated.model_copy(update={"score_breakdown": breakdown})

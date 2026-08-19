@@ -27,7 +27,17 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoading: true });
         try {
           const resp = await api.listProjects();
-          set({ projects: resp, isLoading: false });
+          const withDiagrams = await Promise.all(
+            resp.map(async (p) => {
+              try {
+                const diagrams = await api.listProjectDiagrams(p.id);
+                return { ...p, diagrams };
+              } catch {
+                return { ...p, diagrams: p.diagrams ?? [] };
+              }
+            }),
+          );
+          set({ projects: withDiagrams, isLoading: false });
         } catch {
           set({ isLoading: false });
         }
@@ -35,11 +45,13 @@ export const useProjectStore = create<ProjectState>()(
 
       createProject: async (name, context = '') => {
         const resp = await api.createProject({ name, context, nfr_json: '{}' });
+        const diagrams = await api.listProjectDiagrams(resp.id);
+        const full = { ...resp, diagrams, nfr: null };
         set(state => ({
-          projects: [resp, ...state.projects],
+          projects: [full, ...state.projects],
           activeProjectId: resp.id,
         }));
-        return resp;
+        return full;
       },
 
       setActiveProject: (id) => set({ activeProjectId: id }),

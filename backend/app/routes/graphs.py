@@ -68,6 +68,9 @@ def to_out(graph: Graph) -> GraphOut:
         reviewer_role=graph.reviewer_role,
         project_id=getattr(graph, "project_id", None),
         owner_team=getattr(graph, "owner_team", None),
+        diagram_kind=getattr(graph, "diagram_kind", None),
+        parent_graph_id=getattr(graph, "parent_graph_id", None),
+        c4_parent_node_id=getattr(graph, "c4_parent_node_id", None),
         created_at=graph.created_at,
         updated_at=graph.updated_at,
     )
@@ -102,6 +105,9 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db)) -> GraphO
         nfr_json=(payload.nfr or ProjectNfr()).model_dump_json(),
         nodes_json=json.dumps(payload.nodes),
         edges_json=json.dumps(payload.edges),
+        diagram_kind=payload.diagram_kind,
+        parent_graph_id=payload.parent_graph_id,
+        c4_parent_node_id=payload.c4_parent_node_id,
         review_status="draft",
     )
     with sqlite_write_guard():
@@ -142,6 +148,12 @@ def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_
         graph.project_id = payload.project_id
     if payload.owner_team is not None:
         graph.owner_team = payload.owner_team.strip() or None
+    if payload.diagram_kind is not None:
+        graph.diagram_kind = payload.diagram_kind
+    if payload.parent_graph_id is not None:
+        graph.parent_graph_id = payload.parent_graph_id
+    if payload.c4_parent_node_id is not None:
+        graph.c4_parent_node_id = payload.c4_parent_node_id
     graph.updated_at = datetime.now(timezone.utc)
     with sqlite_write_guard():
         _snapshot(db, graph)

@@ -13,6 +13,18 @@ from app.services.subsystems import get_subsystem, list_subsystems as catalog_su
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
+DIAGRAM_KIND_META: dict[str, str] = {
+    "context": "Context Diagram",
+    "application": "Application Diagram",
+    "data": "Data Diagram",
+    "runtime": "Runtime Diagram",
+    "security": "Security Diagram",
+    "dr": "DR Diagram",
+    "sequence": "Sequence Diagram",
+}
+
+DEFAULT_DIAGRAM_KINDS = list(DIAGRAM_KIND_META.keys())
+
 
 class SubsystemImportIn(BaseModel):
     subsystem_id: str = Field(min_length=1, max_length=80)
@@ -42,6 +54,23 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
         nfr_json=payload.nfr_json or "{}",
     )
     db.add(project)
+    db.flush()
+    # P0.1.2 — vistas tipadas ao criar projeto
+    for kind in DEFAULT_DIAGRAM_KINDS:
+        label = DIAGRAM_KIND_META[kind]
+        db.add(
+            Graph(
+                id=new_uuid(),
+                project_id=project.id,
+                name=f"{payload.name.strip()} — {label}",
+                context_text=payload.context or "",
+                nfr_json=payload.nfr_json or "{}",
+                nodes_json="[]",
+                edges_json="[]",
+                diagram_kind=kind,
+                review_status="draft",
+            )
+        )
     db.commit()
     db.refresh(project)
     return project
@@ -102,6 +131,9 @@ def create_diagram(project_id: str, payload: GraphPayload, db: Session = Depends
         nodes_json=json.dumps(payload.nodes),
         edges_json=json.dumps(payload.edges),
         owner_team=payload.owner_team,
+        diagram_kind=getattr(payload, "diagram_kind", None),
+        parent_graph_id=getattr(payload, "parent_graph_id", None),
+        c4_parent_node_id=getattr(payload, "c4_parent_node_id", None),
         review_status="draft",
     )
     with sqlite_write_guard():

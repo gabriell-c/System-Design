@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type EdgeTypes,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -16,6 +17,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
 import SagaNode from "@/components/nodes/SagaNode";
+import CircuitBreakerNode from "@/components/nodes/CircuitBreakerNode";
+import SecurityGroupNode from "@/components/nodes/SecurityGroupNode";
+import NaclNode from "@/components/nodes/NaclNode";
+import TransitGatewayNode from "@/components/nodes/TransitGatewayNode";
+import NoteNode from "@/components/nodes/NoteNode";
+import CidrNode from "@/components/nodes/CidrNode";
+import TenantBoundaryNode from "@/components/nodes/TenantBoundaryNode";
+import DrillDownNavigator from "@/components/canvas/DrillDownNavigator";
+import SequenceDiagramView from "@/components/canvas/SequenceDiagramView";
+import BlastRadiusOverlay from "@/components/canvas/BlastRadiusOverlay";
 import ZoneNode from "@/components/nodes/ZoneNode";
 import DiagramLegend from "@/components/canvas/DiagramLegend";
 import TitleBlock from "@/components/canvas/TitleBlock";
@@ -23,8 +34,8 @@ import { findContainerAtPoint, isContainerNode } from "@/lib/blocks";
 import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { computeSnap, type GuideLine } from "@/lib/snap";
-import type { CanvasNodeData, NodeKind, ZoneKind } from "@/lib/types";
-import { ALL_ZONE_KINDS } from "@/lib/types";
+import type { CanvasNodeData, NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
+import { ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 import { FLOW_KIND_META } from "@/lib/edges";
 import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
@@ -37,6 +48,18 @@ const nodeTypes: NodeTypes = {
   block: BlockNode,
   zone: ZoneNode,
   saga: SagaNode,
+  circuitBreaker: CircuitBreakerNode,
+  securityGroup: SecurityGroupNode,
+  nacl: NaclNode,
+  transitGateway: TransitGatewayNode,
+  swimlane: SwimlaneNode,
+  note: NoteNode,
+  cidr: CidrNode,
+  tenantBoundary: TenantBoundaryNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  flowBadge: FlowBadgeEdge,
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -58,6 +81,7 @@ function CanvasInner() {
   const addCatalogNode = useGraphStore((s) => s.addCatalogNode);
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
+  const addSwimlane = useGraphStore((s) => s.addSwimlane);
   const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
   const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
   const resolveNestingAfterDrag = useGraphStore((s) => s.resolveNestingAfterDrag);
@@ -67,7 +91,10 @@ function CanvasInner() {
   const undo = useGraphStore((s) => s.undo);
   const redo = useGraphStore((s) => s.redo);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
-  const reconcileOrphanCards = useGraphStore((s) => s.reconcileOrphanCards);
+  const blastHighlightEdgeIds = useGraphStore((s) => s.blastHighlightEdgeIds);
+  const diagramKind = useGraphStore((s) => s.diagramKind);
+  const parentGraphId = useGraphStore((s) => s.parentGraphId);
+  const sequenceMode = useGraphStore((s) => s.sequenceMode);
   const { screenToFlowPosition, setNodes, fitView } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
@@ -129,6 +156,20 @@ function CanvasInner() {
     return [...containers, ...rest];
   }, [nodes]);
 
+  const displayEdges = useMemo(() => {
+    if (!blastHighlightEdgeIds.length) return edges;
+    const highlight = new Set(blastHighlightEdgeIds);
+    return edges.map((e) =>
+      highlight.has(e.id)
+        ? {
+            ...e,
+            style: { ...e.style, stroke: "#f43f5e", strokeWidth: 3 },
+            animated: true,
+          }
+        : e,
+    );
+  }, [edges, blastHighlightEdgeIds]);
+
   const displayNodes = useMemo(() => {
     const filtered = orderedNodes.filter((n) => filterVisibility(n, canvasFilter, ownerTeam));
     return filtered;
@@ -150,6 +191,12 @@ function CanvasInner() {
       const zoneKind = event.dataTransfer.getData("application/system-design-zone") as ZoneKind | "";
       if (zoneKind && ALL_ZONE_KINDS.includes(zoneKind)) {
         addZone(zoneKind, { x: position.x - 120, y: position.y - 40 });
+        return;
+      }
+
+      const swimlaneKind = event.dataTransfer.getData("application/system-design-swimlane") as SwimlaneKind | "";
+      if (swimlaneKind && ALL_SWIMLANE_KINDS.includes(swimlaneKind)) {
+        addSwimlane(swimlaneKind, { x: position.x - 200, y: position.y - 60 });
         return;
       }
 
@@ -182,7 +229,7 @@ function CanvasInner() {
 
       addCatalogNode(catalogId, { x: position.x - 100, y: position.y - 30 });
     },
-    [addBlock, addCatalogNode, addZone, nodes, screenToFlowPosition],
+    [addBlock, addCatalogNode, addSwimlane, addZone, nodes, screenToFlowPosition],
   );
 
   function startWithZone(kind: ZoneKind) {
@@ -255,6 +302,22 @@ function CanvasInner() {
               Ou abra <strong className="text-slate-400">Contexto</strong> e escolha um template (MVP, SaaS, Marketplace…).
             </p>
           </div>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute left-3 right-3 top-3 z-20 flex justify-center">
+        <div className="pointer-events-auto max-w-xl w-full">
+          <DrillDownNavigator diagramKind={diagramKind} parentGraphId={parentGraphId} />
+        </div>
+      </div>
+
+      {sequenceMode && (
+        <div className="pointer-events-auto absolute inset-x-4 top-16 z-20 mx-auto max-w-2xl">
+          <SequenceDiagramView
+            edges={edges}
+            nodes={nodes.map((n) => ({ id: n.id, data: { label: n.data.label } }))}
+            onSelectEdge={setSelectedEdgeId}
+          />
         </div>
       )}
 
@@ -362,7 +425,7 @@ function CanvasInner() {
 
       <ReactFlow
         nodes={displayNodes}
-        edges={edges}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -375,6 +438,7 @@ function CanvasInner() {
         }}
         onEdgeClick={(_e, edge) => setSelectedEdgeId(edge.id)}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodeDragStart={(event, node) => {
           checkpointDrag();
           // Store original positions of all nodes for snap
@@ -430,31 +494,41 @@ function CanvasInner() {
         minZoom={0.08}
         maxZoom={1.75}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
-        <Controls className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#121821] !shadow-none" />
-        <MiniMap
-          className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0d1219]"
-          maskColor="rgba(2,6,23,0.75)"
-          nodeColor={(node) =>
-            node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : "#475569"
-          }
-        />
-        {/* Title Block */}
-        <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
-          <TitleBlock
-            title={name || "Arquitetura"}
-            author="Arquiteto"
-            version="1.0"
-            nfr={nfr}
-          />
-        </div>
-        {/* Legend */}
-        <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
-          <DiagramLegend />
-        </div>
+        {!sequenceMode && (
+          <>
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
+            <Controls className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#121821] !shadow-none" />
+            <MiniMap
+              className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0d1219]"
+              maskColor="rgba(2,6,23,0.75)"
+              nodeColor={(node) =>
+                node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : "#475569"
+              }
+            />
+            {/* Title Block */}
+            <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
+              <TitleBlock
+                title={name || "Arquitetura"}
+                author="Arquiteto"
+                version="1.0"
+                nfr={nfr}
+                variant="overlay"
+              />
+            </div>
+            {/* Legend */}
+            <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
+              <DiagramLegend variant="overlay" />
+            </div>
+          </>
+        )}
       </ReactFlow>
-      <CanvasComments />
-      <LineageView />
+      {!sequenceMode && (
+        <>
+          <CanvasComments />
+          <LineageView />
+          <BlastRadiusOverlay />
+        </>
+      )}
     </div>
   );
 }

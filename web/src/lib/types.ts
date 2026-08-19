@@ -79,6 +79,13 @@ export type FlowProtocol = "https" | "grpc" | "amqp" | "kafka" | "sql" | "s3" | 
 
 export type FailureBehavior = "retry" | "fallback" | "dlq" | "fail_fast" | "none";
 
+export type CircuitBreakerConfig = {
+  failure_threshold?: number;
+  window_seconds?: number;
+  fallback_target_id?: string;
+  state?: "closed" | "open" | "half_open";
+};
+
 export type ArchEdgeData = {
   flowKind: FlowKind;
   protocol?: FlowProtocol;
@@ -87,6 +94,7 @@ export type ArchEdgeData = {
   isCriticalPath?: boolean;
   failureBehavior?: FailureBehavior;
   firewallRules?: FirewallRule[];
+  circuitBreaker?: CircuitBreakerConfig;
 };
 
 export type FirewallRule = {
@@ -94,6 +102,24 @@ export type FirewallRule = {
   protocol: "tcp" | "udp" | "all";
   direction: "inbound" | "outbound";
   description?: string;
+};
+
+/** P2.3.1 — regra stateless de Network ACL. */
+export type NaclRule = {
+  rule_number: number;
+  action: "allow" | "deny";
+  protocol: "tcp" | "udp" | "icmp" | "all";
+  port_range?: string;
+  cidr?: string;
+  direction: "inbound" | "outbound";
+};
+
+/** P2.3.1 — attachment de VPC ao Transit Gateway. */
+export type TgwAttachment = {
+  vpc_id: string;
+  vpc_label?: string;
+  route_table?: string;
+  subnet_ids?: string[];
 };
 
 export type NodeComment = {
@@ -173,6 +199,14 @@ export type ArchNodeData = {
   c4Level?: C4Level;
   /** P1.3.5 — contrato de capacidade editável */
   capacityContract?: CapacityContract;
+  /** P0.5.6 — circuit breaker no nó */
+  circuitBreaker?: CircuitBreakerConfig;
+  /** P2.3.1 — regras SG quando catalogId = sec-sg */
+  securityGroupRules?: FirewallRule[];
+  /** P2.3.1 — regras NACL quando catalogId = net-nacl */
+  naclRules?: NaclRule[];
+  /** P2.3.1 — attachments TGW quando catalogId = net-tgw */
+  tgwAttachments?: TgwAttachment[];
 };
 
 export type BlockNodeData = {
@@ -191,6 +225,8 @@ export type ZoneNodeData = {
   label: string;
   provider?: CloudProvider;
   description?: string;
+  /** P0.3.5 — CIDR na borda da zona/VPC */
+  cidr?: string;
   /** P1.1.1 — bounded context name for DDD/data mesh */
   boundedContext?: string;
   score?: number | null;
@@ -198,7 +234,57 @@ export type ZoneNodeData = {
   bottleneck?: boolean;
 };
 
-export type CanvasNodeData = ArchNodeData | BlockNodeData | ZoneNodeData;
+export type SwimlaneKind = "frontend" | "backend" | "database" | "dev_flow" | "user_flow";
+
+export const ALL_SWIMLANE_KINDS: SwimlaneKind[] = [
+  "frontend",
+  "backend",
+  "database",
+  "dev_flow",
+  "user_flow",
+];
+
+export type SwimlaneNodeData = {
+  kind: "swimlane";
+  swimlaneKind: SwimlaneKind;
+  label: string;
+  score?: number | null;
+  summary?: string;
+  bottleneck?: boolean;
+};
+
+/** P0.2.7 — sticky note no canvas. */
+export type NoteNodeData = {
+  kind: "note";
+  label: string;
+  text?: string;
+  anchorNodeId?: string;
+};
+
+/** P0.3.5 — bloco CIDR explícito. */
+export type CidrNodeData = {
+  kind: "cidr";
+  label: string;
+  cidr: string;
+  zoneKind?: ZoneKind;
+};
+
+/** P0.3.7 — boundary multi-tenant. */
+export type TenantBoundaryData = {
+  kind: "tenant_boundary";
+  label: string;
+  tenantMode: "pool" | "silo" | "bridge";
+  tenantIds?: string[];
+};
+
+export type CanvasNodeData =
+  | ArchNodeData
+  | BlockNodeData
+  | ZoneNodeData
+  | SwimlaneNodeData
+  | NoteNodeData
+  | CidrNodeData
+  | TenantBoundaryData;
 
 export function isBlockData(data: CanvasNodeData): data is BlockNodeData {
   return data.kind === "block";
@@ -208,8 +294,31 @@ export function isZoneData(data: CanvasNodeData): data is ZoneNodeData {
   return data.kind === "zone";
 }
 
+export function isSwimlaneData(data: CanvasNodeData): data is SwimlaneNodeData {
+  return data.kind === "swimlane";
+}
+
+export function isNoteData(data: CanvasNodeData): data is NoteNodeData {
+  return data.kind === "note";
+}
+
+export function isCidrData(data: CanvasNodeData): data is CidrNodeData {
+  return data.kind === "cidr";
+}
+
+export function isTenantBoundaryData(data: CanvasNodeData): data is TenantBoundaryData {
+  return data.kind === "tenant_boundary";
+}
+
 export function isArchData(data: CanvasNodeData): data is ArchNodeData {
-  return data.kind !== "block" && data.kind !== "zone";
+  return (
+    data.kind !== "block" &&
+    data.kind !== "zone" &&
+    data.kind !== "swimlane" &&
+    data.kind !== "note" &&
+    data.kind !== "cidr" &&
+    data.kind !== "tenant_boundary"
+  );
 }
 
 export type MetricEstimate = {
@@ -232,6 +341,7 @@ export type Finding = {
   detail: string;
   metric?: MetricEstimate | null;
   fix_action?: FixAction | null;
+  evidence_node_ids?: string[];
 };
 
 export type ScoreFactor = {
@@ -425,6 +535,10 @@ export type GraphRecord = {
   reviewer_role: UserRole | null;
   project_id?: string | null;
   owner_team?: string | null;
+  /** P0.1.2 — tipo da vista no pacote */
+  diagram_kind?: string | null;
+  parent_graph_id?: string | null;
+  c4_parent_node_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -561,4 +675,89 @@ export type SavedView = {
 export type TeamAccess = {
   team: string;
   role: "read" | "write" | "admin";
+};
+
+export type FailureInjectionResult = {
+  ok: boolean;
+  error?: string;
+  failed_node_id?: string;
+  failed_label?: string;
+  mode?: string;
+  mode_detail?: string;
+  unreachable_node_ids?: string[];
+  degraded_node_ids?: string[];
+  fallback_activations?: Array<{ edge_behavior: string; from: string; to: string; detail: string }>;
+  critical_path_broken?: number;
+  critical_path_total?: number;
+  journeys_broken_pct?: number;
+  affected_node_ids?: string[];
+  summary?: string;
+};
+
+export type BlastRadiusResult = FailureInjectionResult & {
+  origin_node_id?: string;
+  origin_label?: string;
+  highlight_edge_ids?: string[];
+  hops?: Record<string, string[]>;
+};
+
+export type CostBreakdown = {
+  line_items: Array<{
+    node_id: string;
+    label: string;
+    catalog_id: string;
+    region: string;
+    tier: string;
+    cost_key: string;
+    cost_usd_month: number;
+  }>;
+  total_usd_month: number;
+  heuristic_total_usd_month: number;
+  by_region: Record<string, number>;
+  by_tier: Record<string, number>;
+  node_count: number;
+  summary: string;
+};
+
+export type LiveDocResult = {
+  markdown: string;
+  anchors: Record<string, string>;
+  updated_at: string;
+};
+
+export type NetworkPolicyFinding = {
+  severity: "info" | "warning" | "critical";
+  title: string;
+  detail: string;
+  node_id?: string;
+  edge_id?: string;
+};
+
+export type NetworkPolicyResult = {
+  ok: boolean;
+  score: number;
+  summary: {
+    security_groups: number;
+    nacls: number;
+    transit_gateways: number;
+    edges_analyzed: number;
+  };
+  findings: NetworkPolicyFinding[];
+};
+
+export type DeploymentFlowEdge = {
+  id?: string;
+  source: string;
+  target: string;
+  flow_number?: number;
+  label?: string;
+  flow_kind?: string;
+};
+
+export type DeploymentFlowsResult = {
+  ok: boolean;
+  dev_flow: { node_count: number; edge_count: number; edges: DeploymentFlowEdge[] };
+  user_flow: { node_count: number; edge_count: number; edges: DeploymentFlowEdge[] };
+  cross_flow: { edge_count: number; edges: DeploymentFlowEdge[] };
+  gaps: { severity: string; detail: string }[];
 };

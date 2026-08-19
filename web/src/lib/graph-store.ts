@@ -41,13 +41,16 @@ import type {
 import { isArchData, isBlockData, isZoneData } from "./types";
 import { emptyNfr, normalizeNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates";
+import { createSwimlaneNode } from "./swimlanes";
+import type { SwimlaneKind } from "./types";
 import { createZoneNode, ensureZoneFitsChild, isZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
 import type { ArchitectureView } from "./architecture-view";
 import { VIEW_C4_LEVEL } from "./architecture-view";
 import type { C4Level } from "./types";
 import { EMPTY_CANVAS_FILTER, type CanvasFilter } from "./canvas-filter";
 import { applyFixAction } from "./fix-actions";
-import { saveSavedView } from "./saved-views";
+import { autoLayoutByZones } from "./auto-layout";
+import { computeCriticalPath } from "./critical-path";
 import type { SavedView } from "./types";
 
 export type UiNotice = {
@@ -92,7 +95,14 @@ type GraphState = {
   ownerTeam: string;
   canvasComments: import("./types").CanvasComment[];
   highlightNodeIds: string[];
+  blastUnreachableIds: string[];
+  blastDegradedIds: string[];
+  blastHighlightEdgeIds: string[];
   diffHighlights: import("./diff-highlight").DiffHighlight[];
+  diagramKind: string | null;
+  parentGraphId: string | null;
+  c4ParentNodeId: string | null;
+  sequenceMode: boolean;
   _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
   _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
@@ -108,6 +118,12 @@ type GraphState = {
   setOwnerTeam: (team: string) => void;
   setCanvasComments: (comments: import("./types").CanvasComment[]) => void;
   setHighlightNodeIds: (ids: string[]) => void;
+  setBlastRadiusHighlight: (payload: {
+    unreachable: string[];
+    degraded: string[];
+    edgeIds: string[];
+  } | null) => void;
+  clearBlastRadiusHighlight: () => void;
   addPatternNodes: (nodes: Node<CanvasNodeData>[]) => void;
   applyFixFromFinding: (action: import("./types").FixAction) => boolean;
   applyTemplate: (template: ProjectTemplate) => void;
@@ -133,6 +149,22 @@ type GraphState = {
     position: { x: number; y: number },
     opts?: { label?: string; provider?: CloudProvider; boundedContext?: string },
   ) => void;
+  addSwimlane: (
+    swimlaneKind: SwimlaneKind,
+    position: { x: number; y: number },
+    opts?: { label?: string },
+  ) => void;
+  addNote: (position: { x: number; y: number }, text?: string) => void;
+  addCidrBlock: (position: { x: number; y: number }, cidr?: string, label?: string) => void;
+  addTenantBoundary: (
+    position: { x: number; y: number },
+    opts?: { label?: string; tenantMode?: "pool" | "silo" | "bridge" },
+  ) => void;
+  applyAutoLayout: () => void;
+  setC4Level: (nodeId: string, level: C4Level) => void;
+  highlightCriticalPath: () => void;
+  clearCriticalPathHighlight: () => void;
+  setSequenceMode: (on: boolean) => void;
   updateEdgeData: (edgeId: string, patch: Partial<ArchEdgeData>) => void;
   renameNode: (id: string, label: string) => void;
   attachNodeToBlock: (nodeId: string, blockId: string) => boolean;
@@ -251,7 +283,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   ownerTeam: "",
   canvasComments: [],
   highlightNodeIds: [],
+  blastUnreachableIds: [],
+  blastDegradedIds: [],
+  blastHighlightEdgeIds: [],
   diffHighlights: [],
+  diagramKind: null,
+  parentGraphId: null,
+  c4ParentNodeId: null,
+  sequenceMode: false,
   _pendingNodesChanges: null,
   _pendingTimeout: null,
 
@@ -290,6 +329,28 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setOwnerTeam: (ownerTeam) => set({ ownerTeam, dirty: true }),
   setCanvasComments: (canvasComments) => set({ canvasComments }),
   setHighlightNodeIds: (highlightNodeIds) => set({ highlightNodeIds }),
+  setBlastRadiusHighlight: (payload) =>
+    set(
+      payload
+        ? {
+            blastUnreachableIds: payload.unreachable,
+            blastDegradedIds: payload.degraded,
+            blastHighlightEdgeIds: payload.edgeIds,
+            highlightNodeIds: [...payload.unreachable, ...payload.degraded],
+          }
+        : {
+            blastUnreachableIds: [],
+            blastDegradedIds: [],
+            blastHighlightEdgeIds: [],
+          },
+    ),
+  clearBlastRadiusHighlight: () =>
+    set({
+      blastUnreachableIds: [],
+      blastDegradedIds: [],
+      blastHighlightEdgeIds: [],
+      highlightNodeIds: [],
+    }),
   setDiffHighlights: (diffHighlights) => set({ diffHighlights }),
   addPatternNodes: (patternNodes) => {
     withHistory(get, set, () => {
@@ -523,9 +584,38 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const item = findCatalog(catalogId);
     if (!item) return false;
     const id = nextId("n");
+    const nodeType =
+      catalogId === "pat-circuit-breaker"
+        ? "circuitBreaker"
+        : catalogId === "sec-sg"
+          ? "securityGroup"
+          : catalogId === "net-nacl"
+            ? "nacl"
+            : catalogId === "net-tgw"
+              ? "transitGateway"
+              : "arch";
+    const defaultCb =
+      nodeType === "circuitBreaker"
+        ? { failure_threshold: 5, window_seconds: 60, state: "closed" as const }
+        : undefined;
+    const defaultSgRules =
+      nodeType === "securityGroup"
+        ? [{ port: "443", protocol: "tcp" as const, direction: "inbound" as const, description: "HTTPS" }]
+        : undefined;
+    const defaultNaclRules =
+      nodeType === "nacl"
+        ? [
+            { rule_number: 100, action: "allow" as const, protocol: "tcp" as const, port_range: "443", cidr: "0.0.0.0/0", direction: "inbound" as const },
+            { rule_number: 32767, action: "deny" as const, protocol: "all" as const, direction: "inbound" as const },
+          ]
+        : undefined;
+    const defaultTgwAttachments =
+      nodeType === "transitGateway"
+        ? [{ vpc_id: "vpc-a", vpc_label: "VPC App", route_table: "rt-main" }]
+        : undefined;
     let node: Node<CanvasNodeData> = {
       id,
-      type: "arch",
+      type: nodeType,
       position,
       data: {
         kind: item.kind,
@@ -534,6 +624,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         tech: item.tech,
         config: { ...item.defaults },
         score: null,
+        circuitBreaker: defaultCb,
+        securityGroupRules: defaultSgRules,
+        naclRules: defaultNaclRules,
+        tgwAttachments: defaultTgwAttachments,
       },
     };
 
@@ -652,6 +746,127 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
     if (notice) scheduleClearNotice(set);
   },
+
+  addSwimlane: (swimlaneKind, position, opts) => {
+    const id = nextId("lane");
+    let lane = createSwimlaneNode(id, swimlaneKind, position, opts);
+    const nodes = get().nodes;
+    const atPoint = findContainerAtPoint(nodes, {
+      x: position.x + 80,
+      y: position.y + 40,
+    });
+    let notice: UiNotice | null = null;
+    if (atPoint && canNestIntoContainer(lane, atPoint, nodes)) {
+      lane = nestInsideBlock(lane, atPoint, nodes) as typeof lane;
+      notice = { type: "success", text: `Swimlane aninhada.` };
+    }
+    withHistory(get, set, () => {
+      set({
+        nodes: [...get().nodes, lane],
+        dirty: true,
+        selectedNodeId: id,
+        uiNotice: notice,
+      });
+    });
+    if (notice) scheduleClearNotice(set);
+  },
+
+  addNote: (position, text = "Nova nota") => {
+    const id = nextId("note");
+    withHistory(get, set, () => {
+      set({
+        nodes: [
+          ...get().nodes,
+          {
+            id,
+            type: "note",
+            position,
+            data: { kind: "note", label: text.slice(0, 40), text },
+          },
+        ],
+        dirty: true,
+        selectedNodeId: id,
+      });
+    });
+  },
+
+  addCidrBlock: (position, cidr = "10.0.0.0/16", label = "VPC CIDR") => {
+    const id = nextId("cidr");
+    withHistory(get, set, () => {
+      set({
+        nodes: [
+          ...get().nodes,
+          {
+            id,
+            type: "cidr",
+            position,
+            data: { kind: "cidr", label, cidr },
+          },
+        ],
+        dirty: true,
+        selectedNodeId: id,
+      });
+    });
+  },
+
+  addTenantBoundary: (position, opts) => {
+    const id = nextId("tenant");
+    withHistory(get, set, () => {
+      set({
+        nodes: [
+          ...get().nodes,
+          {
+            id,
+            type: "tenantBoundary",
+            position,
+            data: {
+              kind: "tenant_boundary",
+              label: opts?.label ?? "Tenant boundary",
+              tenantMode: opts?.tenantMode ?? "silo",
+              tenantIds: [],
+            },
+          },
+        ],
+        dirty: true,
+        selectedNodeId: id,
+      });
+    });
+  },
+
+  applyAutoLayout: () => {
+    withHistory(get, set, () => {
+      const laid = autoLayoutByZones(get().nodes, get().edges);
+      set({ nodes: laid, dirty: true, uiNotice: { type: "success", text: "Layout organizado por zonas." } });
+    });
+    scheduleClearNotice(set);
+  },
+
+  setC4Level: (nodeId, level) => {
+    withHistory(get, set, () => {
+      set({
+        nodes: get().nodes.map((n) =>
+          n.id === nodeId && isArchData(n.data) ? { ...n, data: { ...n.data, c4Level: level } } : n,
+        ),
+        dirty: true,
+      });
+    });
+  },
+
+  highlightCriticalPath: () => {
+    const { edgeIds, nodeIds } = computeCriticalPath(get().nodes, get().edges);
+    set({
+      highlightNodeIds: nodeIds,
+      blastHighlightEdgeIds: edgeIds,
+      uiNotice: { type: "info", text: `Caminho crítico: ${nodeIds.length} nós, ${edgeIds.length} arestas.` },
+    });
+    scheduleClearNotice(set);
+  },
+
+  clearCriticalPathHighlight: () => {
+    set({ highlightNodeIds: [], blastHighlightEdgeIds: [] });
+  },
+
+  setSequenceMode: (on) => set({ sequenceMode: on }),
 
   renameNode: (id, label) => {
     const trimmed = label.trim() || "Sem nome";
@@ -925,6 +1140,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       future: [],
       ownerTeam: graph.owner_team ?? "",
       focusedZoneId: null,
+      diagramKind: graph.diagram_kind ?? null,
+      parentGraphId: graph.parent_graph_id ?? null,
+      c4ParentNodeId: graph.c4_parent_node_id ?? null,
+      sequenceMode: graph.diagram_kind === "sequence",
     });
   },
 

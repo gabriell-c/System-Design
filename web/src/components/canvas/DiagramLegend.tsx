@@ -1,15 +1,24 @@
-export default function DiagramLegend() {
+interface DiagramLegendProps {
+  variant?: 'overlay' | 'inline';
+  className?: string;
+}
+
+export default function DiagramLegend({ variant = 'overlay', className = '' }: DiagramLegendProps) {
+  const shell =
+    variant === 'overlay'
+      ? 'bg-zinc-900/95 backdrop-blur border border-zinc-700 rounded-lg shadow-xl p-3 text-xs'
+      : 'bg-[#0d1219] border border-white/10 rounded-lg p-3 text-xs';
+
   return (
-    <div className="fixed bottom-4 right-4 z-40 bg-zinc-900/95 backdrop-blur border border-zinc-700 rounded-lg shadow-xl p-3 text-xs">
+    <div className={`${shell} ${className}`.trim()}>
       <p className="font-semibold text-zinc-300 mb-2">Legenda</p>
       <div className="space-y-1.5">
-        {/* Flow types */}
         <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-blue-500 rounded" />
+          <span className="w-6 h-0.5 bg-slate-400 rounded" />
           <span className="text-zinc-400">Sync (HTTP/gRPC)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-amber-500 rounded" style={{ borderStyle: "dashed" }} />
+          <span className="w-6 border-t-2 border-dashed border-violet-400" />
           <span className="text-zinc-400">Async (Kafka/AMQP)</span>
         </div>
         <div className="flex items-center gap-2">
@@ -17,11 +26,20 @@ export default function DiagramLegend() {
           <span className="text-zinc-400">Data flow</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-rose-500 rounded border-dashed" />
-          <span className="text-zinc-400">Critical path</span>
+          <span className="w-6 h-0.5 bg-pink-400 rounded" />
+          <span className="text-zinc-400">Critical path ★</span>
         </div>
-        
-        {/* Zone types */}
+
+        <div className="mt-2 pt-2 border-t border-zinc-800">
+          <p className="text-zinc-500 mb-1">Fluxos numerados</p>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white">
+              1
+            </span>
+            <span className="text-zinc-400">Ordem de execução</span>
+          </div>
+        </div>
+
         <div className="mt-2 pt-2 border-t border-zinc-800">
           <p className="text-zinc-500 mb-1">Zonas</p>
           <div className="grid grid-cols-2 gap-1">
@@ -34,7 +52,6 @@ export default function DiagramLegend() {
           </div>
         </div>
 
-        {/* Severity */}
         <div className="mt-2 pt-2 border-t border-zinc-800">
           <p className="text-zinc-500 mb-1">Indicadores</p>
           <div className="flex items-center gap-2">

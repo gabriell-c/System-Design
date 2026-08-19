@@ -52,6 +52,8 @@ class Finding(BaseModel):
     detail: str
     metric: MetricEstimate | None = None
     fix_action: FixAction | None = None
+    # Nós/arestas que contribuíram para este finding (evidência para o scorecard).
+    evidence_node_ids: list[str] = Field(default_factory=list)
 
 
 class GrowthScenario(BaseModel):

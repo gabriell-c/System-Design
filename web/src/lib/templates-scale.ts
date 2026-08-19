@@ -5,6 +5,15 @@ import { emptyNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates-types";
 import type { ArchEdgeData, CanvasNodeData, ProjectNfr } from "./types";
 import { createZoneNode } from "./zones";
+import { createSwimlaneNode } from "./swimlanes";
+
+function catalogNodeType(catalogId: string): string {
+  if (catalogId === "sec-sg") return "securityGroup";
+  if (catalogId === "net-nacl") return "nacl";
+  if (catalogId === "net-tgw") return "transitGateway";
+  if (catalogId === "pat-circuit-breaker") return "circuitBreaker";
+  return "arch";
+}
 
 function card(
   id: string,
@@ -14,9 +23,10 @@ function card(
 ): Node<CanvasNodeData> | null {
   const item = findCatalog(catalogId);
   if (!item) return null;
+  const nodeType = catalogNodeType(catalogId);
   return {
     id,
-    type: "arch",
+    type: nodeType,
     position,
     parentId,
     extent: parentId ? "parent" : undefined,
@@ -29,6 +39,21 @@ function card(
       config: { ...item.defaults },
       score: null,
       c4Level: undefined,
+      securityGroupRules:
+        nodeType === "securityGroup"
+          ? [{ port: "443", protocol: "tcp", direction: "inbound", description: "HTTPS" }]
+          : undefined,
+      naclRules:
+        nodeType === "nacl"
+          ? [
+              { rule_number: 100, action: "allow", protocol: "tcp", port_range: "443", cidr: "0.0.0.0/0", direction: "inbound" },
+              { rule_number: 32767, action: "deny", protocol: "all", direction: "inbound" },
+            ]
+          : undefined,
+      tgwAttachments:
+        nodeType === "transitGateway"
+          ? [{ vpc_id: "vpc-attached", vpc_label: "VPC", route_table: "rt-main" }]
+          : undefined,
     },
   };
 }
@@ -69,6 +94,51 @@ const nfr = (partial: Partial<ProjectNfr>): ProjectNfr => ({
     has_monitoring_plan: true,
   },
 });
+
+function buildCicdDevUserGraph(): { nodes: Node<CanvasNodeData>[]; edges: Edge[] } {
+  const nodes: Node<CanvasNodeData>[] = [
+    createSwimlaneNode("lane-dev", "dev_flow", { x: 40, y: 60 }),
+    createSwimlaneNode("lane-user", "user_flow", { x: 40, y: 360 }),
+  ];
+  const cards = [
+    card("c-git", "int-github", { x: 32, y: 48 }, "lane-dev"),
+    card("c-actions", "dep-ghactions", { x: 200, y: 48 }, "lane-dev"),
+    card("c-jenkins", "dep-jenkins", { x: 368, y: 48 }, "lane-dev"),
+    card("c-docker", "dep-docker", { x: 536, y: 48 }, "lane-dev"),
+    card("c-jest", "obs-jest", { x: 704, y: 48 }, "lane-dev"),
+    card("c-k8s", "dep-k8s", { x: 32, y: 140 }, "lane-dev"),
+    card("c-argocd", "dep-argocd", { x: 200, y: 140 }, "lane-dev"),
+    card("c-cloudfront", "cloud-aws-cf", { x: 32, y: 48 }, "lane-user"),
+    card("c-apigw", "cloud-aws-apigw", { x: 200, y: 48 }, "lane-user"),
+    card("c-ecs", "cloud-aws-ecs", { x: 368, y: 48 }, "lane-user"),
+    card("c-lambda", "cloud-aws-lambda", { x: 536, y: 48 }, "lane-user"),
+    card("c-rds", "db-postgres", { x: 200, y: 140 }, "lane-user"),
+    card("c-redis", "db-redis", { x: 368, y: 140 }, "lane-user"),
+    card("c-prom", "obs-prometheus", { x: 536, y: 140 }, "lane-user"),
+    card("c-graf", "obs-grafana", { x: 704, y: 140 }, "lane-user"),
+    card("c-alert", "obs-alertmanager", { x: 872, y: 140 }, "lane-user"),
+  ].filter(Boolean) as Node<CanvasNodeData>[];
+  nodes.push(...cards);
+  const edges = [
+    flow("e1", "c-git", "c-actions", 1, { flowKind: "control", label: "push/PR" }),
+    flow("e2", "c-actions", "c-jenkins", 2, { flowKind: "control", label: "trigger" }),
+    flow("e3", "c-jenkins", "c-docker", 3, { flowKind: "control", label: "build image" }),
+    flow("e4", "c-docker", "c-jest", 4, { flowKind: "control", label: "run tests" }),
+    flow("e5", "c-jest", "c-k8s", 5, { flowKind: "control", label: "deploy" }),
+    flow("e6", "c-k8s", "c-argocd", 6, { flowKind: "control", label: "sync" }),
+    flow("e7", "c-cloudfront", "c-apigw", 7, { flowKind: "sync", label: "HTTPS", isCriticalPath: true }),
+    flow("e8", "c-apigw", "c-ecs", 8, { flowKind: "sync", label: "REST" }),
+    flow("e9", "c-apigw", "c-lambda", 9, { flowKind: "async", label: "event" }),
+    flow("e10", "c-ecs", "c-rds", 10, { flowKind: "data", protocol: "sql", label: "5432" }),
+    flow("e11", "c-ecs", "c-redis", 11, { flowKind: "data", protocol: "redis", label: "cache" }),
+    flow("e12", "c-ecs", "c-prom", 12, { flowKind: "management", label: "metrics" }),
+    flow("e13", "c-prom", "c-graf", 13, { flowKind: "management", label: "dashboard" }),
+    flow("e14", "c-prom", "c-alert", 14, { flowKind: "management", label: "alert" }),
+    flow("e15", "c-argocd", "c-ecs", 15, { flowKind: "control", label: "rollout" }),
+    flow("e16", "c-alert", "c-git", 16, { flowKind: "management", label: "notify" }),
+  ];
+  return { nodes, edges };
+}
 
 export const SCALE_TEMPLATES: ProjectTemplate[] = [
   {
@@ -224,10 +294,12 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
   },
   {
     id: "cicd-pipeline",
-    label: "CI/CD Pipeline (双流版)",
-    description: "研发流+用户流双通道CI/CD架构，含代码仓库、构建、测试、部署、监控完整链路。",
+    label: "CI/CD Pipeline (Dev + User)",
+    description: "Fluxos separados: Dev (CI/CD) e User (runtime) com swimlanes, numeração e cross-flow rollout.",
     name: "CI/CD Pipeline Dual-Flow",
-    context: "双通道CI/CD架构：研发侧涵盖代码提交→自动化测试→镜像构建→K8s部署，用户侧涵盖CDN分发→API网关→微服务→数据库，含生产环境隔离与安全审计。",
+    context:
+      "Dual-flow CI/CD: swimlane Dev cobre commit→build→test→deploy; swimlane User cobre CDN→API→serviços→dados. " +
+      "Cross-flow liga rollout (ArgoCD→ECS) e alertas→Git.",
     nfr: nfr({
       users_per_day: 500000,
       team_size: 15,
@@ -236,65 +308,26 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
       rpo_hours: 1,
       rto_minutes: 15,
     }),
-    build: () => {
-      const nodes: Node<CanvasNodeData>[] = [
-        // 研发流区域
-        createZoneNode("z-src", "plane", { x: 40, y: 80 }, { label: "代码仓库", provider: "github" }),
-        createZoneNode("z-ci", "layer", { x: 480, y: 80 }, { label: "CI构建", provider: "github" }),
-        createZoneNode("z-test", "plane", { x: 920, y: 80 }, { label: "自动化测试", provider: "generic" }),
-        createZoneNode("z-deploy", "plane", { x: 480, y: 260 }, { label: "K8s部署", provider: "aws" }),
-        // 用户流区域
-        createZoneNode("z-cdn", "plane", { x: 40, y: 420 }, { label: "CDN分发", provider: "aws" }),
-        createZoneNode("z-api", "layer", { x: 480, y: 420 }, { label: "API网关", provider: "aws" }),
-        createZoneNode("z-service", "plane", { x: 920, y: 420 }, { label: "微服务", provider: "aws" }),
-        createZoneNode("z-data", "plane", { x: 480, y: 580 }, { label: "数据存储", provider: "aws" }),
-        createZoneNode("z-obs", "layer", { x: 920, y: 580 }, { label: "监控告警", provider: "generic" }),
-      ];
-      const cards = [
-        // 研发流节点
-        card("c-git", "int-github", { x: 24, y: 48 }, "z-src"),
-        card("c-actions", "dep-ghactions", { x: 24, y: 140 }, "z-src"),
-        card("c-jenkins", "dep-jenkins", { x: 240, y: 48 }, "z-ci"),
-        card("c-docker", "dep-docker", { x: 24, y: 48 }, "z-ci"),
-        card("c-jest", "obs-jest", { x: 24, y: 48 }, "z-test"),
-        card("c-k8s", "dep-k8s", { x: 24, y: 48 }, "z-deploy"),
-        card("c-argocd", "dep-argocd", { x: 160, y: 48 }, "z-deploy"),
-        // 用户流节点
-        card("c-cloudfront", "cloud-aws-cf", { x: 24, y: 48 }, "z-cdn"),
-        card("c-apigw", "cloud-aws-apigw", { x: 24, y: 48 }, "z-api"),
-        card("c-ecs", "cloud-aws-ecs", { x: 24, y: 48 }, "z-service"),
-        card("c-lambda", "cloud-aws-lambda", { x: 160, y: 48 }, "z-service"),
-        card("c-rds", "db-postgres", { x: 24, y: 48 }, "z-data"),
-        card("c-redis", "db-redis", { x: 160, y: 48 }, "z-data"),
-        card("c-prom", "obs-prometheus", { x: 24, y: 48 }, "z-obs"),
-        card("c-graf", "obs-grafana", { x: 160, y: 48 }, "z-obs"),
-        card("c-alert", "obs-alertmanager", { x: 240, y: 48 }, "z-obs"),
-      ].filter(Boolean) as Node<CanvasNodeData>[];
-      nodes.push(...cards);
-      const edges = [
-        // 研发流
-        flow("e1", "c-git", "c-actions", 1, { flowKind: "control", label: "push/PR" }),
-        flow("e2", "c-actions", "c-jenkins", 2, { flowKind: "control", label: "trigger" }),
-        flow("e3", "c-jenkins", "c-docker", 3, { flowKind: "control", label: "build image" }),
-        flow("e4", "c-docker", "c-jest", 4, { flowKind: "control", label: "run tests" }),
-        flow("e5", "c-jest", "c-k8s", 5, { flowKind: "control", label: "deploy" }),
-        flow("e6", "c-k8s", "c-argocd", 6, { flowKind: "control", label: "sync" }),
-        // 用户流
-        flow("e7", "c-cloudfront", "c-apigw", 7, { flowKind: "sync", label: "HTTPS", isCriticalPath: true }),
-        flow("e8", "c-apigw", "c-ecs", 8, { flowKind: "sync", label: "REST" }),
-        flow("e9", "c-apigw", "c-lambda", 9, { flowKind: "async", label: "event" }),
-        flow("e10", "c-ecs", "c-rds", 10, { flowKind: "data", protocol: "sql", label: "5432" }),
-        flow("e11", "c-ecs", "c-redis", 11, { flowKind: "data", protocol: "redis", label: "cache" }),
-        // 监控流
-        flow("e12", "c-ecs", "c-prom", 12, { flowKind: "management", label: "metrics" }),
-        flow("e13", "c-prom", "c-graf", 13, { flowKind: "management", label: "dashboard" }),
-        flow("e14", "c-prom", "c-alert", 14, { flowKind: "management", label: "alert" }),
-        // 跨流关联
-        flow("e15", "c-argocd", "c-ecs", 15, { flowKind: "control", label: "rollout" }),
-        flow("e16", "c-alert", "c-git", 16, { flowKind: "management", label: "notify" }),
-      ];
-      return { nodes, edges };
-    },
+    build: () => buildCicdDevUserGraph(),
+  },
+  {
+    id: "cicd-dev-user",
+    label: "CI/CD Dev/User (template manifest)",
+    description:
+      "Template manifest em templates/cicd-dev-user/ — swimlanes Dev vs User, estágios CI distintos e API /deployment-flows.",
+    name: "CI/CD Dev User Flows",
+    context:
+      "Mesmo diagrama dual-flow com separação explícita para análise via GET /api/v1/graphs/{id}/deployment-flows. " +
+      "Manifest: templates/cicd-dev-user/template.manifest.json",
+    nfr: nfr({
+      users_per_day: 500000,
+      team_size: 15,
+      availability_pct: 99.95,
+      arch_style: "microservices",
+      rpo_hours: 1,
+      rto_minutes: 15,
+    }),
+    build: () => buildCicdDevUserGraph(),
   },
   {
     id: "hybrid-network",
@@ -373,6 +406,7 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
         createZoneNode("z-reg", "region", { x: 40, y: 40 }, { label: "us-east-1", provider: "aws" }),
         createZoneNode("z-vpc-a", "vpc", { x: 24, y: 56 }, { label: "VPC A (App)", provider: "aws", parentId: "z-reg" }),
         createZoneNode("z-vpc-b", "vpc", { x: 520, y: 56 }, { label: "VPC B (Data)", provider: "aws", parentId: "z-reg" }),
+        createZoneNode("z-priv-b", "subnet_private", { x: 24, y: 48 }, { label: "Private-b", provider: "aws", parentId: "z-vpc-b" }),
         createZoneNode("z-az-a", "availability_zone", { x: 24, y: 48 }, { label: "AZ-a", provider: "aws", parentId: "z-vpc-a" }),
         createZoneNode("z-az-b", "availability_zone", { x: 220, y: 48 }, { label: "AZ-b", provider: "aws", parentId: "z-vpc-a" }),
         createZoneNode("z-pub-a", "subnet_public", { x: 24, y: 48 }, { label: "Public-a", provider: "aws", parentId: "z-az-a" }),
@@ -390,9 +424,9 @@ export const SCALE_TEMPLATES: ProjectTemplate[] = [
         card("c-sg-a", "sec-sg", { x: 160, y: 40 }, "z-priv-a"),
         card("c-nacl-a", "net-nacl", { x: 160, y: 128 }, "z-priv-a"),
         // VPC B
-        card("c-ecs-b", "cloud-aws-ecs", { x: 16, y: 40 }, "z-priv-b" as any),
-        card("c-redshift", "db-redshift", { x: 16, y: 128 }, "z-priv-b" as any),
-        card("c-sg-b", "sec-sg", { x: 160, y: 40 }, "z-priv-b" as any),
+        card("c-ecs-b", "cloud-aws-ecs", { x: 16, y: 40 }, "z-priv-b"),
+        card("c-redshift", "db-redshift", { x: 16, y: 128 }, "z-priv-b"),
+        card("c-sg-b", "sec-sg", { x: 160, y: 40 }, "z-priv-b"),
         // Shared
         card("c-waf", "mc-aws-waf", { x: 24, y: 48 }, undefined),
         card("c-tgw-attach-a", "net-tgw", { x: 24, y: 48 }, "z-tgw"),
