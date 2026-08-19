@@ -10,6 +10,7 @@ import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
 import SearchFilter from "@/components/sidebar/SearchFilter";
 import SavedViewsPanel from "@/components/sidebar/SavedViewsPanel";
 import ViewTabs from "@/components/sidebar/ViewTabs";
+import PresentationMode from "@/components/layout/PresentationMode";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -218,6 +219,8 @@ export default function EditorShell() {
           </ResizablePanel>
         )}
       </div>
+      {/* P3.1.2 — Presentation Mode */}
+      <PresentationMode graphId={graphId ?? ""} />
     </div>
     </div>
   );

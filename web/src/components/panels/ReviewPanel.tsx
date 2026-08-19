@@ -6,6 +6,63 @@ import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 import type { ReviewStatus, ReviewTemplateItem } from "@/lib/types";
 
+/** ISO 25010 quality characteristics */
+const ISO_25010_ATTRIBUTES = [
+  { id: "functional_suitability", label: "Adequação Funcional", category: "funcional" },
+  { id: "performance_efficiency", label: "Eficiência de Desempenho", category: "funcional" },
+  { id: "compatibility", label: "Compatibilidade", category: "funcional" },
+  { id: "usability", label: "Usabilidade", category: "usabilidade" },
+  { id: "reliability", label: "Confiabilidade", category: "confiabilidade" },
+  { id: "security", label: "Segurança", category: "segurança" },
+  { id: "maintainability", label: "Manutenibilidade", category: "evolutividade" },
+  { id: "testability", label: "Testabilidade", category: "evolutividade" },
+  { id: "portability", label: "Portabilidade", category: "evolutividade" },
+] as const;
+
+/** ATAM quality scenarios */
+const ATAM_SCENARIOS = [
+  {
+    id: "high_availability",
+    label: "Alta Disponibilidade",
+    stimulus: "Falha em nó crítico",
+    response: "Sistema continua operacional",
+    measure: "RTO < 5min, RPO < 1min",
+    category: "reliability",
+  },
+  {
+    id: "scalability",
+    label: "Escalabilidade",
+    stimulus: "Pico de 10x tráfego",
+    response: "Auto-scaling ativa",
+    measure: "P99 < 500ms sob carga",
+    category: "performance",
+  },
+  {
+    id: "security_audit",
+    label: "Auditoria de Segurança",
+    stimulus: "Tentativa de acesso não autorizado",
+    response: "Bloqueio e log de evento",
+    measure: "100% das tentativas registradas",
+    category: "security",
+  },
+  {
+    id: "data_integrity",
+    label: "Integridade de Dados",
+    stimulus: "Falha durante transaction",
+    response: "Rollback automático",
+    measure: "Zero dados corrompidos",
+    category: "reliability",
+  },
+  {
+    id: "deployment_speed",
+    label: "Velocidade de Deploy",
+    stimulus: "Commit em main",
+    response: "Deploy em staging em < 10min",
+    measure: "CI/CD pipeline verde",
+    category: "maintainability",
+  },
+] as const;
+
 const DEFAULT_CHECKLIST: Omit<ReviewTemplateItem, "checked">[] = [
   { id: "context", label: "Contexto e NFRs preenchidos", required: true },
   { id: "zones", label: "Zonas/regiões representam infra real", required: true },
@@ -14,9 +71,11 @@ const DEFAULT_CHECKLIST: Omit<ReviewTemplateItem, "checked">[] = [
   { id: "security", label: "Trust boundaries e auth revisados", required: true },
   { id: "ops", label: "Observabilidade e DR considerados", required: false },
   { id: "tradeoffs", label: "Trade-offs explícitos na análise", required: true },
+  { id: "iso_quality", label: "Atributos ISO 25010 avaliados", required: false },
+  { id: "ata_scenarios", label: "Cenários ATAM mapeados a nós", required: false },
 ];
 
-/** P1.4.5 — Design review template with mandatory checklist */
+/** P1.4.5 — Design review template with mandatory checklist + ISO 25010 + ATAM */
 export default function ReviewPanel() {
   const graphId = useGraphStore((s) => s.graphId);
   const userRole = useGraphStore((s) => s.userRole);
@@ -31,6 +90,8 @@ export default function ReviewPanel() {
   const [checklist, setChecklist] = useState<ReviewTemplateItem[]>(
     DEFAULT_CHECKLIST.map((i) => ({ ...i, checked: false })),
   );
+  const [isoScores, setIsoScores] = useState<Record<string, number>>({});
+  const [ataSelected, setAtaSelected] = useState<string[]>([]);
 
   const autoHints = useMemo(
     () => ({
@@ -41,8 +102,10 @@ export default function ReviewPanel() {
       security: nodes.some((n) => n.data.kind === "identity" || n.data.kind === "security"),
       ops: nodes.some((n) => n.data.kind === "observability"),
       tradeoffs: Boolean((analysis?.trade_offs?.length ?? 0) > 0),
+      iso_quality: Object.keys(isoScores).length > 0,
+      ata_scenarios: ataSelected.length > 0,
     }),
-    [context, nfr, nodes, analysis],
+    [context, nfr, nodes, analysis, isoScores, ataSelected],
   );
 
   const requiredOk = checklist.filter((c) => c.required).every((c) => c.checked);
@@ -50,13 +113,15 @@ export default function ReviewPanel() {
 
   if (userRole === "senior") {
     return (
-      <div className="px-4 py-4 text-sm text-slate-300 space-y-3">
+      <div className="px-4 py-4 text-sm text-slate-300 space-y-4">
         <p>
           Perfil <strong>dev sênior</strong>: checklist de design review disponível abaixo.
         </p>
         <ChecklistBlock checklist={checklist} autoHints={autoHints} onToggle={(id) =>
           setChecklist((prev) => prev.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c)))
         } />
+        <IsoQualityBlock scores={isoScores} onChange={setIsoScores} />
+        <AtamScenariosBlock scenarios={ataSelected} onChange={setAtaSelected} />
         {analysis ? (
           <p className="text-xs text-emerald-300">Análise disponível — scorecard {analysis.review_scorecard?.overall.toFixed(1) ?? analysis.score.toFixed(1)}</p>
         ) : (
@@ -105,6 +170,8 @@ export default function ReviewPanel() {
         autoHints={autoHints}
         onToggle={(id) => setChecklist((prev) => prev.map((c) => (c.id === id ? { ...c, checked: !c.checked } : c)))}
       />
+      <IsoQualityBlock scores={isoScores} onChange={setIsoScores} />
+      <AtamScenariosBlock scenarios={ataSelected} onChange={setAtaSelected} />
       {!requiredOk && <p className="text-xs text-amber-300">Itens obrigatórios pendentes no checklist.</p>}
       <p className="text-sm text-slate-300">Perfil não-sênior: dev sênior aprova após checklist.</p>
       <CustomSelect
@@ -160,6 +227,101 @@ function ChecklistBlock({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function IsoQualityBlock({
+  scores,
+  onChange,
+}: {
+  scores: Record<string, number>;
+  onChange: (s: Record<string, number>) => void;
+}) {
+  const categories = useMemo(() => {
+    const cats = new Map<string, typeof ISO_25010_ATTRIBUTES>();
+    for (const attr of ISO_25010_ATTRIBUTES) {
+      if (!cats.has(attr.category)) cats.set(attr.category, []);
+      cats.get(attr.category)!.push(attr);
+    }
+    return Array.from(cats.entries());
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ISO 25010 — Qualidade</p>
+      <div className="mt-2 space-y-3">
+        {categories.map(([cat, attrs]) => (
+          <div key={cat}>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase">{cat}</p>
+            <div className="mt-1 space-y-1">
+              {attrs.map((attr) => (
+                <div key={attr.id} className="flex items-center gap-2">
+                  <span className="flex-1 text-[11px] text-slate-300">{attr.label}</span>
+                  <select
+                    className="rounded border border-white/10 bg-[#0d1219] px-2 py-0.5 text-[10px] text-slate-200"
+                    value={scores[attr.id] ?? ""}
+                    onChange={(e) => onChange({ ...scores, [attr.id]: Number(e.target.value) })}
+                  >
+                    <option value="">—</option>
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AtamScenariosBlock({
+  scenarios,
+  onChange,
+}: {
+  scenarios: string[];
+  onChange: (s: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    onChange(scenarios.includes(id) ? scenarios.filter((s) => s !== id) : [...scenarios, id]);
+  };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ATAM — Cenários de Qualidade</p>
+      <div className="mt-2 space-y-2">
+        {ATAM_SCENARIOS.map((s) => {
+          const selected = scenarios.includes(s.id);
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={`w-full rounded-lg border p-2 text-left transition-colors ${
+                selected ? "border-emerald-500/50 bg-emerald-500/10" : "border-white/10 bg-black/20 hover:border-white/20"
+              }`}
+              onClick={() => toggle(s.id)}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`text-[11px] font-medium ${selected ? "text-emerald-300" : "text-slate-200"}`}>
+                  {s.label}
+                </span>
+                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] text-slate-400">{s.category}</span>
+              </div>
+              <div className="mt-1 space-y-0.5 text-[10px] text-slate-400">
+                <p><span className="text-slate-500">Estímulo:</span> {s.stimulus}</p>
+                <p><span className="text-slate-500">Resposta:</span> {s.response}</p>
+                <p><span className="text-slate-500">Métrica:</span> {s.measure}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[10px] text-slate-500">
+        {scenarios.length > 0 ? `${scenarios.length} cenários selecionados` : "Nenhum cenário selecionado"}
+      </p>
     </div>
   );
 }

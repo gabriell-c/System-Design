@@ -43,6 +43,8 @@ import { emptyNfr, normalizeNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates";
 import { createZoneNode, ensureZoneFitsChild, isZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
 import type { ArchitectureView } from "./architecture-view";
+import { VIEW_C4_LEVEL } from "./architecture-view";
+import type { C4Level } from "./types";
 import { EMPTY_CANVAS_FILTER, type CanvasFilter } from "./canvas-filter";
 import { applyFixAction } from "./fix-actions";
 import { saveSavedView } from "./saved-views";
@@ -101,6 +103,8 @@ type GraphState = {
   saveView: (name: string, tags?: string[]) => SavedView;
   loadView: (view: SavedView) => void;
   setFocusedZoneId: (id: string | null) => void;
+  /** P3.1.1 — drill-down para vista 4+1 */
+  drillDownToView: (view: ArchitectureView) => void;
   setOwnerTeam: (team: string) => void;
   setCanvasComments: (comments: import("./types").CanvasComment[]) => void;
   setHighlightNodeIds: (ids: string[]) => void;
@@ -240,7 +244,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   lastSavedAt: null,
   past: [],
   future: [],
-  architectureView: "ai",
+  architectureView: "all",
   canvasFilter: EMPTY_CANVAS_FILTER,
   savedViewsTick: 0,
   focusedZoneId: null,
@@ -275,6 +279,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     get().pushUiNotice({ type: "info", text: `View "${view.name}" aplicada.` });
   },
   setFocusedZoneId: (focusedZoneId) => set({ focusedZoneId }),
+  /** P3.1.1 — drill-down para vista 4+1 */
+  drillDownToView: (view: ArchitectureView) => {
+    set({
+      architectureView: view,
+      focusedZoneId: null,
+      canvasFilter: { ...EMPTY_CANVAS_FILTER, c4Level: (VIEW_C4_LEVEL[view] ?? "all") as C4Level | "all" },
+    });
+  },
   setOwnerTeam: (ownerTeam) => set({ ownerTeam, dirty: true }),
   setCanvasComments: (canvasComments) => set({ canvasComments }),
   setHighlightNodeIds: (highlightNodeIds) => set({ highlightNodeIds }),

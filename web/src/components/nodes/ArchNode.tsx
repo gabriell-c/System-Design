@@ -7,6 +7,7 @@ import { useGraphStore } from "@/lib/graph-store";
 import { nodeOpacityForView } from "@/lib/architecture-view";
 import { TechIcon } from "@/lib/tech-icons";
 import type { ArchNodeData } from "@/lib/types";
+import NodeGlossaryTooltip from "@/components/canvas/NodeGlossaryTooltip";
 
 function scoreTone(score?: number | null): string {
   if (score == null) return "bg-slate-700 text-slate-300";
@@ -31,72 +32,77 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
     data.tech;
 
   return (
-    <article
-      className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
-        selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
-      } ${
-        data.bottleneck
-          ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
-          : highlighted
-            ? "border-cyan-400 shadow-cyan-500/20"
-            : ""
-      } ${diffStatus === "added" ? "border-emerald-500 ring-2 ring-emerald-500/50" : diffStatus === "removed" ? "border-rose-500 ring-2 ring-rose-500/50" : diffStatus === "changed" ? "border-amber-500 ring-2 ring-amber-500/50" : ""}`}
-      style={{
-        background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : diffStatus === "removed" ? "rgba(127, 29, 29, 0.2)" : "#121821",
-        borderColor: data.bottleneck ? "rgb(244, 63, 94)" : diffColor ?? meta.border,
-        opacity: diffStatus === "removed" ? 0.4 : opacity,
-      }}
-      title={data.bottleneck ? data.summary || "Gargalo detectado na análise" : undefined}
-    >
-      <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
-      <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />
-      <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />
-      <AnchorHandle nodeId={id} handleId="right-in" type="target" position={Position.Right} style={{ top: "65%" }} />
-      <AnchorHandle nodeId={id} handleId="top-in" type="target" position={Position.Top} style={{ left: "40%" }} />
-      <AnchorHandle nodeId={id} handleId="top-out" type="source" position={Position.Top} style={{ left: "65%" }} />
-      <AnchorHandle nodeId={id} handleId="bottom-out" type="source" position={Position.Bottom} style={{ left: "40%" }} />
-      <AnchorHandle nodeId={id} handleId="bottom-in" type="target" position={Position.Bottom} style={{ left: "65%" }} />
+    <NodeGlossaryTooltip nodeId={data.catalogId ?? id} nodeLabel={data.label} nodeTech={data.tech}>
+      <article
+        className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
+          selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
+        } ${
+          data.bottleneck
+            ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
+            : highlighted
+              ? "border-cyan-400 shadow-cyan-500/20"
+              : ""
+        } ${diffStatus === "added" ? "border-emerald-500 ring-2 ring-emerald-500/50" : diffStatus === "removed" ? "border-rose-500 ring-2 ring-rose-500/50" : diffStatus === "changed" ? "border-amber-500 ring-2 ring-amber-500/50" : ""}`}
+        style={{
+          background: data.bottleneck ? "rgba(127, 29, 29, 0.35)" : diffStatus === "removed" ? "rgba(127, 29, 29, 0.2)" : "#121821",
+          borderColor: data.bottleneck ? "rgb(244, 63, 94)" : diffColor ?? meta.border,
+          opacity: diffStatus === "removed" ? 0.4 : opacity,
+        }}
+        title={data.bottleneck ? data.summary || "Gargalo detectado na análise" : undefined}
+        role="article"
+        aria-label={`${data.label} - ${meta.label}${data.c4Level ? ` (C4: ${data.c4Level})` : ""}${data.piiSensitivity && data.piiSensitivity !== "none" ? ` - PII: ${data.piiSensitivity}` : ""}`}
+        tabIndex={0}
+      >
+        <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
+        <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />
+        <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />
+        <AnchorHandle nodeId={id} handleId="right-in" type="target" position={Position.Right} style={{ top: "65%" }} />
+        <AnchorHandle nodeId={id} handleId="top-in" type="target" position={Position.Top} style={{ left: "40%" }} />
+        <AnchorHandle nodeId={id} handleId="top-out" type="source" position={Position.Top} style={{ left: "65%" }} />
+        <AnchorHandle nodeId={id} handleId="bottom-out" type="source" position={Position.Bottom} style={{ left: "40%" }} />
+        <AnchorHandle nodeId={id} handleId="bottom-in" type="target" position={Position.Bottom} style={{ left: "65%" }} />
 
-      <div className="flex items-start gap-2">
-        <span
-          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: meta.bg, color: meta.accent }}
-          aria-hidden
-        >
-          <TechIcon catalogId={data.catalogId} kind={data.kind} size={16} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-slate-100">{data.label}</p>
-            {data.bottleneck ? (
-              <span
-                className="rounded-md border border-rose-400/50 bg-rose-500/25 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-100"
-                title={data.summary || "Gargalo"}
-              >
-                Gargalo
-              </span>
-            ) : data.score != null ? (
-              <span
-                className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${scoreTone(data.score)}`}
-                title="Nota heurística do node"
-              >
-                {data.score.toFixed(1)}
-              </span>
-            ) : null}
+        <div className="flex items-start gap-2">
+          <span
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: meta.bg, color: meta.accent }}
+            aria-hidden
+          >
+            <TechIcon catalogId={data.catalogId} kind={data.kind} size={16} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-semibold text-slate-100">{data.label}</p>
+              {data.bottleneck ? (
+                <span
+                  className="rounded-md border border-rose-400/50 bg-rose-500/25 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-100"
+                  title={data.summary || "Gargalo"}
+                >
+                  Gargalo
+                </span>
+              ) : data.score != null ? (
+                <span
+                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${scoreTone(data.score)}`}
+                  title="Nota heurística do node"
+                >
+                  {data.score.toFixed(1)}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-[10px] uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
+              {meta.label}
+              {data.kind === "database" && data.piiSensitivity && data.piiSensitivity !== "none" && (
+                <span className="ml-1 rounded bg-rose-500/20 px-1 text-[9px] text-rose-200">
+                  PII {data.piiSensitivity}
+                </span>
+              )}
+            </p>
+            <p className="mt-1 truncate text-xs text-slate-400">
+              {data.bottleneck && data.summary ? data.summary : subtitle}
+            </p>
           </div>
-          <p className="text-[10px] uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
-            {meta.label}
-            {data.kind === "database" && data.piiSensitivity && data.piiSensitivity !== "none" && (
-              <span className="ml-1 rounded bg-rose-500/20 px-1 text-[9px] text-rose-200">
-                PII {data.piiSensitivity}
-              </span>
-            )}
-          </p>
-          <p className="mt-1 truncate text-xs text-slate-400">
-            {data.bottleneck && data.summary ? data.summary : subtitle}
-          </p>
         </div>
-      </div>
-    </article>
+      </article>
+    </NodeGlossaryTooltip>
   );
 }
