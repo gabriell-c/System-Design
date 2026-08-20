@@ -28,6 +28,7 @@ import TenantBoundaryNode from "@/components/nodes/TenantBoundaryNode";
 import DrillDownNavigator from "@/components/canvas/DrillDownNavigator";
 import SequenceDiagramView from "@/components/canvas/SequenceDiagramView";
 import BlastRadiusOverlay from "@/components/canvas/BlastRadiusOverlay";
+import FlowBadgeEdge from "@/components/edges/FlowBadgeEdge";
 import ZoneNode from "@/components/nodes/ZoneNode";
 import DiagramLegend from "@/components/canvas/DiagramLegend";
 import TitleBlock from "@/components/canvas/TitleBlock";
