@@ -4,8 +4,8 @@ import {
   BookMarked,
   ClipboardList,
   DollarSign,
+  FileDiff,
   FileText,
-  GitDiff,
   History,
   Layers,
   Link2,
@@ -76,7 +76,7 @@ const MORE = [
   { id: "settings", label: "Configuração de IA", icon: Settings2 },
   { id: "access", label: "Acesso", icon: Shield },
   { id: "boundary", label: "Borda", icon: Link2 },
-  { id: "diff", label: "Diff", icon: GitDiff },
+  { id: "diff", label: "Diff", icon: FileDiff },
   { id: "togaf", label: "TOGAF", icon: Layers },
 ] as const;
 
