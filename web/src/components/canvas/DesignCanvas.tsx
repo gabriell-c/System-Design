@@ -19,6 +19,7 @@ import BlockNode from "@/components/nodes/BlockNode";
 import SagaNode from "@/components/nodes/SagaNode";
 import CircuitBreakerNode from "@/components/nodes/CircuitBreakerNode";
 import SecurityGroupNode from "@/components/nodes/SecurityGroupNode";
+import SwimlaneNode from "@/components/nodes/SwimlaneNode";
 import NaclNode from "@/components/nodes/NaclNode";
 import TransitGatewayNode from "@/components/nodes/TransitGatewayNode";
 import NoteNode from "@/components/nodes/NoteNode";
