@@ -1753,18 +1753,6 @@ export const CATALOG: CatalogItem[] = [
     tags: ["network", "tgw", "hub", "transit"],
     defaults: { provider: "AWS", service: "EC2 Transit Gateway" },
   },
-  // P2.3.2 — segurança completa
-  {
-    id: "sec-iam-role",
-    kind: "identity" as const,
-    label: "IAM Role",
-    tech: "IAM Role",
-    description: "Função de identidade temporária para serviços assumirem permissões",
-    category: "security",
-    popularity: 10,
-    tags: ["security", "iam", "role", "assume-role", "sts"],
-    defaults: { provider: "AWS", service: "IAM Role" },
-  },
 
   ...MULTI_CLOUD_CATALOG,
   ...PATTERNS_CATALOG,

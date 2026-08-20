@@ -1,8 +1,55 @@
 @import "tailwindcss";
 
+/* ── Theme variables ── */
 :root {
+  /* Dark (default) */
   --background: #070b10;
   --foreground: #e2e8f0;
+  --card-bg: #0d1219;
+  --card-border: rgba(255,255,255,0.08);
+  --card-hover: rgba(255,255,255,0.05);
+  --muted: #94a3b8;
+  --muted-fg: #64748b;
+  --accent: #22d3ee;
+  --accent-fg: #0f172a;
+  --border: rgba(255,255,255,0.08);
+  --ring: rgba(34,211,238,0.4);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --canvas-bg: #070b10;
+  --sidebar-bg: #0a0f18;
+  --font-size-xs: 0.6875rem;   /* 11px */
+  --font-size-sm: 0.8125rem;   /* 13px */
+  --font-size-base: 0.875rem;  /* 14px */
+  --font-size-md: 0.9375rem;   /* 15px */
+  --font-size-lg: 1rem;        /* 16px */
+}
+
+.archia-light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: rgba(0,0,0,0.1);
+  --card-hover: rgba(0,0,0,0.04);
+  --muted: #64748b;
+  --muted-fg: #94a3b8;
+  --accent: #0891b2;
+  --accent-fg: #ecfeff;
+  --border: rgba(0,0,0,0.12);
+  --ring: rgba(8,145,178,0.4);
+  --success: #059669;
+  --warning: #d97706;
+  --error: #dc2626;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --canvas-bg: #f1f5f9;
+  --sidebar-bg: #f8fafc;
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 0.9375rem; /* 15px */
+  --font-size-md: 1rem;      /* 16px */
+  --font-size-lg: 1.0625rem; /* 17px */
 }
 
 @theme inline {
@@ -20,9 +67,148 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
+  font-size: var(--font-size-base);
 }
 
-/* P0.2.9 — light theme for presentation mode */
+/* ── Base typography improvements ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-fg) transparent;
+}
+
+/* ── UI tokens ── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
+
+.btn-ghost {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 0.35rem 0.7rem;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-ghost:hover {
+  background: var(--card-hover);
+  color: var(--foreground);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Canvas ── */
+canvas-bg {
+  background: var(--canvas-bg);
+}
+
+/* ── Sidebar ── */
+.sidebar-panel {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--card-border);
+}
+
+/* ── Focus outlines ── */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Selection highlights ── */
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* ── Transitions ── */
+.theme-transition {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-transition * {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-fg);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ── Input / Select styling ── */
+input,
+select,
+textarea {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: var(--font-size-sm);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* ── Badge / Tag ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: var(--card-hover);
+  color: var(--muted);
+  border: 1px solid var(--card-border);
+}
+
+/* ── Status colors ── */
+.status-success { color: var(--success); }
+.status-warning { color: var(--warning); }
+.status-error   { color: var(--error); }
+
+/* ── P0.2.9 — light theme for presentation mode ── */
 .archia-presentation-light {
   background: #f8fafc !important;
 }
@@ -30,158 +216,18 @@ body {
   background: #f8fafc;
 }
 
-.btn-ghost {
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.75rem;
-  color: #cbd5e1;
-}
-
-.btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.btn-ghost:disabled {
-  opacity: 0.4;
-}
-
-.btn-primary {
-  border-radius: 0.5rem;
-  border: 1px solid transparent;
-  background: #22d3ee;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #020617;
-}
-
-.btn-primary:hover {
-  background: #67e8f9;
-}
-
-.btn-primary:disabled {
-  opacity: 0.4;
-}
-
-.btn-danger {
-  border-radius: 0.5rem;
-  border: 1px solid rgba(251, 113, 133, 0.35);
-  background: rgba(244, 63, 94, 0.12);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #fecdd3;
-}
-
-.btn-danger:hover {
-  background: rgba(244, 63, 94, 0.2);
-}
-
-.react-flow__controls-button {
-  background: #121821 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  fill: #cbd5e1 !important;
-}
-
-.react-flow__attribution {
-  display: none;
-}
-
-.react-flow__edge-path {
-  stroke-linecap: round;
-}
-
-.react-flow__handle {
-  z-index: 4;
-}
-
-*:focus-visible {
-  outline: 2px solid #22d3ee;
-  outline-offset: 2px;
-}
-
-/* ── Custom scrollbar ── */
-.custom-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.15);
-  border-radius: 999px;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.3);
-}
-
-/* Firefox */
-.custom-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
-}
-
-/* Hide scrollbar completely for carousel */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* P3.3.3 — WCAG 2.1 AA focus styles */
-:focus-visible {
-  outline: 2px solid #818cf8;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Skip link (visually hidden until focused) */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.sr-only:focus {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: auto;
-  height: auto;
-  padding: 0.75rem 1.5rem;
-  margin: 0;
-  overflow: visible;
-  clip: auto;
-  white-space: normal;
-  background: #7c3aed;
-  color: white;
-  font-weight: 600;
-  z-index: 9999;
-  border-radius: 0 0 8px 0;
-}
-
-/* High contrast mode support */
+/* ── High contrast mode support ── */
 @media (prefers-contrast: high) {
   :focus-visible {
     outline-width: 3px;
+    outline-color: #000000;
+  }
+  .archia-dark :focus-visible {
     outline-color: #ffffff;
   }
 }
 
-/* Reduced motion support */
+/* ── Reduced motion support ── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -191,4 +237,3 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-

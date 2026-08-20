@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ExportMenu from "@/components/layout/ExportMenu";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import CustomSelect from "@/components/ui/Select";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { api } from "@/lib/api";
@@ -216,6 +217,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
             </button>
           )}
           <ExportMenu />
+          <ThemeToggle />
           <button type="button" className="btn-ghost inline-flex items-center gap-1.5" onClick={() => void save()}>
             <Save size={14} />
             <span className="hidden md:inline">Salvar</span>
