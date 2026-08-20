@@ -1,6 +1,6 @@
 "use client";
 
-import { GitDiff, RefreshCw } from "lucide-react";
+import { FileDiff, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGraphStore } from "@/lib/graph-store";
 import { api } from "@/lib/api";
@@ -43,7 +43,7 @@ export default function DiffPanel({ graphId }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        <GitDiff size={12} className="text-emerald-400" />
+        <FileDiff size={12} className="text-emerald-400" />
         Diff visual
       </div>
       <p className="text-[10px] text-slate-500">
