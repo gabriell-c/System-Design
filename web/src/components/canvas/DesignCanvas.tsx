@@ -94,6 +94,7 @@ function CanvasInner() {
   const redo = useGraphStore((s) => s.redo);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const blastHighlightEdgeIds = useGraphStore((s) => s.blastHighlightEdgeIds);
+  const reconcileOrphanCards = useGraphStore((s) => s.reconcileOrphanCards);
   const diagramKind = useGraphStore((s) => s.diagramKind);
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
