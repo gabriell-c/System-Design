@@ -109,12 +109,12 @@ export default function Inspector() {
               role="tab"
               aria-selected={tab === item.id}
               title={item.label}
-              className={`flex min-w-[52px] flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[9px] font-medium tracking-wide ${
+              className={`flex min-w-[52px] flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-medium tracking-wide ${
                 tab === item.id ? "border-b-2 border-cyan-400 text-cyan-200" : "text-slate-500 hover:text-slate-300"
               }`}
               onClick={() => setTab(item.id)}
             >
-              <Icon size={13} />
+              <Icon size={14} />
               <span className="max-w-full truncate px-0.5">{item.label}</span>
             </button>
           );
@@ -126,12 +126,12 @@ export default function Inspector() {
             aria-selected={moreActive}
             aria-expanded={moreOpen}
             title="Mais painéis"
-            className={`flex h-full min-w-[48px] flex-col items-center justify-center gap-0.5 px-2 text-[9px] font-medium ${
+            className={`flex h-full min-w-[48px] flex-col items-center justify-center gap-0.5 px-2 text-[11px] font-medium ${
               moreActive ? "border-b-2 border-cyan-400 text-cyan-200" : "text-slate-500 hover:text-slate-300"
             }`}
             onClick={() => setMoreOpen((v) => !v)}
           >
-            <MoreHorizontal size={13} />
+            <MoreHorizontal size={14} />
             Mais
           </button>
           {moreOpen && (

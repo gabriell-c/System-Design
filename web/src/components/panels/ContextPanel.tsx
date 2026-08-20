@@ -156,8 +156,8 @@ export default function ContextPanel() {
       </div>
 
       <section>
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-violet-300">
-          <LayoutTemplate size={12} />
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-violet-300">
+          <LayoutTemplate size={14} />
           Templates de projeto
         </p>
         <ul className="grid gap-1.5">
@@ -169,7 +169,7 @@ export default function ContextPanel() {
                 onClick={() => void applyProjectTemplate(tpl.id)}
               >
                 <span className="block text-sm font-medium text-slate-100">{tpl.label}</span>
-                <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">{tpl.description}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{tpl.description}</span>
               </button>
             </li>
           ))}
@@ -177,7 +177,7 @@ export default function ContextPanel() {
       </section>
 
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="project-context">
+        <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="project-context">
           Brief
         </label>
         <textarea
@@ -188,7 +188,7 @@ export default function ContextPanel() {
           placeholder={PLACEHOLDER}
           spellCheck
         />
-        <p className="mt-1 text-[11px] text-slate-500">{context.trim().length} caracteres</p>
+        <p className="mt-1 text-xs text-slate-500">{context.trim().length} caracteres</p>
       </div>
 
       {/* Tabs */}

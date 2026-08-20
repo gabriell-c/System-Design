@@ -149,7 +149,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
           placeholder="Nome do desenho"
         />
         <span
-          className={`hidden rounded-full px-2 py-0.5 text-[10px] font-medium sm:inline ${
+          className={`hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline ${
             dirty ? "bg-amber-500/15 text-amber-200" : "bg-emerald-500/15 text-emerald-200"
           }`}
         >
@@ -168,7 +168,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
             <button
               key={v.id}
               type="button"
-              className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+              className={`rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
                 architectureView === v.id
                   ? "bg-cyan-500/20 text-cyan-200"
                   : "text-slate-500 hover:text-slate-200"

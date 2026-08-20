@@ -164,7 +164,8 @@ export default function EditorShell() {
   }, [fingerprint]);
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-0 bg-[var(--background)] text-[var(--foreground)]">
+      <DomainNotice />
       <DiagramSidebar />
       <div className="flex min-h-0 flex-1 flex-col">
         {!focusMode && (
@@ -183,8 +184,7 @@ export default function EditorShell() {
               </div>
             </ResizablePanel>
           )}
-        <main className="relative min-w-0 flex-1 bg-[#070b10]">
-          <DomainNotice />
+        <main className="relative min-w-0 flex-1 bg-[var(--canvas-bg)]">
           <DesignCanvas />
           {focusMode && (
             <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-2">

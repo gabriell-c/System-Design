@@ -374,10 +374,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         analysis: null,
         dirty: true,
         selectedNodeId: null,
+        selectedEdgeId: null,
         graphId: null,
+        canvasFilter: { ...EMPTY_CANVAS_FILTER },
+        focusedZoneId: null,
         uiNotice: {
           type: "success",
-          text: `Template “${template.label}” aplicado. Ajuste NFRs e rode a Análise.`,
+          text: `Template “${template.label}” aplicado (${built.nodes.length} nós). Ajuste NFRs e rode a Análise.`,
         },
       });
       scheduleClearNotice(set);

@@ -208,6 +208,147 @@ textarea:focus {
 .status-warning { color: var(--warning); }
 .status-error   { color: var(--error); }
 
+/* ── Light mode: override hardcoded dark Tailwind colors ── */
+.archia-light {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.archia-light body,
+.archia-light #main-content {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Text that was white/light on dark becomes dark on light */
+.archia-light .text-slate-100,
+.archia-light .text-slate-200,
+.archia-light .text-white {
+  color: #0f172a !important;
+}
+.archia-light .text-slate-300 {
+  color: #1e293b !important;
+}
+.archia-light .text-slate-400 {
+  color: #475569 !important;
+}
+.archia-light .text-slate-500 {
+  color: #64748b !important;
+}
+.archia-light .text-slate-600 {
+  color: #64748b !important;
+}
+
+/* Cyan accents readable on light */
+.archia-light .text-cyan-100,
+.archia-light .text-cyan-200,
+.archia-light .text-cyan-300 {
+  color: #0e7490 !important;
+}
+.archia-light .text-violet-300 {
+  color: #6d28d9 !important;
+}
+.archia-light .text-emerald-300,
+.archia-light .text-emerald-400 {
+  color: #047857 !important;
+}
+.archia-light .text-rose-300,
+.archia-light .text-rose-400 {
+  color: #be123c !important;
+}
+.archia-light .text-amber-200,
+.archia-light .text-amber-300,
+.archia-light .text-amber-400 {
+  color: #b45309 !important;
+}
+.archia-light .text-emerald-200,
+.archia-light .text-emerald-300,
+.archia-light .text-emerald-400 {
+  color: #047857 !important;
+}
+.archia-light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+.archia-light .text-purple-300,
+.archia-light .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+/* Dark backgrounds → light surfaces */
+.archia-light .bg-\[\#070b10\],
+.archia-light .bg-\[\#0a0f16\],
+.archia-light .bg-\[\#0a0f18\],
+.archia-light .bg-\[\#0b1017\],
+.archia-light .bg-\[\#0d1219\],
+.archia-light .bg-\[\#121821\],
+.archia-light .bg-\[\#171f2b\] {
+  background-color: #ffffff !important;
+}
+.archia-light .bg-black\/20,
+.archia-light .bg-black\/40 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+.archia-light .bg-white\/5,
+.archia-light .bg-white\/\[0\.03\] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+.archia-light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Borders */
+.archia-light .border-white\/8,
+.archia-light .border-white\/10,
+.archia-light .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Inputs / textareas already use CSS vars via global input rule;
+   force contrast for any leftover hardcoded dark fields */
+.archia-light input,
+.archia-light select,
+.archia-light textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+.archia-light input::placeholder,
+.archia-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* React Flow canvas + controls */
+.archia-light .react-flow__pane {
+  background: var(--canvas-bg) !important;
+}
+.archia-light .react-flow__controls-button {
+  background: #ffffff !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1) !important;
+  fill: #334155 !important;
+}
+.archia-light .react-flow__minimap {
+  background: #e2e8f0 !important;
+}
+
+/* Dropdown / menus */
+.archia-light [role="menu"],
+.archia-light [role="listbox"] {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a !important;
+}
+
+/* Hover chips / tabs on light */
+.archia-light .hover\:bg-white\/5:hover,
+.archia-light .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Keep toast readable (dark toast on light UI is fine) */
+.archia-light [role="status"] {
+  color: inherit;
+}
+
 /* ── P0.2.9 — light theme for presentation mode ── */
 .archia-presentation-light {
   background: #f8fafc !important;

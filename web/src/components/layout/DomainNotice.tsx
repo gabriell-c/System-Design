@@ -11,16 +11,16 @@ export default function DomainNotice() {
 
   const tone =
     uiNotice.type === "error"
-      ? "border-rose-400/40 bg-rose-950/95 text-rose-50"
+      ? "border-rose-400/50 bg-rose-950 text-rose-50"
       : uiNotice.type === "success"
-        ? "border-emerald-400/40 bg-emerald-950/95 text-emerald-50"
-        : "border-cyan-400/40 bg-slate-950/95 text-slate-100";
+        ? "border-emerald-400/50 bg-emerald-950 text-emerald-50"
+        : "border-cyan-400/50 bg-slate-950 text-slate-100";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`pointer-events-auto absolute left-1/2 top-3 z-20 flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-xl border px-3 py-2.5 text-sm shadow-xl ${tone}`}
+      className={`pointer-events-auto fixed left-1/2 top-4 z-[200] flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-2xl ${tone}`}
     >
       <p className="min-w-0 flex-1 leading-snug">{uiNotice.text}</p>
       <button

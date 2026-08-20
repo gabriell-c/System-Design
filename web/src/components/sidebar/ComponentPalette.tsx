@@ -233,7 +233,7 @@ export default function ComponentPalette() {
           <section aria-labelledby="palette-zones">
             <h3
               id="palette-zones"
-              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-violet-300"
+              className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-violet-300"
             >
               <Layers size={12} />
               Zonas de arquitetura

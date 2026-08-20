@@ -178,6 +178,22 @@ function CanvasInner() {
     return filtered;
   }, [orderedNodes, canvasFilter, ownerTeam]);
 
+  // After applying a template (or loading nodes into an empty canvas), frame the graph.
+  const prevNodeCountRef = useRef(0);
+  useEffect(() => {
+    const prev = prevNodeCountRef.current;
+    const next = displayNodes.length;
+    prevNodeCountRef.current = next;
+    if (next === 0 || next <= prev) return;
+    // Jump from empty → populated (template / import) or large grow
+    if (prev === 0 || next - prev >= 3) {
+      const t = window.setTimeout(() => {
+        void fitView({ padding: 0.2, duration: 400 });
+      }, 50);
+      return () => window.clearTimeout(t);
+    }
+  }, [displayNodes.length, fitView]);
+
   useEffect(() => {
     if (!focusedZoneId) return;
     const ids = descendantIds(nodes, focusedZoneId);

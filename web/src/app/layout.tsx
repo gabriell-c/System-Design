@@ -28,6 +28,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="Desenhe arquiteturas e receba avaliação de um arquiteto virtual." />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('archia-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.classList.add('archia-'+t);}catch(e){document.documentElement.classList.add('archia-dark');}})();`,
+          }}
+        />
       </head>
       <body className="h-full min-h-0 font-sans" suppressHydrationWarning>
         <ThemeProvider>

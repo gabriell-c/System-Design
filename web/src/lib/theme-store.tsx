@@ -10,7 +10,11 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "dark",
+  toggleTheme: () => undefined,
+  setTheme: () => undefined,
+});
 
 function getInitialTheme(): Theme {
   if (typeof window !== "undefined") {
@@ -22,20 +26,22 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
-  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    setMounted(true);
+    setThemeState(getInitialTheme());
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
     const root = document.documentElement;
     root.classList.remove("archia-dark", "archia-light");
     root.classList.add(`archia-${theme}`);
-    localStorage.setItem("archia-theme", theme);
-  }, [theme, mounted]);
+    try {
+      localStorage.setItem("archia-theme", theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
@@ -45,10 +51,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
 
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
@@ -57,7 +59,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
-  return ctx;
+  return useContext(ThemeContext);
 }
