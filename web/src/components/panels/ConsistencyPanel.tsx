@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { analyzeDiagramConsistency, type ConsistencyIssue } from "@/lib/diagram-consistency";
 import { diagramKindLabel } from "@/lib/diagram-library";
@@ -14,33 +14,49 @@ export default function ConsistencyPanel() {
   const [issues, setIssues] = useState<ConsistencyIssue[]>([]);
   const [loading, setLoading] = useState(false);
   const [remoteOk, setRemoteOk] = useState<boolean | null>(null);
+  const [tick, setTick] = useState(0);
 
   const project = projects.find((p) => p.id === activeProjectId);
 
-  const refresh = useCallback(async () => {
-    if (!activeProjectId || !project?.diagrams?.length) {
-      setIssues([]);
-      setRemoteOk(null);
-      return;
-    }
-    setLoading(true);
-    try {
-      const remote = await api.projectConsistency(activeProjectId);
-      setRemoteOk(Boolean(remote.ok));
-      if (Array.isArray(remote.issues) && remote.issues.length) {
-        setIssues(
-          remote.issues.map((i: Record<string, unknown>) => ({
-            severity: (i.severity as ConsistencyIssue["severity"]) ?? "warning",
-            stableRef: String(i.stable_ref ?? ""),
-            label: String(i.label ?? ""),
-            presentIn: (i.present_in as string[]) ?? [],
-            missingIn: (i.missing_in as string[]) ?? [],
-            detail: String(i.detail ?? ""),
-          })),
-        );
-      } else {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!activeProjectId || !project?.diagrams?.length) {
+        setIssues([]);
+        setRemoteOk(null);
+        return;
+      }
+      setLoading(true);
+      try {
+        const remote = await api.projectConsistency(activeProjectId);
+        if (cancelled) return;
+        setRemoteOk(Boolean(remote.ok));
+        if (Array.isArray(remote.issues) && remote.issues.length) {
+          setIssues(
+            remote.issues.map((i: Record<string, unknown>) => ({
+              severity: (i.severity as ConsistencyIssue["severity"]) ?? "warning",
+              stableRef: String(i.stable_ref ?? ""),
+              label: String(i.label ?? ""),
+              presentIn: (i.present_in as string[]) ?? [],
+              missingIn: (i.missing_in as string[]) ?? [],
+              detail: String(i.detail ?? ""),
+            })),
+          );
+        } else {
+          const local = analyzeDiagramConsistency(
+            project.diagrams.map((d) => ({
+              graphId: d.id,
+              kind: d.diagram_kind ?? null,
+              name: d.name,
+              nodes: (d.nodes ?? []) as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
+            })),
+          );
+          setIssues(local);
+        }
+      } catch {
+        if (cancelled) return;
         const local = analyzeDiagramConsistency(
-          project.diagrams.map((d) => ({
+          (project?.diagrams ?? []).map((d) => ({
             graphId: d.id,
             kind: d.diagram_kind ?? null,
             name: d.name,
@@ -48,26 +64,15 @@ export default function ConsistencyPanel() {
           })),
         );
         setIssues(local);
+        setRemoteOk(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      const local = analyzeDiagramConsistency(
-        (project?.diagrams ?? []).map((d) => ({
-          graphId: d.id,
-          kind: d.diagram_kind ?? null,
-          name: d.name,
-          nodes: (d.nodes ?? []) as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
-        })),
-      );
-      setIssues(local);
-      setRemoteOk(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeProjectId, project]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProjectId, project, tick]);
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -76,7 +81,7 @@ export default function ConsistencyPanel() {
           <p className="text-sm font-semibold text-slate-100">Consistência do pacote</p>
           <p className="text-xs text-slate-400">Serviços presentes em todas as vistas tipadas.</p>
         </div>
-        <button type="button" className="btn-ghost p-1.5" onClick={() => void refresh()} aria-label="Atualizar">
+        <button type="button" className="btn-ghost p-1.5" onClick={() => setTick((t) => t + 1)} aria-label="Atualizar">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>

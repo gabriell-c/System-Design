@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph, Project
-from app.routes.graphs import _nfr_out, _parse_json_list, to_out
+from app.routes.graphs import _nfr_out, _parse_json_list
 from app.services.benchmark import run_graph_benchmark
 from app.services.diagram_consistency import analyze_project_consistency
 from app.services.governance import build_raci_matrix, persist_adrs_markdown

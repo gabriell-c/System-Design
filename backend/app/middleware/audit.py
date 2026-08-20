@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import json
-import time
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
 from app.database import SessionLocal
-from app.models.graph import AuditEntry, new_uuid
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
@@ -43,7 +41,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             auth_header = request.headers.get("authorization", "")
             user_email = "anonymous"
             if auth_header.startswith("Bearer "):
-                token = auth_header[7:]
+                auth_header[7:]
                 # For now, skip token decode — the route handlers set the user
                 # We'll rely on route-level audit calls for accurate user info
                 pass

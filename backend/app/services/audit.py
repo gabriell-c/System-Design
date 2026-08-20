@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import desc
+
+if TYPE_CHECKING:
+    from app.models.graph import AuditEntry
 
 
 class AuditLogService:

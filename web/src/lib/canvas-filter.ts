@@ -1,5 +1,24 @@
 import type { Node } from "@xyflow/react";
-import type { C4Level, CanvasNodeData, CloudProvider, NodeKind, PiiSensitivity, ZoneKind } from "./types";
+import type {
+  ArchNodeData,
+  C4Level,
+  CanvasNodeData,
+  CloudProvider,
+  NodeKind,
+  PiiSensitivity,
+  ZoneKind,
+} from "./types.ts";
+
+function isArchData(data: CanvasNodeData): data is ArchNodeData {
+  return (
+    data.kind !== "block" &&
+    data.kind !== "zone" &&
+    data.kind !== "swimlane" &&
+    data.kind !== "note" &&
+    data.kind !== "cidr" &&
+    data.kind !== "tenant_boundary"
+  );
+}
 
 export type LayerView = "all" | "storage" | "auth" | "media" | "search" | "network" | "cicd";
 
@@ -60,6 +79,19 @@ function blob(data: CanvasNodeData): string {
   if (data.kind === "block") {
     return `${data.label} ${data.domain} ${data.description ?? ""}`.toLowerCase();
   }
+  if (data.kind === "swimlane") {
+    return `${data.label} ${data.swimlaneKind}`.toLowerCase();
+  }
+  if (data.kind === "note") {
+    return `${data.label} ${data.text ?? ""}`.toLowerCase();
+  }
+  if (data.kind === "cidr") {
+    return `${data.label} ${data.cidr}`.toLowerCase();
+  }
+  if (data.kind === "tenant_boundary") {
+    return `${data.label} ${data.tenantMode}`.toLowerCase();
+  }
+  // Remaining union members are ArchNodeData
   const cfg = data.config || {};
   return `${data.label} ${data.tech} ${data.kind} ${data.catalogId} ${cfg.provider ?? ""} ${cfg.service ?? ""} ${cfg.capability ?? ""}`.toLowerCase();
 }
@@ -103,23 +135,28 @@ export function nodeMatchesFilter(data: CanvasNodeData, filter: CanvasFilter, ow
     if (data.kind !== "zone" || data.zoneKind !== filter.zoneKind) return false;
   }
   if (filter.provider !== "all") {
-    const provider = data.kind === "zone" ? data.provider : data.kind === "block" ? undefined : data.config?.provider;
+    const provider =
+      data.kind === "zone"
+        ? data.provider
+        : isArchData(data)
+          ? data.config?.provider
+          : undefined;
     if (provider !== filter.provider) return false;
   }
   if (!matchesLayer(data, filter.layerView)) return false;
   if (filter.catalogId.trim()) {
-    const catalogId = "catalogId" in data ? (data as { catalogId: string }).catalogId : "";
+    const catalogId = isArchData(data) ? data.catalogId : "";
     if (catalogId !== filter.catalogId) return false;
   }
   const q = filter.query.trim().toLowerCase();
   if (q && !blob(data).includes(q)) return false;
   if (filter.piiSensitivity !== "all") {
-    if (data.kind === "zone" || data.kind === "block") return false;
+    if (!isArchData(data)) return false;
     const pii = data.piiSensitivity ?? "none";
     if (pii !== filter.piiSensitivity) return false;
   }
   if (filter.c4Level !== "all") {
-    if (data.kind === "zone" || data.kind === "block") return false;
+    if (!isArchData(data)) return false;
     const level = data.c4Level ?? "container";
     if (level !== filter.c4Level) return false;
   }

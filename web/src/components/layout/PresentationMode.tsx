@@ -11,30 +11,30 @@ interface Props {
 type Theme = "dark" | "light";
 
 /** P0.2.9 — Presentation mode: spotlight + teclas + fundo claro opcional. */
-export default function PresentationMode({ graphId }: Props) {
-  const nodes = useGraphStore((s) => s.nodes);
-  const edges = useGraphStore((s) => s.edges);
+export default function PresentationMode({ graphId: _graphId }: Props) {
   const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
   const setDiffHighlights = useGraphStore((s) => s.setDiffHighlights);
-  const setName = useGraphStore((s) => s.setName);
-  const name = useGraphStore((s) => s.name);
+  const edges = useGraphStore((s) => s.edges);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("dark");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Extract steps from edges with flowNumber
   const steps = edges
-    .filter((e) => e.data?.flowNumber)
+    .filter((e) => e.data?.flowNumber != null)
     .map((e) => ({
       id: e.id,
-      flowNumber: e.data.flowNumber,
-      label: e.data.label || e.id,
+      flowNumber: Number(e.data?.flowNumber),
+      label: String(e.data?.label ?? e.id),
       source: e.source,
       target: e.target,
     }))
     .sort((a, b) => a.flowNumber - b.flowNumber);
+
+  const handlePrev = () => setStep((s) => Math.max(0, s - 1));
+  const handleNext = () => setStep((s) => Math.min(steps.length - 1, s + 1));
+  const handlePlay = () => setPlaying((v) => !v);
 
   // Update highlights when step changes
   useEffect(() => {
@@ -47,7 +47,6 @@ export default function PresentationMode({ graphId }: Props) {
     const highlightedNodes = new Set<string>();
     const highlightedEdges = new Set<string>();
 
-    // Highlight all nodes and edges up to current step
     for (let i = 0; i <= Math.min(step, steps.length - 1); i++) {
       highlightedEdges.add(steps[i].id);
       highlightedNodes.add(steps[i].source);
@@ -116,10 +115,6 @@ export default function PresentationMode({ graphId }: Props) {
       setDiffHighlights([]);
     };
   }, [setHighlightNodeIds, setDiffHighlights]);
-
-  const handlePrev = () => setStep((s) => Math.max(0, s - 1));
-  const handleNext = () => setStep((s) => Math.min(steps.length - 1, s + 1));
-  const handlePlay = () => setPlaying((v) => !v);
 
   // Apply light background when in light theme
   useEffect(() => {

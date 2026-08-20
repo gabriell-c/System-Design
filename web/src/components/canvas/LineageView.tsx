@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
@@ -11,7 +11,7 @@ import { useGraphStore } from "@/lib/graph-store";
  */
 export default function LineageView() {
   const graphId = useGraphStore((s) => s.graphId);
-  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [data, setData] = useState<{
     lineage_edges: Array<{
       source_label: string;
@@ -24,16 +24,28 @@ export default function LineageView() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const open = Boolean(graphId) && !dismissed;
+
   useEffect(() => {
     if (!graphId) return;
-    setOpen(true);
-    void api.lineage(graphId).then(setData).catch((e) => setError(e instanceof Error ? e.message : "Erro"));
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await api.lineage(graphId);
+        if (!cancelled) setData(result);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Erro");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [graphId]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDismissed(true)}>
       <div
         className="w-full max-w-3xl rounded-2xl border border-white/15 bg-[#0d1219] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -46,7 +58,7 @@ export default function LineageView() {
           <button
             type="button"
             className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-slate-300 hover:border-cyan-400/40"
-            onClick={() => setOpen(false)}
+            onClick={() => setDismissed(true)}
           >
             <X size={14} />
           </button>

@@ -3,7 +3,7 @@
  * Usado para embed em Notion/Confluence com tema claro.
  */
 import type { Node, Edge } from "@xyflow/react";
-import type { CanvasNodeData } from "./types";
+import { isArchData, type CanvasNodeData } from "./types";
 
 export type EmbedOptions = {
   theme?: "light" | "dark";
@@ -107,7 +107,7 @@ export function renderEmbedSvg(
 
     // Label
     svg += `<text x="${48}" y="${h / 2 - 6}" fill="${isLight ? "#1e293b" : "#f1f5f9"}" font-size="12" font-weight="600" font-family="system-ui, sans-serif">${data.label}</text>`;
-    svg += `<text x="${48}" y="${h / 2 + 10}" fill="${isLight ? "#64748b" : "#94a3b8"}" font-size="10" font-family="system-ui, sans-serif">${data.tech || data.kind}</text>`;
+    svg += `<text x="${48}" y="${h / 2 + 10}" fill="${isLight ? "#64748b" : "#94a3b8"}" font-size="10" font-family="system-ui, sans-serif">${isArchData(data) ? data.tech || data.kind : data.kind}</text>`;
 
     svg += `</g>`;
   }

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from app.schemas.analysis import Finding
 
@@ -43,7 +42,7 @@ def analyze_stride(
     ]
 
     # Trust boundaries
-    trust_boundaries = [z for z in zones if _node_data(z).get("zoneKind") == "security_boundary"]
+    [z for z in zones if _node_data(z).get("zoneKind") == "security_boundary"]
 
     # === SPOOFING ===
     if external_nodes and not has_identity:

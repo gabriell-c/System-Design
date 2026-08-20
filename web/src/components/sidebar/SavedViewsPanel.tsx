@@ -18,7 +18,9 @@ export default function SavedViewsPanel() {
   }, [graphId]);
 
   useEffect(() => {
-    refresh();
+    void Promise.resolve().then(() => {
+      refresh();
+    });
   }, [refresh, savedViewsTick]);
 
   useEffect(() => {

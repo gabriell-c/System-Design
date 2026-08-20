@@ -31,7 +31,6 @@ def analyze_deployment_flows(nodes: list[dict[str, Any]], edges: list[dict[str, 
 
     dev_nodes: set[str] = set(dev_lane_ids)
     user_nodes: set[str] = set(user_lane_ids)
-    shared_nodes: set[str] = set()
 
     for nid, node in by_id.items():
         parent = node.get("parentId")

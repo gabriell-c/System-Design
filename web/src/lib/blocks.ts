@@ -42,6 +42,7 @@ export function blockDefaults(domain: NodeKind): { label: string; description: s
     integration: { label: "Bloco Integrações", description: "Filas, pagamentos, e-mail, WhatsApp e webhooks" },
     deploy: { label: "Bloco Deploy", description: "CI/CD, containers, hosting e IaC" },
     security: { label: "Bloco Security", description: "WAF, SGs, KMS, mTLS e certificados" },
+    network: { label: "Bloco Network", description: "VPC, TGW, NAT, peering e rotas" },
   };
   return map[domain];
 }
@@ -164,6 +165,7 @@ const DOMAIN_LABEL: Record<NodeKind, string> = {
   integration: "Integrações",
   deploy: "Deploy",
   security: "Security",
+  network: "Network",
 };
 
 /** Card só pode entrar em bloco de stack do mesmo domínio. Zonas aceitam qualquer card. */
@@ -198,8 +200,7 @@ export function canNestIntoContainer(
   if (isBlockNode(parent)) {
     if (isZoneNode(child) || isBlockNode(child) || isSwimlaneNode(child)) return false;
     const domain = blockDomainOf(parent);
-    if (!domain || child.data.kind === "block" || child.data.kind === "zone" || child.data.kind === "swimlane")
-      return false;
+    if (!domain || !isArchData(child.data)) return false;
     return canNestCardInBlock(child.data.kind, domain);
   }
   if (isSwimlaneNode(parent)) {

@@ -61,6 +61,12 @@ export const KIND_META: Record<
     bg: "rgba(236, 72, 153, 0.12)",
     border: "rgba(244, 114, 182, 0.45)",
   },
+  network: {
+    label: "Network",
+    accent: "#38bdf8",
+    bg: "rgba(14, 165, 233, 0.12)",
+    border: "rgba(56, 189, 248, 0.45)",
+  },
 };
 
 export const CATALOG: CatalogItem[] = [

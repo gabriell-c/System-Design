@@ -3,7 +3,7 @@
 import { ChevronRight, Layers } from "lucide-react";
 import { useGraphStore } from "@/lib/graph-store";
 import { diagramKindLabel, type DiagramKind } from "@/lib/diagram-library";
-import type { C4Level } from "@/lib/types";
+import { isArchData, type C4Level } from "@/lib/types";
 
 type Props = {
   diagramKind?: DiagramKind | string | null;
@@ -18,12 +18,7 @@ export default function DrillDownNavigator({ diagramKind, parentGraphId, onDrill
   const setC4Level = useGraphStore((s) => s.setC4Level);
 
   const selected = nodes.find((n) => n.id === selectedNodeId);
-  const canDrill =
-    selected &&
-    selected.data.kind !== "zone" &&
-    selected.data.kind !== "block" &&
-    selected.data.kind !== "swimlane" &&
-    selected.data.kind !== "note";
+  const canDrill = Boolean(selected && isArchData(selected.data));
 
   const crumbs = [
     parentGraphId ? "Pacote" : "Raiz",
@@ -44,15 +39,17 @@ export default function DrillDownNavigator({ diagramKind, parentGraphId, onDrill
           </span>
         ))}
       </nav>
-      {canDrill && selected && (
+      {canDrill && selected && isArchData(selected.data) && (
         <button
           type="button"
           className="ml-auto shrink-0 rounded-md bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 hover:bg-cyan-500/25"
           onClick={() => {
+            const data = selected.data;
+            if (!isArchData(data)) return;
             const nextLevel: C4Level =
-              selected.data.c4Level === "system" || !selected.data.c4Level
+              data.c4Level === "system" || !data.c4Level
                 ? "container"
-                : selected.data.c4Level === "container"
+                : data.c4Level === "container"
                   ? "component"
                   : "code";
             setC4Level(selected.id, nextLevel);

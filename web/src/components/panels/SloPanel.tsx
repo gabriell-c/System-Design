@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, Gauge } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 
@@ -19,21 +19,26 @@ export default function SloPanel() {
   const [services, setServices] = useState<SloCard[]>([]);
   const [budget, setBudget] = useState<Record<string, unknown> | null>(null);
 
-  const load = useCallback(async () => {
-    if (!graphId) return;
-    try {
-      const res = await api.graphSlo(graphId);
-      setServices((res.services as SloCard[]) ?? []);
-      setBudget(res.error_budget as Record<string, unknown>);
-    } catch {
-      setServices([]);
-      setBudget(null);
-    }
-  }, [graphId]);
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      if (!graphId) return;
+      try {
+        const res = await api.graphSlo(graphId);
+        if (cancelled) return;
+        setServices((res.services as SloCard[]) ?? []);
+        setBudget(res.error_budget as Record<string, unknown>);
+      } catch {
+        if (!cancelled) {
+          setServices([]);
+          setBudget(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [graphId]);
 
   return (
     <div className="space-y-4 px-4 py-4">

@@ -14,6 +14,8 @@ export default function AnalysisPanel() {
   const analyzing = useGraphStore((s) => s.analyzing);
   const analyzeError = useGraphStore((s) => s.analyzeError);
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
+  const highlightCriticalNodes = useGraphStore((s) => s.highlightNodeIds);
+  const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
 
   if (analyzing) {
     return <p className="px-4 py-6 text-sm text-slate-400">Analisando arquitetura…</p>;
@@ -45,8 +47,6 @@ export default function AnalysisPanel() {
   const nodeFindings = analysis.findings.filter((f) => f.node_id === selectedNodeId);
   const globalFindings = analysis.findings.filter((f) => !f.node_id);
   const criticalNodeIds = analysis.score_breakdown?.critical_node_ids ?? [];
-  const highlightCriticalNodes = useGraphStore((s) => s.highlightNodeIds);
-  const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
   const bottleneckFindings = analysis.findings
     .filter(
       (f) =>

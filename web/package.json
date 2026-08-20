@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -p 3015",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
@@ -21,6 +23,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

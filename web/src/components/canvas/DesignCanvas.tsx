@@ -504,9 +504,9 @@ function CanvasInner() {
         connectionLineStyle={{ stroke: "#22d3ee", strokeWidth: 2 }}
         defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
         onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length)}
-        onZoom={(state) => {
-          // P2.1.3 — tracking zoom level for semantic LOD
-          setZoomLevel(state.transform[2]);
+        onMove={(_, vp) => {
+          // P2.1.3 — tracking zoom level for semantic LOD (xyflow v12)
+          setZoomLevel(vp.zoom);
         }}
         proOptions={{ hideAttribution: true }}
         aria-label="Canvas de arquitetura"

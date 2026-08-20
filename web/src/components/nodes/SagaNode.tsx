@@ -15,7 +15,7 @@ function scoreTone(score?: number | null): string {
 
 export default function SagaNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);
-  const opacity = architectureView === "ai" ? 1 : 0.35;
+  const opacity = architectureView === "all" || architectureView === "component" ? 1 : 0.35;
 
   return (
     <article

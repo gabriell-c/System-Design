@@ -46,6 +46,7 @@ import CostPanel from "./CostPanel";
 import ConsistencyPanel from "./ConsistencyPanel";
 import GovernancePanel from "./GovernancePanel";
 import SloPanel from "./SloPanel";
+import WikiPanel from "./WikiPanel";
 
 const PRIMARY = [
   { id: "context", label: "Contexto", icon: FileText },

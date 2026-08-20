@@ -76,6 +76,7 @@ import {
   Mail,
   MessageSquare,
   Monitor,
+  Network,
   Plug,
   Rocket,
   Server,
@@ -236,6 +237,7 @@ const KIND_FALLBACK: Record<NodeKind, IconType> = {
   integration: Plug,
   deploy: Rocket,
   security: Lock,
+  network: Network,
 };
 
 export function resolveTechIcon(catalogId: string | undefined, kind: NodeKind): IconType {

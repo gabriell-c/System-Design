@@ -20,6 +20,7 @@ const DOMAIN_LABELS: Record<NodeKind, string> = {
   integration: "Integrações",
   deploy: "Deploy",
   security: "Security",
+  network: "Network",
 };
 
 function isBlockData(data: CanvasNodeData): data is BlockNodeData {

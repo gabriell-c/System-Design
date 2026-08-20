@@ -1,44 +1,53 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { renderEmbedSvg, type EmbedOptions } from "@/lib/embed-svg";
+import { renderEmbedSvg } from "@/lib/embed-svg";
 import type { CanvasNodeData } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
 
+function readEmbedQuery(): { graphId: string | null; theme: "light" | "dark" } {
+  if (typeof window === "undefined") return { graphId: null, theme: "dark" };
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("graph");
+  const t = params.get("theme");
+  return {
+    graphId: id,
+    theme: t === "light" || t === "dark" ? t : "dark",
+  };
+}
+
 export default function EmbedPage() {
-  const [graphId, setGraphId] = useState<string | null>(null);
+  const initial = useMemo(() => readEmbedQuery(), []);
+  const [graphId] = useState<string | null>(initial.graphId);
   const [nodes, setNodes] = useState<Node<CanvasNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [name, setName] = useState("");
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [svgCode, setSvgCode] = useState("");
-  const [iframeSnippet, setIframeSnippet] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark">(initial.theme);
   const svgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("graph");
-    const t = params.get("theme") as "light" | "dark" | null;
-    if (id) setGraphId(id);
-    if (t) setTheme(t);
-  }, []);
-
-  useEffect(() => {
     if (!graphId) return;
-    void api.getEmbed(graphId).then((payload) => {
+    let cancelled = false;
+    void (async () => {
+      const payload = await api.getEmbed(graphId);
+      if (cancelled) return;
       setName(payload.name);
       setNodes(payload.nodes as Node<CanvasNodeData>[]);
       setEdges(payload.edges as Edge[]);
-    });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [graphId]);
 
-  useEffect(() => {
-    if (nodes.length === 0) return;
-    const result = renderEmbedSvg(nodes, edges, { theme, width: 1400, height: 900 });
-    setSvgCode(result.svg);
-    setIframeSnippet(result.iframeSnippet);
+  const embedResult = useMemo(() => {
+    if (nodes.length === 0) return { svg: "", iframeSnippet: "" };
+    return renderEmbedSvg(nodes, edges, { theme, width: 1400, height: 900 });
   }, [nodes, edges, theme]);
+
+  const svgCode = embedResult.svg;
+  const iframeSnippet = embedResult.iframeSnippet;
 
   if (!graphId) {
     return <p className="p-8 text-slate-400">Missing ?graph= id</p>;
@@ -46,7 +55,6 @@ export default function EmbedPage() {
 
   return (
     <div className={`min-h-screen ${theme === "light" ? "bg-slate-50" : "bg-[#070b10]"}`}>
-      {/* Header */}
       <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0d1219]/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between">
           <div>
@@ -81,7 +89,6 @@ export default function EmbedPage() {
         </div>
       </div>
 
-      {/* SVG Preview */}
       <div ref={svgRef} className="p-4">
         {svgCode ? (
           <div
@@ -95,7 +102,6 @@ export default function EmbedPage() {
         )}
       </div>
 
-      {/* Embed Snippet */}
       {iframeSnippet && (
         <div className="border-t border-white/10 p-4">
           <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Snippet para embed</p>

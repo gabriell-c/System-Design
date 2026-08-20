@@ -26,6 +26,7 @@ import {
 import { buildArchEdge, nextFlowNumber, normalizeEdgeData, styleEdgeFromData } from "./edges";
 import { findCatalog } from "./catalog";
 import { checkRecommendations, type StackRecommendation } from "./stack-recommend";
+import { saveSavedView } from "./saved-views";
 import type {
   AnalysisResult,
   ArchEdgeData,
@@ -118,6 +119,7 @@ type GraphState = {
   setOwnerTeam: (team: string) => void;
   setCanvasComments: (comments: import("./types").CanvasComment[]) => void;
   setHighlightNodeIds: (ids: string[]) => void;
+  setDiffHighlights: (highlights: import("./diff-highlight").DiffHighlight[]) => void;
   setBlastRadiusHighlight: (payload: {
     unreachable: string[];
     degraded: string[];
@@ -173,7 +175,12 @@ type GraphState = {
   resolveNestingAfterDrag: (nodeId: string) => void;
   reconcileOrphanCards: () => void;
   checkpointDrag: () => void;
-  updateNodeData: (id: string, patch: Partial<ArchNodeData> | Partial<import("./types").ZoneNodeData>) => void;
+  updateNodeData: (
+    id: string,
+    patch: Partial<
+      ArchNodeData | import("./types").ZoneNodeData | import("./types").NoteNodeData | import("./types").BlockNodeData
+    >,
+  ) => void;
   updateNodeConfig: (id: string, config: ArchNodeData["config"]) => void;
   setAnalysis: (analysis: AnalysisResult | null) => void;
   setAnalyzing: (value: boolean, error?: string | null) => void;

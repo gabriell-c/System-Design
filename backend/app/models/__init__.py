@@ -8,6 +8,7 @@ __all__ = [
     "AuditEntry",
     "Comment",
     "Graph",
+    "GraphAccess",
     "GraphVersion",
     "Project",
     "Session",

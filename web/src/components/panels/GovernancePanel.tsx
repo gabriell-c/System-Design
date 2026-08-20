@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Shield, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
@@ -30,24 +30,29 @@ export default function GovernancePanel() {
   const [raci, setRaci] = useState<{ rows: RaciRow[] } | null>(null);
   const [policies, setPolicies] = useState<PolicyFinding[]>([]);
 
-  const load = useCallback(async () => {
-    if (!activeProjectId) return;
-    try {
-      const [r, p] = await Promise.all([
-        api.projectRaci(activeProjectId),
-        api.projectPolicy(activeProjectId),
-      ]);
-      setRaci(r as { rows: RaciRow[] });
-      setPolicies((p as { findings?: PolicyFinding[] }).findings ?? []);
-    } catch {
-      setRaci(null);
-      setPolicies([]);
-    }
-  }, [activeProjectId]);
-
   useEffect(() => {
-    void load();
-  }, [load, graphId]);
+    let cancelled = false;
+    void (async () => {
+      if (!activeProjectId) return;
+      try {
+        const [r, p] = await Promise.all([
+          api.projectRaci(activeProjectId),
+          api.projectPolicy(activeProjectId),
+        ]);
+        if (cancelled) return;
+        setRaci(r as { rows: RaciRow[] });
+        setPolicies((p as { findings?: PolicyFinding[] }).findings ?? []);
+      } catch {
+        if (!cancelled) {
+          setRaci(null);
+          setPolicies([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProjectId, graphId]);
 
   async function exportAdrs() {
     if (!activeProjectId) return;

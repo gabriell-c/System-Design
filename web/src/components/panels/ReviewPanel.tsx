@@ -239,9 +239,10 @@ function IsoQualityBlock({
   onChange: (s: Record<string, number>) => void;
 }) {
   const categories = useMemo(() => {
-    const cats = new Map<string, typeof ISO_25010_ATTRIBUTES>();
+    type IsoAttr = (typeof ISO_25010_ATTRIBUTES)[number];
+    const cats = new Map<string, IsoAttr[]>();
     for (const attr of ISO_25010_ATTRIBUTES) {
-      if (!cats.has(attr.category)) cats.set(attr.category, []);
+      if (!cats.has(attr.category)) cats.set(attr.category, [] as IsoAttr[]);
       cats.get(attr.category)!.push(attr);
     }
     return Array.from(cats.entries());

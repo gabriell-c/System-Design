@@ -16,15 +16,23 @@ export default function WikiPanel() {
 
   useEffect(() => {
     if (!graphId) return;
-    setLoading(true);
-    void api
-      .liveDoc(graphId)
-      .then((doc) => {
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      try {
+        const doc = await api.liveDoc(graphId);
+        if (cancelled) return;
         setMarkdown(doc.markdown);
         setUpdatedAt(doc.updated_at);
-      })
-      .catch(() => setMarkdown("_Erro ao carregar wiki viva._"))
-      .finally(() => setLoading(false));
+      } catch {
+        if (!cancelled) setMarkdown("_Erro ao carregar wiki viva._");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [graphId, name]);
 
   async function copyMd() {

@@ -7,7 +7,8 @@ export type NodeKind =
   | "observability"
   | "integration"
   | "deploy"
-  | "security";
+  | "security"
+  | "network";
 
 export const ALL_NODE_KINDS: NodeKind[] = [
   "frontend",
@@ -19,6 +20,7 @@ export const ALL_NODE_KINDS: NodeKind[] = [
   "integration",
   "deploy",
   "security",
+  "network",
 ];
 
 export type CanvasNodeKind = NodeKind | "block" | "zone";
@@ -51,7 +53,8 @@ export type ZoneKind =
   | "tgw"
   | "nat_gateway"
   | "prefix_list"
-  | "dr_region";
+  | "dr_region"
+  | "observability";
 
 export const ALL_ZONE_KINDS: ZoneKind[] = [
   "region",
@@ -71,11 +74,12 @@ export const ALL_ZONE_KINDS: ZoneKind[] = [
   "nat_gateway",
   "prefix_list",
   "dr_region",
+  "observability",
 ];
 
 export type FlowKind = "sync" | "async" | "data" | "control" | "management";
 
-export type FlowProtocol = "https" | "grpc" | "amqp" | "kafka" | "sql" | "s3" | "other";
+export type FlowProtocol = "https" | "grpc" | "amqp" | "kafka" | "sql" | "s3" | "redis" | "other";
 
 export type FailureBehavior = "retry" | "fallback" | "dlq" | "fail_fast" | "none";
 
@@ -155,7 +159,9 @@ export type ArchStyle =
   | "event_driven"
   | "hexagonal"
   | "serverless"
-  | "soa";
+  | "soa"
+  | "network"
+  | "active_active";
 
 export type ArchNodeConfig = {
   framework?: string;
@@ -562,7 +568,7 @@ export type GraphVersion = {
   created_at: string;
 };
 
-export type CatalogCategory = "language" | "framework" | "library" | "service" | "database" | "platform" | "tool" | "security";
+export type CatalogCategory = "language" | "framework" | "library" | "service" | "database" | "platform" | "tool" | "security" | "network";
 
 export type CatalogItem = {
   id: string;

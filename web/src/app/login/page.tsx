@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
@@ -16,6 +16,12 @@ export default function LoginPage() {
   const { login } = useAuthStore();
   const router = useRouter();
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("archia-light");
+    root.classList.add("archia-dark");
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -28,7 +34,7 @@ export default function LoginPage() {
       } else {
         setError("Invalid username or password");
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -41,18 +47,18 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Archia</h1>
-          <p className="text-slate-400">System Design Editor</p>
+          <p className="text-slate-300">System Design Editor</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-8 shadow-xl">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
               <LogIn className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">Sign in</h2>
-              <p className="text-sm text-slate-400">Access your account</p>
+              <p className="text-sm text-slate-300">Access your account</p>
             </div>
           </div>
 
@@ -96,6 +102,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -139,13 +146,16 @@ export default function LoginPage() {
           <div className="mt-6 space-y-3">
             <Link
               href="/recover"
-              className="block text-center text-sm text-slate-400 hover:text-indigo-400 transition-colors"
+              className="block text-center text-sm text-indigo-300 underline underline-offset-2 hover:text-indigo-200 transition-colors"
             >
               Forgot your password?
             </Link>
-            <div className="text-center text-sm text-slate-400">
+            <div className="text-center text-sm text-slate-300">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Link
+                href="/register"
+                className="font-medium text-indigo-300 underline underline-offset-2 hover:text-indigo-200 transition-colors"
+              >
                 Sign up
               </Link>
             </div>

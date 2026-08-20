@@ -828,7 +828,6 @@ def analyze_domain_benchmarks(
     from app.schemas.analysis import Finding
 
     nfr = nfr or ProjectNfr()
-    style = nfr.arch_style or "monolithic"
     cards = [n for n in nodes if _node_data(n).get("kind") not in {"zone", "block", None}]
 
     def blob(n: dict) -> str:
@@ -839,7 +838,8 @@ def analyze_domain_benchmarks(
         return any(k in b for k in keys)
 
     findings: list[Finding] = []
-    label = lambda n: _node_data(n).get("label") or ""
+    def label(n):
+        return _node_data(n).get("label") or ""
 
     # === Fintech benchmarks ===
     is_fintech = any(matches(n, "fintech", "banking", "payment", "stripe", "checkout", "ledger", "pci") for n in cards)
@@ -1318,7 +1318,6 @@ def build_review_scorecard(
 def validate_firewall_rules(nodes: list[dict], edges: list[dict]) -> list[dict]:
     """Validates firewall rules on edges crossing security boundaries.
     Returns findings with node_id, severity, and suggested fix."""
-    from collections.abc import Iterator
 
     findings: list[dict] = []
 
@@ -1370,7 +1369,7 @@ def validate_firewall_rules(nodes: list[dict], edges: list[dict]) -> list[dict]:
                 findings.append({
                     "severity": "warning",
                     "node_id": src_id,
-                    "message": f"Fluxo Public→Private sem regra inbound explícita",
+                    "message": "Fluxo Public→Private sem regra inbound explícita",
                     "fix": "Adicione uma regra inbound (ex: port 443, tcp)",
                 })
 

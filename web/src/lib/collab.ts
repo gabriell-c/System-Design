@@ -1,4 +1,4 @@
-"""P3.3.1 — Colaboração em tempo real (Yjs/CRDT stub + presence)."""
+/** P3.3.1 — Colaboração em tempo real (Yjs/CRDT stub + presence). */
 
 export type CollabPresence = {
   userId: string;

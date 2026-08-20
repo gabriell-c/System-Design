@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
+import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Network, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -33,6 +33,7 @@ const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
   nat_gateway: Server,
   prefix_list: Boxes,
   dr_region: HeartPulse,
+  observability: Activity,
 };
 
 const KIND_ICONS: Record<NodeKind, typeof Layout> = {
@@ -45,6 +46,7 @@ const KIND_ICONS: Record<NodeKind, typeof Layout> = {
   integration: Plug,
   deploy: Rocket,
   security: Shield,
+  network: Network,
 };
 
 export default function ComponentPalette() {

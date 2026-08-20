@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, KeyRound, Phone, CheckCircle } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
@@ -8,6 +9,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 type Step = "verify" | "reset";
 
 export default function RecoverPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("verify");
   const [form, setForm] = useState({ username: "", phone: "", birth_date: "" });
   const [resetToken, setResetToken] = useState("");
@@ -46,7 +48,7 @@ export default function RecoverPage() {
       const data = await r.json();
       if (!r.ok) { setError(data.detail || "Reset failed"); return; }
       setSuccess("Password reset! Redirecting to login...");
-      setTimeout(() => window.location.href = "/login", 2000);
+      setTimeout(() => router.push("/login"), 2000);
     } catch { setError("Network error"); } finally { setLoading(false); }
   };
 

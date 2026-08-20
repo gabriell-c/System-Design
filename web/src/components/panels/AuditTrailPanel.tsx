@@ -5,9 +5,19 @@ import { History } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 
+type AuditEntryRow = {
+  id: string;
+  action?: string;
+  user_email?: string;
+  entity_type?: string;
+  entity_id?: string | null;
+  created_at?: string;
+  [key: string]: unknown;
+};
+
 export default function AuditTrailPanel() {
   const graphId = useGraphStore((s) => s.graphId);
-  const [entries, setEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<AuditEntryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
@@ -16,16 +26,24 @@ export default function AuditTrailPanel() {
 
   useEffect(() => {
     if (!graphId) return;
-    setLoading(true);
-    setError(null);
-    void api
-      .listAuditEntries(graphId, { limit, offset: page * limit })
-      .then((data) => {
-        setEntries(data.entries);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.listAuditEntries(graphId, { limit, offset: page * limit });
+        if (cancelled) return;
+        setEntries(data.entries as AuditEntryRow[]);
         setTotal(data.total);
-      })
-      .catch((e: any) => setError(e instanceof Error ? e.message : "Erro ao carregar"))
-      .finally(() => setLoading(false));
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Erro ao carregar");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [graphId, page]);
 
   if (!graphId) {
@@ -75,8 +93,8 @@ export default function AuditTrailPanel() {
                   <span className="text-slate-500">Entidade: </span>
                   {entry.entity_type} {entry.entity_id && `#${entry.entity_id.slice(0, 8)}`}
                 </p>
-                {entry.ip_address && (
-                  <p className="mt-1 text-slate-500">IP: {entry.ip_address}</p>
+                {entry.ip_address != null && entry.ip_address !== "" && (
+                  <p className="mt-1 text-slate-500">IP: {String(entry.ip_address)}</p>
                 )}
               </li>
             ))}

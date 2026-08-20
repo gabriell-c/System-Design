@@ -84,7 +84,7 @@ def analyze_atam_scenarios(
     findings: list[Finding] = []
 
     nfr = nfr or {}
-    node_kinds = {_node_data(n).get("kind") for n in nodes}
+    {_node_data(n).get("kind") for n in nodes}
     node_ids_by_kind: dict[str, list[str]] = {}
     for n in nodes:
         kind = _node_data(n).get("kind") or _node_data(n).get("zoneKind")

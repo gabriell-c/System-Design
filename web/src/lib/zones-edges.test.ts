@@ -28,8 +28,11 @@ test("typed edges carry flowNumber and style", () => {
   const data = normalizeEdgeData(e.data);
   assert.equal(data.flowNumber, 3);
   assert.equal(data.flowKind, "async");
-  assert.match(String(e.label), /3/);
-  const styled = styleEdgeFromData(data);
+  assert.equal(e.type, "flowBadge");
+  // Badge edges omit string label — number lives on data / FlowBadge node.
+  assert.equal(e.label, undefined);
+  assert.match(edgeDisplayLabel(data), /3/);
+  const styled = styleEdgeFromData(data, { useFlowBadge: true });
   assert.equal(styled.animated, true);
 });
 

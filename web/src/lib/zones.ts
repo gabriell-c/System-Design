@@ -19,6 +19,7 @@ export const ZONE_DEFAULT_SIZE: Record<ZoneKind, { width: number; height: number
   nat_gateway: { width: 260, height: 140 },
   prefix_list: { width: 220, height: 100 },
   dr_region: { width: 920, height: 640 },
+  observability: { width: 420, height: 280 },
 };
 
 export const ZONE_META: Record<
@@ -144,12 +145,19 @@ export const ZONE_META: Record<
     bg: "rgba(236, 72, 153, 0.08)",
     border: "rgba(244, 114, 182, 0.5)",
   },
+  observability: {
+    label: "Observability Zone",
+    short: "Obs",
+    accent: "#fb923c",
+    bg: "rgba(249, 115, 22, 0.08)",
+    border: "rgba(251, 146, 60, 0.45)",
+  },
 };
 
 /** Filhos zoneKind permitidos dentro de um pai. */
 const ZONE_CHILD_ALLOWED: Record<ZoneKind, ZoneKind[]> = {
-  region: ["vpc", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "express_route", "data_mesh", "tgw", "nat_gateway", "prefix_list", "dr_region"],
-  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "data_mesh", "tgw", "nat_gateway", "prefix_list"],
+  region: ["vpc", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "express_route", "data_mesh", "tgw", "nat_gateway", "prefix_list", "dr_region", "observability"],
+  vpc: ["availability_zone", "subnet_public", "subnet_private", "plane", "layer", "security_boundary", "peering", "vpn", "privatelink", "data_mesh", "tgw", "nat_gateway", "prefix_list", "observability"],
   availability_zone: ["subnet_public", "subnet_private", "layer", "plane"],
   subnet_public: ["layer", "plane"],
   subnet_private: ["layer", "plane", "security_boundary", "privatelink"],
@@ -161,6 +169,11 @@ const ZONE_CHILD_ALLOWED: Record<ZoneKind, ZoneKind[]> = {
   privatelink: ["layer", "security_boundary"],
   express_route: ["layer", "vpn"],
   data_mesh: ["layer", "plane", "security_boundary"],
+  tgw: ["layer"],
+  nat_gateway: [],
+  prefix_list: [],
+  dr_region: ["vpc", "plane", "layer", "security_boundary", "observability"],
+  observability: ["layer", "plane"],
 };
 
 export function isZoneNode(node: Node<CanvasNodeData>): boolean {

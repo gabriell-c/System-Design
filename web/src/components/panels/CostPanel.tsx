@@ -14,12 +14,22 @@ export default function CostPanel() {
 
   useEffect(() => {
     if (!graphId) return;
-    setLoading(true);
-    void api
-      .costEstimate(graphId)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await api.costEstimate(graphId);
+        if (!cancelled) setData(result);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Erro");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [graphId]);
 
   if (!graphId) {
