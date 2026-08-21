@@ -11,10 +11,13 @@ import {
   Maximize2,
   Redo2,
   Save,
+  CloudOff,
+  CheckCircle2,
   Sparkles,
   Trash2,
   Undo2,
   Upload,
+  FolderKanban,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ExportMenu from "@/components/layout/ExportMenu";
@@ -138,22 +141,39 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
     <>
       {dialog}
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-white/8 bg-[#0b1017] px-3">
-        <Link href="/" className="mr-1 shrink-0 text-sm font-semibold tracking-tight text-slate-100">
+        <Link href="/" className="mr-1 shrink-0 text-sm font-semibold tracking-tight text-slate-100" title="Voltar aos projetos">
           Archia
+        </Link>
+        <Link
+          href="/"
+          className="hidden items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-white/5 hover:text-slate-200 sm:inline-flex"
+        >
+          <FolderKanban className="h-3.5 w-3.5" />
+          Projetos
         </Link>
         <input
           aria-label="Nome da arquitetura"
-          className="min-w-[120px] max-w-[220px] flex-1 rounded-lg border border-white/10 bg-[#121821] px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+          className="min-w-[120px] max-w-[220px] flex-1 rounded-lg border border-white/10 bg-[#121821] px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-[var(--accent)]/50"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome do desenho"
         />
         <span
-          className={`hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline ${
+          className={`hidden items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex ${
             dirty ? "bg-amber-500/15 text-amber-200" : "bg-emerald-500/15 text-emerald-200"
           }`}
         >
-          {dirty ? "não salvo" : "salvo"}
+          {dirty ? (
+            <>
+              <CloudOff className="h-3 w-3" />
+              não salvo
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-3 w-3" />
+              salvo
+            </>
+          )}
         </span>
 
         <div className="mx-0.5 hidden h-6 w-px bg-white/10 sm:block" />

@@ -47,11 +47,16 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma arquitetura proposta é adequada** antes de investir semanas de desenvolvimento. Em vez de depender exclusivamente de revisão manual (e cara), o Archia automatiza boa parte dessa avaliação:
 
 - 🖼️ **Canvas visual** com componentes de domínio (Frontend, Backend, Dados, Infra, Mensageria, Identidade, Observabilidade, Integrações), conexões e **snap alignment** com guias.
+- 📁 **Dashboard de projetos** com pin, arquivo, busca, filtros e compartilhamento — o editor abre em `/project/[id]`.
+- 🧭 **Shell global** (sidebar + AppShell) com navegação entre Dashboard, Perfil e projetos.
+- 🎨 **Design system** documentado (Inter + JetBrains Mono, accent indigo, tokens CSS) e **lucide-react** em toda a UI.
 - 📚 **Catálogo com 100+ tecnologias** organizadas por categoria, com heurísticas reais (throughput, custo, cache, limitações).
 - 🤖 **Análise por IA** com fallback heurístico determinístico — a análise nunca fica "no ar" por falta de API key.
 - ⚙️ **Motor de simulação** determinístico (carga, jornada de usuário e eventos) com presets prontos.
 - 📤 **Exportação** para JSON, PNG, PDF e Markdown.
 - 🔐 **Autenticação JWT** com cookies de sessão, remember-me, recuperação de senha por telefone + data de nascimento, e roles `user`/`senior`.
+
+> 📐 Design system: [`docs/system_design.md`](docs/system_design.md) · Dashboard: [`docs/features/dashboard-projetos.md`](docs/features/dashboard-projetos.md)
 
 ---
 
@@ -77,6 +82,15 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 > 📐 Padrão de diagrama review-ready: [`docs/PADRAO-DIAGRAMA-ARQUITETURA.md`](docs/PADRAO-DIAGRAMA-ARQUITETURA.md).
 
 ## ✨ Funcionalidades
+
+### 📁 Dashboard e gestão de projetos
+
+- **Home (`/`)** lista projetos com cards, stats (totais, públicos, arquivados, nós) e empty states com ícones.
+- **Criar projeto** com nome, descrição, visibilidade pública/privada e lista de acesso por e-mail (leitura / completo).
+- **Pin, arquivar e excluir** projetos; filtros por ativos/arquivados, ordenação (recentes, pesados, nome) e “fixados primeiro”.
+- **Editor em `/project/[id]`** — cada projeto abre o canvas com shell lateral e TopBar.
+- **API de projetos** (`/api/v1/projects`) com archive, pin e URL de share.
+- Rotas legadas `/graphs` redirecionam para o fluxo de projetos.
 
 ### 🖼️ Editor visual de canvas
 
@@ -322,14 +336,15 @@ Abra **http://localhost:3015**.
 
 | Rota | Descrição |
 |---|---|
-| `/` | **Editor visual** (canvas principal) |
+| `/` | **Dashboard** de projetos (criar, filtrar, pin, arquivar) |
+| `/project/[id]` | **Editor visual** do projeto (canvas + painéis) |
 | `/login` | Login |
 | `/register` | Cadastro de novo usuário |
 | `/recover` | Recuperação de senha (telefone + data de nascimento) |
 | `/profile` | Perfil do usuário (inclui preferências de auto-save) |
 | `/admin/users` | Gestão de usuários (somente role `senior`) |
-| `/graphs` | Lista de grafos salvos |
-| `/graphs/[id]` | Abre um grafo salvo no editor |
+| `/graphs` | Compatibilidade — redireciona para o dashboard / projetos |
+| `/graphs/[id]` | Compatibilidade — redireciona para o editor do projeto |
 | `/compare` | Comparação lado a lado de duas arquiteturas |
 
 ## 🔑 Credenciais padrão
@@ -382,6 +397,21 @@ O backend cria automaticamente um usuário `senior` na primeira inicialização:
 | `PUT` | `/profile/` | Atualiza perfil (username, email, telefone, nascimento, auto-save) |
 | `DELETE` | `/profile/` | Exclui a própria conta |
 
+### Projetos (`/api/v1/projects`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/v1/projects` | Lista projetos (filtros: search, archived, sort, pinned_first) |
+| `POST` | `/api/v1/projects` | Cria projeto (nome, descrição, público, access_list) |
+| `GET` | `/api/v1/projects/{id}` | Detalhe do projeto |
+| `PUT` | `/api/v1/projects/{id}` | Atualiza projeto |
+| `DELETE` | `/api/v1/projects/{id}` | Remove projeto |
+| `PATCH` | `/api/v1/projects/{id}/archive` | Alterna arquivado |
+| `PATCH` | `/api/v1/projects/{id}/pin` | Alterna fixado |
+| `GET` | `/api/v1/projects/{id}/share-url` | URL pública de compartilhamento |
+| `GET` | `/api/v1/projects/{id}/diagrams` | Diagramas do projeto |
+| `POST` | `/api/v1/projects/{id}/diagrams` | Cria diagrama no projeto |
+
 ### Grafos e análise (`/api/v1`)
 
 | Método | Rota | Descrição |
@@ -432,11 +462,12 @@ system_design/
 │   │   ├── auth/
 │   │   │   ├── jwt.py              # Emissão/validação de tokens JWT (HS256)
 │   │   │   └── security.py         # Hash/verificação bcrypt
-│   │   ├── models/                 # User, Session, Graph, GraphVersion, AiSettings
+│   │   ├── models/                 # User, Session, Graph, Project, GraphVersion, AiSettings
 │   │   ├── schemas/                # Pydantic v2 (validação de inputs/outputs)
-│   │   ├── routes/                 # health, auth, users, profile, graphs, settings, simulations
+│   │   ├── routes/                 # health, auth, users, profile, projects, graphs, settings, simulations
 │   │   ├── services/               # heuristic, simulation, omniroute, ai_settings
 │   │   └── agents/runner.py        # Orquestração da análise (IA + fallback heurístico)
+│   ├── alembic/                    # Migrações (0001…, 0002_project_fields)
 │   ├── tests/                      # Suíte pytest (integração, segurança, fuzz, e2e)
 │   ├── requirements.txt            # Dependências de produção
 │   ├── requirements-dev.txt        # Dependências de desenvolvimento (pytest, ruff)
@@ -444,26 +475,29 @@ system_design/
 │   └── Dockerfile
 ├── web/                            # Frontend Next.js 16 (React 19 + TypeScript)
 │   ├── src/
-│   │   ├── app/                    # Páginas: /, /login, /register, /recover, /profile,
-│   │   │                           #   /admin/users, /graphs, /graphs/[id], /compare
+│   │   ├── app/                    # Páginas: /, /project/[id], /login, /register, /recover,
+│   │   │                           #   /profile, /admin/users, /graphs*, /compare
 │   │   ├── components/
 │   │   │   ├── canvas/             # DesignCanvas, RecommendationBanner
+│   │   │   ├── dashboard/          # ProjectCard, ProjectFilters, NewProjectModal, AccessSettings
 │   │   │   ├── nodes/              # BlockNode, ArchNode, AnchorHandle
-│   │   │   ├── sidebar/            # ComponentPalette, CatalogLibrary
+│   │   │   ├── sidebar/            # DiagramSidebar, ComponentPalette, CatalogLibrary
 │   │   │   ├── panels/             # Analysis, Simulation, Properties, Inspector, History,
 │   │   │   │                       #   Review, Settings, Context, Kickoff, ADR
-│   │   │   ├── layout/             # EditorShell, TopBar, ExportMenu, DomainNotice
+│   │   │   ├── layout/             # AppShell, SidebarNav, EditorShell, TopBar, ExportMenu
 │   │   │   ├── ui/                 # Toggle, Select, ConfirmDialog, ResizablePanel, ScrollCarousel
 │   │   │   └── compare/            # CompareView
-│   │   └── lib/                    # api, auth-store, graph-store, export, export-canvas,
+│   │   └── lib/                    # api, auth-store, graph-store, project-store, export,
 │   │                               #   snap, catalog, stack-recommend, simulation, blocks,
 │   │                               #   templates, nfr, adr, kickoff, types
 │   ├── package.json
 │   ├── .env.example
 │   └── Dockerfile
 ├── docs/
-│   └── README.md                   # Documentação complementar
-├── docker-compose.yml              # Orquestração backend + web
+│   ├── README.md                   # Índice da documentação
+│   ├── system_design.md            # Design system (tokens, tipografia, a11y)
+│   └── features/                   # Docs por feature (dashboard, editor, simulação…)
+├── docker-compose.yml              # Orquestração db + backend + web (4410 / 3015 / 5434)
 └── README.md
 ```
 

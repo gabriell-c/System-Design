@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, KeyRound, Phone, CheckCircle } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 
 type Step = "verify" | "reset";
 

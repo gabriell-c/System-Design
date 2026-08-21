@@ -6,6 +6,7 @@ from app.models.graph import (
     GraphBoundaryContract,
     GraphVersion,
     Project,
+    ProjectAccess,
     SimulationScenario,
 )
 from app.models.session import Session
@@ -21,6 +22,7 @@ __all__ = [
     "GraphBoundaryContract",
     "GraphVersion",
     "Project",
+    "ProjectAccess",
     "Session",
     "SimulationScenario",
     "User",

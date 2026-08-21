@@ -15,7 +15,7 @@ export type CollabSession = {
   docVersion: number;
 };
 
-const COLORS = ["#22d3ee", "#a78bfa", "#f472b6", "#34d399", "#fbbf24"];
+const COLORS = ["#6366f1", "#a78bfa", "#f472b6", "#34d399", "#fbbf24"];
 
 /** Provider stub — em produção trocar por Yjs + WebSocket. */
 export class CollabProvider {

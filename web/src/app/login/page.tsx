@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Command,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LogIn,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 
 export default function LoginPage() {
@@ -42,19 +52,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#070b10] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Archia</h1>
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg">
+            <Command className="h-6 w-6 text-slate-950" />
+          </div>
+          <h1 className="mb-2 text-3xl font-bold text-white">Archia</h1>
           <p className="text-slate-300">System Design Editor</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-              <LogIn className="w-5 h-5 text-indigo-400" />
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20">
+              <LogIn className="h-5 w-5 text-indigo-400" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">Sign in</h2>
@@ -63,98 +74,104 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-300">
+                <User className="h-3.5 w-3.5" />
                 Username
               </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="Enter your username"
-                required
-              />
+              <div className="relative">
+                <User className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pr-4 pl-10 text-white placeholder-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-300">
+                <KeyRound className="h-3.5 w-3.5" />
                 Password
               </label>
               <div className="relative">
+                <KeyRound className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-12"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pr-12 pl-10 text-white placeholder-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition-colors hover:text-white"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Remember Me */}
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
                 />
-                <span className="text-sm text-slate-300">Remember me for 7 days</span>
+                <span className="inline-flex items-center gap-1 text-sm text-slate-300">
+                  <Check className="h-3.5 w-3.5" />
+                  Remember me for 7 days
+                </span>
               </label>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-all flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Signing in...
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
+                  <LogIn className="h-5 w-5" />
                   Sign in
                 </>
               )}
             </button>
           </form>
 
-          {/* Links */}
           <div className="mt-6 space-y-3">
             <Link
               href="/recover"
-              className="block text-center text-sm text-indigo-300 underline underline-offset-2 hover:text-indigo-200 transition-colors"
+              className="block text-center text-sm text-indigo-300 underline underline-offset-2 transition-colors hover:text-indigo-200"
             >
               Forgot your password?
             </Link>
-            <div className="text-center text-sm text-slate-300">
+            <div className="flex items-center justify-center gap-1.5 text-center text-sm text-slate-300">
+              <UserPlus className="h-3.5 w-3.5" />
               Don&apos;t have an account?{" "}
               <Link
                 href="/register"
-                className="font-medium text-indigo-300 underline underline-offset-2 hover:text-indigo-200 transition-colors"
+                className="font-medium text-indigo-300 underline underline-offset-2 hover:text-indigo-200"
               >
                 Sign up
               </Link>

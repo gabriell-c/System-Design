@@ -549,14 +549,46 @@ export type GraphRecord = {
   updated_at: string;
 };
 
+export type ProjectAccessRole = "read" | "full";
+
+export type ProjectAccessEntry = {
+  email: string;
+  role: ProjectAccessRole;
+};
+
 export type Project = {
   id: string;
   name: string;
+  description?: string;
   context?: string;
   nfr?: ProjectNfr | null;
+  nfr_json?: string;
+  is_public?: boolean;
+  archived?: boolean;
+  pinned?: boolean;
+  share_token?: string | null;
+  access_list?: ProjectAccessEntry[];
+  diagram_count?: number;
+  node_count?: number;
   diagrams: GraphRecord[];
   created_at: string;
   updated_at: string;
+};
+
+export type ProjectListFilters = {
+  search?: string;
+  sort_by?: "recent" | "heaviest" | "name";
+  archived?: boolean;
+  pinned_first?: boolean;
+};
+
+export type ProjectCreateInput = {
+  name: string;
+  description?: string;
+  context?: string;
+  nfr_json?: string;
+  is_public?: boolean;
+  access_list?: ProjectAccessEntry[];
 };
 
 export type GraphVersion = {

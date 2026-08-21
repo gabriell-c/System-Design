@@ -15,7 +15,7 @@ import type {
   SimulationRunPayload,
 } from "./simulation";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
@@ -103,14 +103,44 @@ export const api = {
       body: JSON.stringify({ output_format: "json" satisfies OutputFormat, ...payload }),
     }),
   // Projects
-  listProjects: () => request<Project[]>("/api/v1/projects"),
-  createProject: (payload: { name: string; context?: string; nfr_json?: string }) =>
+  listProjects: (filters?: {
+    search?: string;
+    sort_by?: "recent" | "heaviest" | "name";
+    archived?: boolean;
+    pinned_first?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.sort_by) params.set("sort_by", filters.sort_by);
+    if (filters?.archived != null) params.set("archived", String(filters.archived));
+    if (filters?.pinned_first != null) params.set("pinned_first", String(filters.pinned_first));
+    const qs = params.toString();
+    return request<Project[]>(`/api/v1/projects${qs ? `?${qs}` : ""}`);
+  },
+  createProject: (payload: {
+    name: string;
+    description?: string;
+    context?: string;
+    nfr_json?: string;
+    is_public?: boolean;
+    access_list?: Array<{ email: string; role: "read" | "full" }>;
+  }) =>
     request<Project>("/api/v1/projects", { method: "POST", body: JSON.stringify(payload) }),
   getProject: (id: string) => request<Project>(`/api/v1/projects/${id}`),
-  updateProject: (id: string, payload: Partial<Project>) =>
+  updateProject: (id: string, payload: Partial<Project> & {
+    access_list?: Array<{ email: string; role: "read" | "full" }>;
+  }) =>
     request<Project>(`/api/v1/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteProject: (id: string) =>
     request<void>(`/api/v1/projects/${id}`, { method: "DELETE" }),
+  archiveProject: (id: string) =>
+    request<Project>(`/api/v1/projects/${id}/archive`, { method: "PATCH" }),
+  pinProject: (id: string) =>
+    request<Project>(`/api/v1/projects/${id}/pin`, { method: "PATCH" }),
+  getProjectShareUrl: (id: string) =>
+    request<{ share_url: string; share_token: string; is_public: boolean }>(
+      `/api/v1/projects/${id}/share-url`,
+    ),
   listProjectDiagrams: (id: string) => request<GraphRecord[]>(`/api/v1/projects/${id}/diagrams`),
   createProjectDiagram: (projectId: string, payload: Partial<GraphRecord>) =>
     request<GraphRecord>(`/api/v1/projects/${projectId}/diagrams`, {

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { useGraphStore } from "@/lib/graph-store";
 
+/**
+ * Compat: /graphs/<graphId> → /project/<projectId>
+ * Se o grafo não tiver projeto, cai no dashboard.
+ */
 export default function GraphByIdPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const loadGraph = useGraphStore((s) => s.loadGraph);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,8 +20,11 @@ export default function GraphByIdPage() {
       .getGraph(params.id)
       .then((graph) => {
         if (cancelled) return;
-        loadGraph(graph);
-        router.replace("/");
+        if (graph.project_id) {
+          router.replace(`/project/${graph.project_id}`);
+        } else {
+          router.replace("/");
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Não encontrado");
@@ -27,19 +32,19 @@ export default function GraphByIdPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadGraph, params.id, router]);
+  }, [params.id, router]);
 
   return (
     <div className="px-6 py-10">
       {error ? (
         <div>
           <p className="text-sm text-rose-300">{error}</p>
-          <Link href="/graphs" className="mt-4 inline-block text-sm text-cyan-300">
-            Voltar
+          <Link href="/" className="mt-4 inline-block text-sm text-cyan-300">
+            Voltar ao dashboard
           </Link>
         </div>
       ) : (
-        <p className="text-sm text-slate-400">Carregando arquitetura…</p>
+        <p className="text-sm text-slate-400">Redirecionando para o projeto…</p>
       )}
     </div>
   );

@@ -501,7 +501,7 @@ function CanvasInner() {
         fitView
         fitViewOptions={{ padding: 0.2 }}
         deleteKeyCode={null}
-        connectionLineStyle={{ stroke: "#22d3ee", strokeWidth: 2 }}
+        connectionLineStyle={{ stroke: "var(--accent)", strokeWidth: 2 }}
         defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
         onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length)}
         onMove={(_, vp) => {

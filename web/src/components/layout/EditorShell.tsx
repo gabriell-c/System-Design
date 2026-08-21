@@ -166,7 +166,7 @@ export default function EditorShell() {
   return (
     <div className="flex h-full min-h-0 bg-[var(--background)] text-[var(--foreground)]">
       <DomainNotice />
-      <DiagramSidebar />
+      <DiagramSidebar collapsed={true} />
       <div className="flex min-h-0 flex-1 flex-col">
         {!focusMode && (
           <TopBar onAnalyze={() => void runAnalyze()} onToggleFocus={toggleFocus} focusMode={focusMode} />

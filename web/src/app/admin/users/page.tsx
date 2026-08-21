@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Users, Trash2, Shield } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 
 interface UserData {
   id: number; username: string; email: string; role: string;

@@ -1,32 +1,59 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { Project } from './types';
+import type { Project, ProjectAccessEntry, ProjectListFilters } from './types';
 import { api } from './api';
 
 interface ProjectState {
   projects: Project[];
   activeProjectId: string | null;
   isLoading: boolean;
+  filters: ProjectListFilters;
 
-  loadProjects: () => Promise<void>;
-  createProject: (name: string, context?: string) => Promise<Project>;
+  setFilters: (partial: Partial<ProjectListFilters>) => void;
+  loadProjects: (overrides?: Partial<ProjectListFilters>) => Promise<void>;
+  createProject: (input: {
+    name: string;
+    description?: string;
+    context?: string;
+    is_public?: boolean;
+    access_list?: ProjectAccessEntry[];
+  }) => Promise<Project>;
   setActiveProject: (id: string | null) => void;
   deleteProject: (id: string) => Promise<void>;
-  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project> & { access_list?: ProjectAccessEntry[] }) => Promise<void>;
+  archiveProject: (id: string) => Promise<void>;
+  pinProject: (id: string) => Promise<void>;
 }
+
+const defaultFilters: ProjectListFilters = {
+  search: '',
+  sort_by: 'recent',
+  archived: false,
+  pinned_first: true,
+};
 
 export const useProjectStore = create<ProjectState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       projects: [],
       activeProjectId: null,
       isLoading: false,
+      filters: defaultFilters,
 
-      loadProjects: async () => {
-        set({ isLoading: true });
+      setFilters: (partial) =>
+        set((state) => ({ filters: { ...state.filters, ...partial } })),
+
+      loadProjects: async (overrides) => {
+        const filters = { ...get().filters, ...overrides };
+        set({ isLoading: true, filters });
         try {
-          const resp = await api.listProjects();
+          const resp = await api.listProjects({
+            search: filters.search || undefined,
+            sort_by: filters.sort_by,
+            archived: filters.archived ?? false,
+            pinned_first: filters.pinned_first ?? true,
+          });
           const withDiagrams = await Promise.all(
             resp.map(async (p) => {
               try {
@@ -43,11 +70,18 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      createProject: async (name, context = '') => {
-        const resp = await api.createProject({ name, context, nfr_json: '{}' });
+      createProject: async (input) => {
+        const resp = await api.createProject({
+          name: input.name,
+          description: input.description ?? '',
+          context: input.context ?? '',
+          nfr_json: '{}',
+          is_public: input.is_public ?? false,
+          access_list: input.access_list ?? [],
+        });
         const diagrams = await api.listProjectDiagrams(resp.id);
         const full = { ...resp, diagrams, nfr: null };
-        set(state => ({
+        set((state) => ({
           projects: [full, ...state.projects],
           activeProjectId: resp.id,
         }));
@@ -58,21 +92,46 @@ export const useProjectStore = create<ProjectState>()(
 
       deleteProject: async (id) => {
         await api.deleteProject(id);
-        set(state => ({
-          projects: state.projects.filter(p => p.id !== id),
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
           activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
         }));
       },
 
       updateProject: async (id, updates) => {
         const resp = await api.updateProject(id, updates);
-        set(state => ({
-          projects: state.projects.map(p =>
-            p.id === id ? { ...p, ...updates } : p
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p,
           ),
         }));
       },
+
+      archiveProject: async (id) => {
+        const resp = await api.archiveProject(id);
+        set((state) => ({
+          projects: state.projects
+            .map((p) => (p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p))
+            .filter((p) => Boolean(p.archived) === Boolean(state.filters.archived)),
+        }));
+      },
+
+      pinProject: async (id) => {
+        const resp = await api.pinProject(id);
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p,
+          ),
+        }));
+        await get().loadProjects();
+      },
     }),
-    { name: 'archia-projects' }
-  )
+    {
+      name: 'archia-projects',
+      partialize: (state) => ({
+        activeProjectId: state.activeProjectId,
+        filters: state.filters,
+      }),
+    },
+  ),
 );

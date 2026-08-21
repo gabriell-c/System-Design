@@ -14,7 +14,7 @@ export function useAutoSave() {
     timerRef.current = setInterval(() => {
       const state = useGraphStore.getState();
       if (state.graphId) {
-        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
         fetch(`${base}/api/v1/graphs/${state.graphId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
