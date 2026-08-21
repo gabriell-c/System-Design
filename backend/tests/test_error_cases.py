@@ -1,7 +1,5 @@
 """Test error cases, IDOR, and edge cases on critical endpoints."""
 
-import pytest
-from app.models import User, Graph
 
 
 class TestAuthErrorHandling:
@@ -11,7 +9,7 @@ class TestAuthErrorHandling:
         """Login with wrong password should fail."""
         # Register user first
         client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "test@ex.com",
                 "username": "testuser",
@@ -23,7 +21,7 @@ class TestAuthErrorHandling:
         
         # Try with wrong password
         response = client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={"username": "testuser", "password": "WrongPass123"},
         )
         assert response.status_code == 401
@@ -32,7 +30,7 @@ class TestAuthErrorHandling:
     def test_login_nonexistent_user(self, client):
         """Login with nonexistent user should fail."""
         response = client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={"username": "nonexistent", "password": "AnyPass123"},
         )
         assert response.status_code == 401
@@ -46,10 +44,10 @@ class TestAuthErrorHandling:
             "phone": "+5511999999999",
             "birth_date": "1990-01-01",
         }
-        client.post("/auth/register", json=data)
+        client.post("/api/v1/auth/register", json=data)
         
         response = client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={**data, "email": "user2@ex.com"},
         )
         assert response.status_code in [400, 409]
@@ -57,7 +55,7 @@ class TestAuthErrorHandling:
     def test_register_invalid_email(self, client):
         """Register with invalid email should fail."""
         response = client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "not-an-email",
                 "username": "testuser",
@@ -71,7 +69,7 @@ class TestAuthErrorHandling:
     def test_register_weak_password(self, client):
         """Register with weak password should fail."""
         response = client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "test@ex.com",
                 "username": "testuser",
@@ -123,18 +121,18 @@ class TestProjectErrorHandling:
 
     def test_get_nonexistent_project(self, client):
         """Fetching nonexistent project should return 404."""
-        response = client.get("/projects/nonexistent-id")
+        response = client.get("/api/v1/projects/nonexistent-id")
         assert response.status_code == 404
 
     def test_delete_nonexistent_project(self, client):
         """Deleting nonexistent project should return 404."""
-        response = client.delete("/projects/nonexistent-id")
+        response = client.delete("/api/v1/projects/nonexistent-id")
         assert response.status_code == 404
 
     def test_create_project_empty_name(self, client):
         """Creating project with empty name creates but is unusual."""
         # API allows empty name, but it's not ideal
-        response = client.post("/projects", json={"name": ""})
+        response = client.post("/api/v1/projects", json={"name": ""})
         # Accept either validation error or creation (depends on API design)
         assert response.status_code in [201, 400, 422]
 

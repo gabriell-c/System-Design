@@ -8,17 +8,23 @@ from typing import Any
 from app.agents.prompts import (
     ARCHITECTURE_PROMPT,
     CODE_PROMPT,
-    CONSOLIDATOR_PROMPT,
     COHERENCE_PROMPT,
+    CONSOLIDATOR_PROMPT,
     DATABASE_PROMPT,
     SECURITY_PROMPT,
     STYLE_PROMPT,
     TRADEOFFS_PROMPT,
 )
 from app.schemas.analysis import AgentReport, AnalysisResult
-from app.schemas.arch_style import CohesionCoupling, DomainCoherenceScore, ReviewScorecard, TradeOffEntry
+from app.schemas.arch_style import (
+    CohesionCoupling,
+    DomainCoherenceScore,
+    ReviewScorecard,
+    TradeOffEntry,
+)
 from app.services.architecture_heuristics import (
     analyze_domain_benchmarks,
+    analyze_trust_and_dr,
     analyze_zone_structure,
     boost_style_from_zones,
     build_review_scorecard,
@@ -26,7 +32,6 @@ from app.services.architecture_heuristics import (
     classify_architecture_style,
     compute_cohesion_coupling,
     detect_bottlenecks,
-    analyze_trust_and_dr,
     suggest_trade_offs,
     validate_firewall_rules,
 )

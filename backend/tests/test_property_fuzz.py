@@ -2,10 +2,16 @@
 
 import pytest
 from pydantic import ValidationError
+
 from app.schemas.user import (
-    UserCreate, UserLogin, UserProfileUpdate, UserUpdate,
-    PasswordRecoveryRequest, PasswordReset
+    PasswordRecoveryRequest,
+    PasswordReset,
+    UserCreate,
+    UserLogin,
+    UserProfileUpdate,
+    UserUpdate,
 )
+
 
 class TestUsernameEdgeCases:
     def test_exactly_3_chars(self):

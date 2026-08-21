@@ -5,7 +5,7 @@ from __future__ import annotations
 
 def test_user_journey_all_tool_surfaces(client, no_omniroute):
     reg = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": "journey@test.com",
             "username": "journey",
@@ -17,20 +17,20 @@ def test_user_journey_all_tool_surfaces(client, no_omniroute):
     assert reg.status_code == 200, reg.text
 
     login = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"username": "journey", "password": "JourneyPass1"},
     )
     assert login.status_code == 200, login.text
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    assert client.get("/auth/me", headers=headers).status_code == 200
-    assert client.get("/auth/sso/config").status_code == 200
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
+    assert client.get("/api/v1/auth/sso/config").status_code == 200
 
-    proj = client.post("/projects", json={"name": "Journey Proj", "context": "e2e"})
+    proj = client.post("/api/v1/projects", json={"name": "Journey Proj", "context": "e2e"})
     assert proj.status_code == 201, proj.text
     pid = proj.json()["id"]
-    assert client.get(f"/projects/{pid}/diagrams").status_code == 200
+    assert client.get(f"/api/v1/projects/{pid}/diagrams").status_code == 200
 
     graph = client.post(
         "/api/v1/graphs",
@@ -88,13 +88,13 @@ def test_user_journey_all_tool_surfaces(client, no_omniroute):
 
     assert (
         client.post(
-            f"/graphs/{gid}/comments",
+            f"/api/v1/graphs/{gid}/comments",
             json={"text": "nota da jornada", "node_id": "n1"},
             headers=headers,
         ).status_code
         == 200
     )
-    assert client.get(f"/graphs/{gid}/comments").status_code == 200
+    assert client.get(f"/api/v1/graphs/{gid}/comments").status_code == 200
     assert client.get(f"/api/v1/audit/{gid}", headers=headers).status_code == 200
     assert client.get(f"/api/v1/audit/{gid}/count", headers=headers).status_code == 200
     assert client.get(f"/api/v1/embed/{gid}").status_code == 200

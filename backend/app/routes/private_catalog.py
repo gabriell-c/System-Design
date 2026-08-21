@@ -108,7 +108,7 @@ def update_item(item_id: str, payload: CatalogItemCreate, db: Session = Depends(
     # Find and update
     for i, item in enumerate(items):
         if item.get("id") == item_id:
-            items[i].update({
+            item.update({
                 "kind": payload.kind,
                 "label": payload.label,
                 "tech": payload.tech,

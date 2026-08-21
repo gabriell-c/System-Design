@@ -1,7 +1,5 @@
 """Mutation testing guards — ensure mutations are caught by tests."""
 
-import pytest
-from app.models import User, Graph
 
 
 class TestMutationGuards:
@@ -10,7 +8,7 @@ class TestMutationGuards:
     def test_status_code_401_not_200_on_auth_fail(self, client):
         """CATCH MUTATION: changing 401 to 200."""
         response = client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={"username": "x", "password": "wrong"},
         )
         # Mutation: if status_code == 200 → test fails ✓

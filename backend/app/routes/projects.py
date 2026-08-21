@@ -9,9 +9,10 @@ from app.models.graph import Graph, Project, new_uuid
 from app.routes.graphs import to_out
 from app.schemas.graph import GraphOut, GraphPayload, ProjectNfr
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
-from app.services.subsystems import get_subsystem, list_subsystems as catalog_subsystems, prefix_graph
+from app.services.subsystems import get_subsystem, prefix_graph
+from app.services.subsystems import list_subsystems as catalog_subsystems
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 DIAGRAM_KIND_META: dict[str, str] = {
     "context": "Context Diagram",

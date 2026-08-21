@@ -2,7 +2,11 @@
 
 from app.schemas.analysis import AnalysisResult, Finding, GrowthReport, GrowthScenario
 from app.services.lineage import build_lineage
-from app.services.p1_analysis import attach_fix_actions, check_pii_in_sensitive_flow, enrich_analysis
+from app.services.p1_analysis import (
+    attach_fix_actions,
+    check_pii_in_sensitive_flow,
+    enrich_analysis,
+)
 from app.services.polyglot_map import build_polyglot_map
 
 

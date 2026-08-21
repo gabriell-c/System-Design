@@ -135,6 +135,7 @@ def test_empty_graph_low_score():
 def test_analyze_pipeline_includes_review_scorecard():
     """Integração leve: analyze_architecture devolve review_scorecard."""
     import asyncio
+
     from app.agents.runner import analyze_architecture
 
     nodes = [

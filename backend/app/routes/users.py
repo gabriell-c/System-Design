@@ -8,7 +8,7 @@ from app.models.user import User
 from app.routes.auth import get_current_senior_user
 from app.schemas.user import UserResponse, UserUpdate
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 @router.get("/", response_model=list[UserResponse])

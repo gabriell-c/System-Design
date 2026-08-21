@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
-
-from app.schemas.analysis import AnalysisResult, DomainBenchmark, Finding, FixAction, ScoreBreakdown, ScoreFactor
+from app.schemas.analysis import (
+    AnalysisResult,
+    DomainBenchmark,
+    Finding,
+    FixAction,
+    ScoreBreakdown,
+    ScoreFactor,
+)
 
 
 def _node_data(node: dict) -> dict:
@@ -327,9 +333,13 @@ def extract_domain_benchmarks(nodes: list[dict], edges: list[dict], nfr: dict | 
 
 def enrich_analysis(result: AnalysisResult, nodes: list[dict], edges: list[dict], nfr: dict | None) -> AnalysisResult:
     """Apply all P1 analysis enrichments + ATAM scenarios."""
+    from app.services.atam_analysis import (
+        ATAM_SCENARIOS,
+        analyze_atam_scenarios,
+        link_atam_to_nodes,
+    )
     from app.services.threat_analysis import enrich_threat_analysis
     from app.services.well_architected import calculate_well_architected_score
-    from app.services.atam_analysis import ATAM_SCENARIOS, analyze_atam_scenarios, link_atam_to_nodes
 
     # Threat analysis (STRIDE + LINDDUN)
     threat_findings = enrich_threat_analysis([], nodes, edges, nfr)

@@ -24,7 +24,7 @@ export default function RecoverPage() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const r = await fetch(`${API}/auth/recover`, {
+      const r = await fetch(`${API}/api/v1/auth/recover`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -40,7 +40,7 @@ export default function RecoverPage() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const r = await fetch(`${API}/auth/reset-password`, {
+      const r = await fetch(`${API}/api/v1/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: resetToken, new_password: newPassword }),

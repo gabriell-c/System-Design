@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (username: string, password: string, remember_me: boolean) => {
         try {
-          const response = await fetch(`${API_BASE}/auth/login`, {
+          const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          await fetch(`${API_BASE}/auth/logout`, {
+          await fetch(`${API_BASE}/api/v1/auth/logout`, {
             method: 'POST',
             credentials: 'include',
           });
@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (data) => {
         try {
-          const response = await fetch(`${API_BASE}/auth/register`, {
+          const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
 
       fetchProfile: async () => {
         try {
-          const response = await fetch(`${API_BASE}/auth/me`, {
+          const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
             credentials: 'include',
           });
 
@@ -127,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: async (data) => {
         try {
-          const response = await fetch(`${API_BASE}/profile/`, {
+          const response = await fetch(`${API_BASE}/api/v1/profile/`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

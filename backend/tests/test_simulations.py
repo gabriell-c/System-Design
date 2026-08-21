@@ -133,8 +133,8 @@ def test_export_csv(client):
 
 
 def test_service_unit_capacity():
-    from app.services.simulation import estimate_component_capacities, run_simulation
     from app.schemas.simulation import SimulationRequest
+    from app.services.simulation import estimate_component_capacities, run_simulation
 
     cap, comps, bots = estimate_component_capacities(SAMPLE_NODES, SAMPLE_EDGES)
     # Capacity should be reasonable (>= 20 RPS)

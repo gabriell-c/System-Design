@@ -1,9 +1,9 @@
 """P2: subsystems, semantic diff, owner_team, DR heuristics."""
 
+from app.schemas.graph import ProjectNfr
 from app.services.architecture_heuristics import analyze_trust_and_dr
 from app.services.diff import semantic_diff
 from app.services.subsystems import get_subsystem, list_subsystems, prefix_graph
-from app.schemas.graph import ProjectNfr
 
 
 def test_subsystem_catalog_has_cdn_and_identity():
@@ -43,9 +43,9 @@ def test_semantic_diff_detects_added_and_removed_nodes():
 
 
 def test_import_subsystem_creates_diagram(client):
-    proj = client.post("/projects", json={"name": "Plat", "context": "x"}).json()
+    proj = client.post("/api/v1/projects", json={"name": "Plat", "context": "x"}).json()
     resp = client.post(
-        f"/projects/{proj['id']}/subsystems/import",
+        f"/api/v1/projects/{proj['id']}/subsystems/import",
         json={"subsystem_id": "cdn-global", "owner_team": "media"},
     )
     assert resp.status_code == 201, resp.text
@@ -56,13 +56,13 @@ def test_import_subsystem_creates_diagram(client):
 
 
 def test_import_subsystem_merge_into_graph(client):
-    proj = client.post("/projects", json={"name": "Plat"}).json()
+    proj = client.post("/api/v1/projects", json={"name": "Plat"}).json()
     created = client.post(
-        f"/projects/{proj['id']}/subsystems/import",
+        f"/api/v1/projects/{proj['id']}/subsystems/import",
         json={"subsystem_id": "identity"},
     ).json()
     merged = client.post(
-        f"/projects/{proj['id']}/subsystems/import",
+        f"/api/v1/projects/{proj['id']}/subsystems/import",
         json={"subsystem_id": "search", "merge_into_graph_id": created["id"]},
     ).json()
     ids = {n["id"] for n in merged["nodes"]}

@@ -8,7 +8,7 @@ from app.models.user import User
 from app.routes.auth import get_current_user
 from app.schemas.user import UserProfileUpdate, UserResponse
 
-router = APIRouter(prefix="/profile", tags=["profile"])
+router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
 
 @router.get("/", response_model=UserResponse)

@@ -12,10 +12,21 @@ class Settings(BaseSettings):
     omniroute_model: str = "auto/coding"
     omniroute_timeout_s: float = 45.0
     log_level: str = "INFO"
+    log_json: bool = True
+    archia_env: str = "development"
+    archia_jwt_secret: str = "archia-secret-key-change-in-production"
 
     @property
     def origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.archia_env.lower() == "production"
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
 
 
 settings = Settings()
