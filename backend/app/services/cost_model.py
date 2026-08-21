@@ -7,7 +7,6 @@ from typing import Any
 from app.services.heuristic import estimate_monthly_cost
 from app.services.knowledge import COST_USD_MONTH
 
-
 CATALOG_COST_KEY: dict[str, tuple[str, float]] = {
     "cloud-aws-ec2": ("EC2:t3.medium", COST_USD_MONTH["EC2:t3.medium"]),
     "cloud-aws-ecs": ("EC2:t3.medium", COST_USD_MONTH["EC2:t3.medium"]),

@@ -10,7 +10,6 @@ Cobre:
 """
 from __future__ import annotations
 
-
 from app.schemas.simulation import (
     LoadScenario,
     SimulationRequest,
@@ -422,8 +421,9 @@ class TestEdgeCases:
         """Testa erro com grafo vazio."""
 
         # Via HTTP deve retornar 400
-        from app.main import app
         from starlette.testclient import TestClient
+
+        from app.main import app
 
         client = TestClient(app)
         resp = client.post("/api/v1/simulations/run", json={"nodes": [], "edges": []})
@@ -479,8 +479,9 @@ class TestEdgeCases:
 class TestHttpIntegration:
     def test_run_simulation_via_http(self):
         """Testa endpoint HTTP de simulação."""
-        from app.main import app
         from starlette.testclient import TestClient
+
+        from app.main import app
 
         client = TestClient(app)
         resp = client.post(
@@ -500,8 +501,9 @@ class TestHttpIntegration:
 
     def test_run_preset_via_http(self):
         """Testa endpoint HTTP de preset."""
-        from app.main import app
         from starlette.testclient import TestClient
+
+        from app.main import app
 
         client = TestClient(app)
         resp = client.post(

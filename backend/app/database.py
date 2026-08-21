@@ -1,7 +1,7 @@
+import threading
 from collections.abc import Generator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
-import threading
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -41,12 +41,16 @@ if _IS_SQLITE and (
     )
 else:
     connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
-    engine = create_engine(settings.database_url, connect_args=connect_args)
+    engine_kwargs: dict = {"connect_args": connect_args}
+    if not _IS_SQLITE:
+        # Postgres / managed DB — modest pool suitable for API pods
+        engine_kwargs.update(pool_pre_ping=True, pool_size=5, max_overflow=10)
+    engine = create_engine(settings.database_url, **engine_kwargs)
 
 if _IS_SQLITE:
 
     @event.listens_for(engine, "connect")
-    def _sqlite_on_connect(dbapi_connection, _connection_record) -> None:  # noqa: ANN001
+    def _sqlite_on_connect(dbapi_connection, _connection_record) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         try:

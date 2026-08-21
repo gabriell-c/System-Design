@@ -1,13 +1,13 @@
 ﻿"""Integration tests for auth routes."""
 
 def _register(client, username="alice", email="alice@test.com", password="SecurePass1"):
-    return client.post("/auth/register", json={
+    return client.post("/api/v1/auth/register", json={
         "username": username, "email": email, "password": password,
         "phone": "+5511988887777", "birth_date": "1995-05-15"
     })
 
 def _login(client, username="alice", password="SecurePass1", remember_me=False):
-    return client.post("/auth/login", json={
+    return client.post("/api/v1/auth/login", json={
         "username": username, "password": password, "remember_me": remember_me
     })
 
@@ -85,11 +85,11 @@ class TestLogout:
         _register(client)
         login_resp = _login(client)
         token = login_resp.json()["access_token"]
-        resp = client.post("/auth/logout", headers=_auth_header(token))
+        resp = client.post("/api/v1/auth/logout", headers=_auth_header(token))
         assert resp.status_code == 200
 
     def test_logout_without_auth(self, client):
-        resp = client.post("/auth/logout")
+        resp = client.post("/api/v1/auth/logout")
         assert resp.status_code == 200
 
 class TestMe:
@@ -97,29 +97,29 @@ class TestMe:
         _register(client)
         login_resp = _login(client)
         token = login_resp.json()["access_token"]
-        resp = client.get("/auth/me", headers=_auth_header(token))
+        resp = client.get("/api/v1/auth/me", headers=_auth_header(token))
         assert resp.status_code == 200
         assert resp.json()["username"] == "ALICE"
 
     def test_me_without_auth(self, client):
-        resp = client.get("/auth/me")
+        resp = client.get("/api/v1/auth/me")
         assert resp.status_code == 401
 
     def test_me_with_invalid_token(self, client):
-        resp = client.get("/auth/me", headers=_auth_header("fake.token.here"))
+        resp = client.get("/api/v1/auth/me", headers=_auth_header("fake.token.here"))
         assert resp.status_code == 401
 
     def test_me_with_senior_user(self, client):
         login_resp = _login(client, username="SENIOR", password="CHANGEPASSWORD")
         token = login_resp.json()["access_token"]
-        resp = client.get("/auth/me", headers=_auth_header(token))
+        resp = client.get("/api/v1/auth/me", headers=_auth_header(token))
         assert resp.status_code == 200
         assert resp.json()["role"] == "senior"
 
 class TestRecover:
     def test_recover_success(self, client):
         _register(client)
-        resp = client.post("/auth/recover", json={
+        resp = client.post("/api/v1/auth/recover", json={
             "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
         })
         assert resp.status_code == 200
@@ -129,20 +129,20 @@ class TestRecover:
 
     def test_recover_wrong_phone(self, client):
         _register(client)
-        resp = client.post("/auth/recover", json={
+        resp = client.post("/api/v1/auth/recover", json={
             "username": "alice", "phone": "+5511000000000", "birth_date": "1995-05-15"
         })
         assert resp.status_code == 400
 
     def test_recover_wrong_birth_date(self, client):
         _register(client)
-        resp = client.post("/auth/recover", json={
+        resp = client.post("/api/v1/auth/recover", json={
             "username": "alice", "phone": "+5511988887777", "birth_date": "2000-01-01"
         })
         assert resp.status_code == 400
 
     def test_recover_nonexistent_user(self, client):
-        resp = client.post("/auth/recover", json={
+        resp = client.post("/api/v1/auth/recover", json={
             "username": "nobody", "phone": "+5511000000000", "birth_date": "1990-01-01"
         })
         assert resp.status_code == 404
@@ -150,11 +150,11 @@ class TestRecover:
 class TestResetPassword:
     def test_reset_password_success(self, client):
         _register(client)
-        recover_resp = client.post("/auth/recover", json={
+        recover_resp = client.post("/api/v1/auth/recover", json={
             "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
         })
         reset_token = recover_resp.json()["reset_token"]
-        resp = client.post("/auth/reset-password", json={
+        resp = client.post("/api/v1/auth/reset-password", json={
             "token": reset_token, "new_password": "NewSecurePass1"
         })
         assert resp.status_code == 200
@@ -163,18 +163,18 @@ class TestResetPassword:
         assert login_resp.status_code == 200
 
     def test_reset_password_invalid_token(self, client):
-        resp = client.post("/auth/reset-password", json={
+        resp = client.post("/api/v1/auth/reset-password", json={
             "token": "invalid.token.here", "new_password": "NewSecurePass1"
         })
         assert resp.status_code == 400
 
     def test_reset_password_old_password_fails(self, client):
         _register(client)
-        recover_resp = client.post("/auth/recover", json={
+        recover_resp = client.post("/api/v1/auth/recover", json={
             "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
         })
         reset_token = recover_resp.json()["reset_token"]
-        client.post("/auth/reset-password", json={
+        client.post("/api/v1/auth/reset-password", json={
             "token": reset_token, "new_password": "newsecurepass1"
         })
         resp = _login(client, password="securepass1")

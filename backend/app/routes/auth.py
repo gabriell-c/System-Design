@@ -8,6 +8,7 @@ from app.auth import create_access_token, decode_token, hash_password, verify_pa
 from app.database import get_db
 from app.models.session import Session as UserSession
 from app.models.user import User
+from app.rate_limit import rate_limit_login, rate_limit_recover
 from app.schemas.user import (
     PasswordRecoveryRequest,
     PasswordReset,
@@ -16,9 +17,7 @@ from app.schemas.user import (
     UserResponse,
 )
 
-from app.rate_limit import rate_limit_login, rate_limit_recover
-
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 SESSION_COOKIE_NAME = "archia_session"
 SESSION_EXPIRY_DAYS = 7

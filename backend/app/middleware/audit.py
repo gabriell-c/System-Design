@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -44,7 +45,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 auth_header[7:]
                 # For now, skip token decode — the route handlers set the user
                 # We'll rely on route-level audit calls for accurate user info
-                pass
 
             # Extract graph_id from path
             graph_id = None

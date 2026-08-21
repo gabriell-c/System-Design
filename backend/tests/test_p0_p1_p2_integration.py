@@ -1,7 +1,6 @@
 """Testes de integração P0 + P1 + P2 — fluxo ponta a ponta."""
 from app.services.diff import semantic_diff
 
-
 # ──────────────────────────────────────────────────────────────────────
 # P0 — Foundation: CRUD de grafos, zonas, nós, arestas
 # ──────────────────────────────────────────────────────────────────────
@@ -315,19 +314,16 @@ def test_p2_diff_visual(client):
 def test_p2_semicolon_zone_kinds():
     """Zones novas existem em ZONE_DEFAULT_SIZE e ZONE_META (frontend-only)."""
     # Frontend-only test - skip in backend
-    pass
 
 
 def test_p2_certificate_catalog_items():
     """Catálogo possui itens de segurança e rede adicionados (frontend-only)."""
     # Frontend-only test - skip in backend
-    pass
 
 
 def test_p2_scale_templates_exist():
     """Templates de escala existem e têm a estrutura correta (frontend-only)."""
     # Frontend-only test - skip in backend
-    pass
 
 
 def test_p2_diff_semantic_core():

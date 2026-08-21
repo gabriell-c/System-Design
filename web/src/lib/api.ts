@@ -103,27 +103,27 @@ export const api = {
       body: JSON.stringify({ output_format: "json" satisfies OutputFormat, ...payload }),
     }),
   // Projects
-  listProjects: () => request<Project[]>("/projects"),
+  listProjects: () => request<Project[]>("/api/v1/projects"),
   createProject: (payload: { name: string; context?: string; nfr_json?: string }) =>
-    request<Project>("/projects", { method: "POST", body: JSON.stringify(payload) }),
-  getProject: (id: string) => request<Project>(`/projects/${id}`),
+    request<Project>("/api/v1/projects", { method: "POST", body: JSON.stringify(payload) }),
+  getProject: (id: string) => request<Project>(`/api/v1/projects/${id}`),
   updateProject: (id: string, payload: Partial<Project>) =>
-    request<Project>(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+    request<Project>(`/api/v1/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteProject: (id: string) =>
-    request<void>(`/projects/${id}`, { method: "DELETE" }),
-  listProjectDiagrams: (id: string) => request<GraphRecord[]>(`/projects/${id}/diagrams`),
+    request<void>(`/api/v1/projects/${id}`, { method: "DELETE" }),
+  listProjectDiagrams: (id: string) => request<GraphRecord[]>(`/api/v1/projects/${id}/diagrams`),
   createProjectDiagram: (projectId: string, payload: Partial<GraphRecord>) =>
-    request<GraphRecord>(`/projects/${projectId}/diagrams`, {
+    request<GraphRecord>(`/api/v1/projects/${projectId}/diagrams`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   listSubsystems: () =>
-    request<Array<{ id: string; name: string; owner_team?: string; node_count: number }>>("/projects/subsystems"),
+    request<Array<{ id: string; name: string; owner_team?: string; node_count: number }>>("/api/v1/projects/subsystems"),
   importSubsystem: (
     projectId: string,
     payload: { subsystem_id: string; name?: string; owner_team?: string; merge_into_graph_id?: string },
   ) =>
-    request<GraphRecord>(`/projects/${projectId}/subsystems/import`, {
+    request<GraphRecord>(`/api/v1/projects/${projectId}/subsystems/import`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -137,7 +137,7 @@ export const api = {
       removed_edges: unknown[];
     }>(`/api/v1/graphs/${graphId}/diff/${versionId}`),
   // Comments
-  listComments: (graphId: string) => request<NodeComment[]>(`/graphs/${graphId}/comments`),
+  listComments: (graphId: string) => request<NodeComment[]>(`/api/v1/graphs/${graphId}/comments`),
   createComment: (
     graphId: string,
     payload: {
@@ -148,18 +148,18 @@ export const api = {
       assignee?: string;
     },
   ) =>
-    request<NodeComment>(`/graphs/${graphId}/comments`, {
+    request<NodeComment>(`/api/v1/graphs/${graphId}/comments`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   deleteComment: (graphId: string, commentId: string) =>
-    request<void>(`/graphs/${graphId}/comments/${commentId}`, { method: "DELETE" }),
+    request<void>(`/api/v1/graphs/${graphId}/comments/${commentId}`, { method: "DELETE" }),
   updateComment: (
     graphId: string,
     commentId: string,
     payload: { text?: string; resolved?: boolean; assignee?: string },
   ) =>
-    request<NodeComment>(`/graphs/${graphId}/comments/${commentId}`, {
+    request<NodeComment>(`/api/v1/graphs/${graphId}/comments/${commentId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),

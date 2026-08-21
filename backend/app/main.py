@@ -6,6 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
+from app.logging_config import (
+    ApiVersionRewriteMiddleware,
+    CorrelationIdMiddleware,
+    configure_logging,
+)
 from app.middleware.audit import AuditMiddleware
 from app.models import (  # noqa: F401 — register metadata
     AiSettings,
@@ -18,36 +23,42 @@ from app.models import (  # noqa: F401 — register metadata
     SimulationScenario,
     User,
 )
-from app.routes.auth import router as auth_router
 from app.routes.acl import router as acl_router
 from app.routes.audit import router as audit_router
+from app.routes.auth import router as auth_router
 from app.routes.boundary import router as boundary_router
 from app.routes.comments import router as comments_router
 from app.routes.embed import router as embed_router
 from app.routes.governance import router as governance_router
 from app.routes.graphs import router as graphs_router
 from app.routes.health import router as health_router
+from app.routes.network import router as network_router
 from app.routes.p1 import router as p1_router
 from app.routes.private_catalog import router as private_catalog_router
 from app.routes.profile import router as profile_router
 from app.routes.projects import router as projects_router
-from app.routes.network import router as network_router
 from app.routes.resilience import router as resilience_router
 from app.routes.settings import router as settings_router
 from app.routes.simulations import router as simulations_router
 from app.routes.users import router as users_router
 from app.seed import seed_default_users
 
-logging.basicConfig(level=settings.log_level)
+configure_logging(level=settings.log_level, json_logs=settings.log_json)
 logger = logging.getLogger("archia")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Tests / SQLite local: create_all. Postgres prod: prefer `alembic upgrade head`.
     Base.metadata.create_all(bind=engine)
     _ensure_sqlite_columns()
     seed_default_users()
-    logger.info("archia_started cors=%s db=%s", settings.origin_list, settings.database_url)
+    logger.info(
+        "archia_started cors=%s db=%s env=%s",
+        settings.origin_list,
+        settings.database_url.split("@")[-1] if "@" in settings.database_url else settings.database_url,
+        settings.archia_env,
+    )
     yield
 
 
@@ -173,13 +184,15 @@ def _ensure_sqlite_columns() -> None:
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.add_middleware(AuditMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(ApiVersionRewriteMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-    expose_headers=["Content-Type", "Authorization"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+    expose_headers=["Content-Type", "Authorization", "X-Request-ID", "Deprecation", "Link", "Sunset"],
     max_age=600,
 )
 app.include_router(health_router)

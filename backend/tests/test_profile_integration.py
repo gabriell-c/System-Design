@@ -2,13 +2,13 @@
 
 
 def _register(client, username="alice", email="alice@test.com"):
-    return client.post("/auth/register", json={
+    return client.post("/api/v1/auth/register", json={
         "username": username, "email": email, "password": "SecurePass1",
         "phone": "+5511988887777", "birth_date": "1995-05-15"
     })
 
 def _login(client, username="alice", password="SecurePass1"):
-    resp = client.post("/auth/login", json={
+    resp = client.post("/api/v1/auth/login", json={
         "username": username, "password": password
     })
     return resp.json()["access_token"]
@@ -20,7 +20,7 @@ class TestGetProfile:
     def test_get_profile_success(self, client):
         _register(client)
         token = _login(client)
-        resp = client.get("/profile/", headers=_auth_header(token))
+        resp = client.get("/api/v1/profile/", headers=_auth_header(token))
         assert resp.status_code == 200
         data = resp.json()
         assert data["username"] == "ALICE"
@@ -28,16 +28,16 @@ class TestGetProfile:
         assert data["role"] == "user"
 
     def test_get_profile_no_auth(self, client):
-        resp = client.get("/profile/")
+        resp = client.get("/api/v1/profile/")
         assert resp.status_code == 401
 
     def test_get_profile_invalid_token(self, client):
-        resp = client.get("/profile/", headers=_auth_header("bad.token.here"))
+        resp = client.get("/api/v1/profile/", headers=_auth_header("bad.token.here"))
         assert resp.status_code == 401
 
     def test_get_profile_senior_user(self, client):
         token = _login(client, username="SENIOR", password="CHANGEPASSWORD")
-        resp = client.get("/profile/", headers=_auth_header(token))
+        resp = client.get("/api/v1/profile/", headers=_auth_header(token))
         assert resp.status_code == 200
         assert resp.json()["role"] == "senior"
 
@@ -46,7 +46,7 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"email": "newalice@test.com"},
+            "/api/v1/profile/", json={"email": "newalice@test.com"},
             headers=_auth_header(token)
         )
         assert resp.status_code == 200
@@ -56,7 +56,7 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"username": "alice2"},
+            "/api/v1/profile/", json={"username": "alice2"},
             headers=_auth_header(token)
         )
         assert resp.status_code == 200
@@ -66,7 +66,7 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"phone": "+5511977776666"},
+            "/api/v1/profile/", json={"phone": "+5511977776666"},
             headers=_auth_header(token)
         )
         assert resp.status_code == 200
@@ -77,7 +77,7 @@ class TestUpdateProfile:
         token = _login(client)
         for interval in [0, 5, 15, 30, 60]:
             resp = client.put(
-                "/profile/", json={"auto_save_interval_minutes": interval},
+                "/api/v1/profile/", json={"auto_save_interval_minutes": interval},
                 headers=_auth_header(token)
             )
             assert resp.status_code == 200
@@ -87,7 +87,7 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"auto_save_interval_minutes": 7},
+            "/api/v1/profile/", json={"auto_save_interval_minutes": 7},
             headers=_auth_header(token)
         )
         assert resp.status_code == 422
@@ -96,7 +96,7 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"auto_save_enabled": False},
+            "/api/v1/profile/", json={"auto_save_enabled": False},
             headers=_auth_header(token)
         )
         assert resp.status_code == 200
@@ -106,14 +106,14 @@ class TestUpdateProfile:
         _register(client)
         token = _login(client)
         resp = client.put(
-            "/profile/", json={"birth_date": "1988-03-22"},
+            "/api/v1/profile/", json={"birth_date": "1988-03-22"},
             headers=_auth_header(token)
         )
         assert resp.status_code == 200
         assert resp.json()["birth_date"] == "1988-03-22"
 
     def test_update_no_auth(self, client):
-        resp = client.put("/profile/", json={"email": "x@test.com"})
+        resp = client.put("/api/v1/profile/", json={"email": "x@test.com"})
         assert resp.status_code == 401
 
     def test_update_username_duplicate(self, client):
@@ -121,7 +121,7 @@ class TestUpdateProfile:
         _register(client, username="bob", email="bob@test.com")
         token = _login(client, username="bob", password="SecurePass1")
         resp = client.put(
-            "/profile/", json={"username": "alice"},
+            "/api/v1/profile/", json={"username": "alice"},
             headers=_auth_header(token)
         )
         assert resp.status_code == 400
@@ -130,22 +130,22 @@ class TestDeleteAccount:
     def test_delete_account_success(self, client):
         _register(client)
         token = _login(client)
-        resp = client.delete("/profile/", headers=_auth_header(token))
+        resp = client.delete("/api/v1/profile/", headers=_auth_header(token))
         assert resp.status_code == 200
         assert "deleted" in resp.json()["message"].lower()
 
     def test_delete_account_then_gone(self, client):
         _register(client)
         token = _login(client)
-        client.delete("/profile/", headers=_auth_header(token))
-        resp = client.get("/profile/", headers=_auth_header(token))
+        client.delete("/api/v1/profile/", headers=_auth_header(token))
+        resp = client.get("/api/v1/profile/", headers=_auth_header(token))
         assert resp.status_code == 401
 
     def test_delete_account_no_auth(self, client):
-        resp = client.delete("/profile/")
+        resp = client.delete("/api/v1/profile/")
         assert resp.status_code == 401
 
     def test_delete_account_senior_can_delete(self, client):
         token = _login(client, username="SENIOR", password="CHANGEPASSWORD")
-        resp = client.delete("/profile/", headers=_auth_header(token))
+        resp = client.delete("/api/v1/profile/", headers=_auth_header(token))
         assert resp.status_code == 200

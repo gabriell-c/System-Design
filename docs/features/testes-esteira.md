@@ -19,6 +19,7 @@
 
 ## Gaps conscientes
 
-- **Mutation testing (mutmut/stryker):** tooling pesado; cobertura de property/fuzz + journey HTTP cobre o risco principal. Instalar mutmut só se pedido.
-- **k6 carga:** substituído por `tests/test_perf_smoke.py` (p95 health/heuristic). k6 fica opcional para stress massivo.
+- **Mutation testing (mutmut/stryker):** mutmut no Windows exige WSL; usamos `tests/test_mutation_guards.py` como guarda de mutações comuns. Instalar mutmut via WSL só se pedido.
+- **k6 carga:** script em `backend/tests/load.js`; smoke de p95 em `tests/test_perf_smoke.py`.
 - **npm audit:** o repo web usa **pnpm** (`pnpm-lock.yaml`); use `pnpm audit`, não `npm audit`.
+- **CI:** ver `.github/workflows/ci.yml` (lint + pytest + eslint + tsc + build).

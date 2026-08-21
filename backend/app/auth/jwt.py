@@ -1,11 +1,12 @@
-import os
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from pydantic import BaseModel
 
-JWT_SECRET = os.environ.get("ARCHIA_JWT_SECRET", "archia-secret-key-change-in-production")
+from app.config import settings
+
+JWT_SECRET = settings.archia_jwt_secret
 JWT_ALGORITHM = "HS256"
 
 

@@ -1,6 +1,7 @@
 ﻿"""Unit tests for Pydantic schemas: UserCreate, UserLogin, validation edge cases."""
 import pytest
 from pydantic import ValidationError
+
 from app.schemas.user import UserCreate, UserLogin, UserProfileUpdate, UserUpdate
 
 

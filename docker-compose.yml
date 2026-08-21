@@ -1,18 +1,42 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: archia
+      POSTGRES_PASSWORD: archia
+      POSTGRES_DB: archia
+    ports:
+      - "5433:5432"
+    volumes:
+      - archia_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archia -d archia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build: ./backend
     ports:
       - "4410:4410"
     environment:
-      DATABASE_URL: sqlite:///./data/app.db
+      DATABASE_URL: postgresql+psycopg2://archia:archia@db:5432/archia
       CORS_ORIGINS: http://localhost:3015,http://127.0.0.1:3015
       OMNIROUTE_BASE_URL: http://host.docker.internal:20128/v1
       OMNIROUTE_API_KEY: ${OMNIROUTE_API_KEY:-local}
       OMNIROUTE_MODEL: auto/coding
-    volumes:
-      - ./backend/data:/app/data
+      ARCHIA_JWT_SECRET: ${ARCHIA_JWT_SECRET:-change-me-in-production-min-32-chars}
+      ARCHIA_ENV: ${ARCHIA_ENV:-development}
+      LOG_LEVEL: INFO
+      LOG_JSON: "true"
+    depends_on:
+      db:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 4410"
 
   web:
     build:
@@ -23,3 +47,6 @@ services:
       - "3015:3015"
     depends_on:
       - backend
+
+volumes:
+  archia_pg:

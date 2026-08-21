@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.database import Base, engine
 from app.main import app
-from app.models import AiSettings, User, Session  # noqa: F401
+from app.models import AiSettings, Session, User  # noqa: F401
 from app.rate_limit import _buckets
 
 

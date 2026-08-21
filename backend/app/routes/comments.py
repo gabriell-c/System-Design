@@ -2,15 +2,14 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
 from app.models.graph import Comment, Graph, new_uuid
-from app.schemas.comment import CommentCreate, CommentOut, CommentUpdate
 from app.routes.auth import get_current_user
+from app.schemas.comment import CommentCreate, CommentOut, CommentUpdate
 from app.services.comments import extract_mentions, notify_mentions
 
-router = APIRouter(prefix="/graphs", tags=["comments"])
+router = APIRouter(prefix="/api/v1/graphs", tags=["comments"])
 
 
 def _comment_out(comment: Comment) -> CommentOut:
@@ -34,7 +33,7 @@ def _comment_out(comment: Comment) -> CommentOut:
     )
 
 
-@router.get("/{graph_id}/comments", response_model=List[CommentOut])
+@router.get("/{graph_id}/comments", response_model=list[CommentOut])
 def list_comments(graph_id: str, db: Session = Depends(get_db)):
     graph = db.query(Graph).filter(Graph.id == graph_id).first()
     if not graph:
