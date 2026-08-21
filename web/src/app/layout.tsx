@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "Desenhe arquiteturas e receba avaliação de um arquiteto virtual.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="pt-BR"
