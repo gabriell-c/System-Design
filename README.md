@@ -71,7 +71,7 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 | | httpx | Cliente HTTP (IA e teste de conectividade) |
 | **IA** | OmniRoute (`auto/coding`) · OpenAI · Anthropic | Análise de arquitetura (configurável em runtime) |
 | | Heurística local | Fallback determinístico sem IA |
-| **Portas** | Backend `8001` · Frontend `3015` · OmniRoute `20128` | Execução local |
+| **Portas** | Backend `4410` · Frontend `3015` · OmniRoute `20128` | Execução local |
 
 > 📄 Documentação detalhada do projeto em [`docs/README.md`](docs/README.md).  
 > 📐 Padrão de diagrama review-ready: [`docs/PADRAO-DIAGRAMA-ARQUITETURA.md`](docs/PADRAO-DIAGRAMA-ARQUITETURA.md).
@@ -257,15 +257,17 @@ npm install
 copy .env.example .env.local
 ```
 
-> ⚠️ **Importante:** a variável `NEXT_PUBLIC_API_URL` do frontend precisa apontar para a porta real do backend. Se você subiu o backend na porta `8001`, edite `.env.local` com `NEXT_PUBLIC_API_URL=http://localhost:8001`. (O `docker-compose.yml` expõe o backend na porta `4410` — nesse caso, use `http://localhost:4410`.)
+> ⚠️ **Importante:** a variável `NEXT_PUBLIC_API_URL` do frontend precisa apontar para a porta real do backend. Use `NEXT_PUBLIC_API_URL=http://localhost:4410` (porta padrão do docker-compose).
 
 ### 4. Docker (alternativa — tudo de uma vez)
 
 ```powershell
-docker compose up --build
+docker compose up --build -d
 ```
 
-Subirá backend (porta `4410`) e frontend (porta `3015`). O OmniRoute do host é alcançado via `host.docker.internal:20128`.
+Subirá 3 serviços: **Postgres** (porta `5434`), **backend FastAPI** (porta `4410`) e **frontend Next.js** (porta `3015`). O OmniRoute do host é alcançado via `host.docker.internal:20128`.
+
+> **Nota:** O build do Docker exige a pasta `web/public/` (mesmo que vazia) para o Next.js standalone output. Um `.dockerignore` foi adicionado para excluir `.next/`, `node_modules/` e `.env` do contexto de build.
 
 ## ⚙️ Variáveis de ambiente
 
@@ -289,7 +291,7 @@ Subirá backend (porta `4410`) e frontend (porta `3015`). O OmniRoute do host é
 
 | Variável | Obrigatória | Padrão | Descrição |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | Sim | `http://localhost:8001` | URL base da API backend (deve bater com a porta do uvicorn) |
+| `NEXT_PUBLIC_API_URL` | Sim | `http://localhost:4410` | URL base da API backend (deve bater com a porta do uvicorn) |
 
 ---
 
@@ -300,11 +302,11 @@ Subirá backend (porta `4410`) e frontend (porta `3015`). O OmniRoute do host é
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload --port 8001
+uvicorn app.main:app --reload --port 4410
 ```
 
-- API disponível em **http://localhost:8001**
-- Documentação interativa (Swagger UI) em **http://localhost:8001/docs**
+- API disponível em **http://localhost:4410**
+- Documentação interativa (Swagger UI) em **http://localhost:4410/docs**
 - Na inicialização, o backend cria as tabelas e **seeda o usuário padrão** automaticamente.
 
 ### Frontend
@@ -344,7 +346,7 @@ O backend cria automaticamente um usuário `senior` na primeira inicialização:
 
 ## 🔌 Referência de endpoints da API
 
-> Documentação interativa e testável: **http://localhost:8001/docs** (Swagger UI).
+> Documentação interativa e testável: **http://localhost:4410/docs** (Swagger UI).
 
 ### Saúde
 

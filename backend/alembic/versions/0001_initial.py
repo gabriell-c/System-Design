@@ -28,10 +28,10 @@ def upgrade() -> None:
         sa.Column("role", sa.String(length=20), nullable=False, server_default="user"),
         sa.Column("phone", sa.String(length=20), nullable=True),
         sa.Column("birth_date", sa.DateTime(), nullable=True),
-        sa.Column("auto_save_enabled", sa.Boolean(), nullable=False, server_default=sa.text("1")),
-        sa.Column("auto_save_interval_minutes", sa.Integer(), nullable=False, server_default="15"),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("auto_save_enabled", sa.Boolean(), nullable=False, server_default=sa.text("true")),
+        sa.Column("auto_save_interval_minutes", sa.Integer(), nullable=False, server_default=sa.text("15")),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
     )
     op.create_index("ix_users_username", "users", ["username"], unique=True)
     op.create_index("ix_users_email", "users", ["email"], unique=True)
@@ -96,7 +96,7 @@ def upgrade() -> None:
         sa.Column("author", sa.String(length=200), nullable=False),
         sa.Column("position_x", sa.Float(), nullable=True),
         sa.Column("position_y", sa.Float(), nullable=True),
-        sa.Column("resolved", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("resolved", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("assignee", sa.String(length=200), nullable=True),
         sa.Column("mentions_json", sa.Text(), nullable=False, server_default="[]"),
         sa.Column("thread_parent_id", sa.String(length=36), nullable=True),

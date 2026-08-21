@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+backend/node_modules
+web/node_modules
+
+# Build output
+.next
+out
+dist
+build
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info
+.venv
+venv/
+venv
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+.pytest_cache
+.ruff_cache
+test-results/
+playwright-report/
+blob-report/
+eslint-errors.json
+
+# Data
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docs
+docs/adr/
+*.md

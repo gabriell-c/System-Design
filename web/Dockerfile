@@ -1,24 +1,37 @@
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+FROM node:22-alpine
 
-FROM node:22-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Copy only package files first (for layer caching)
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies (include @swc/helpers for Next.js 16 Turbopack)
+RUN corepack enable && corepack prepare pnpm@9 --activate && \
+    pnpm install --frozen-lockfile && \
+    pnpm add -D @swc/helpers
+
+# Copy all source files
 COPY . .
+
+# Build Next.js (TurboPack)
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL=http://localhost:4410
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN npm run build
+RUN pnpm run build
 
-FROM node:22-alpine AS runner
+# Production runner - use standalone output
+FROM node:22-alpine
 WORKDIR /app
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+
+# Copy standalone build (next.config.ts has output: "standalone")
+COPY --from=0 /app/.next/standalone ./
+COPY --from=0 /app/.next/static ./.next/static
+COPY --from=0 /app/public ./public
+
+USER node
 EXPOSE 3015
 ENV PORT=3015
 ENV HOSTNAME=0.0.0.0
