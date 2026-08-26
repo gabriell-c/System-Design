@@ -18,7 +18,7 @@ Objetivo: MVP em 8 semanas com login, agenda e WhatsApp.`;
 
 type Tab = "nfr" | "data" | "api" | "events" | "consistency" | "lineage";
 
-export default function ContextPanel() {
+export default function ContextPanel({ isFreeMode = false }: { isFreeMode?: boolean }) {
   const context = useGraphStore((s) => s.context);
   const setContext = useGraphStore((s) => s.setContext);
   const nfr = useGraphStore((s) => s.nfr);
@@ -30,6 +30,42 @@ export default function ContextPanel() {
   const nodes = useGraphStore((s) => s.nodes);
   const { confirm, dialog } = useConfirmDialog();
   const [activeTab, setActiveTab] = useState<Tab>("nfr");
+
+  if (isFreeMode) {
+    return (
+      <div className="space-y-4 px-4 py-4">
+        {dialog}
+        <div className="flex items-start gap-2">
+          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
+            <FileText size={16} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-slate-100">Sobre este diagrama</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
+              Descreva a ideia visual — sem NFRs, templates ou análise técnica.
+            </p>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-project-context">
+            Descrição
+          </label>
+          <textarea
+            id="free-project-context"
+            className="mt-1 min-h-[140px] w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm leading-relaxed text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            placeholder="Ex.: Mapa mental do fluxo de onboarding do app, wireframe de telas, brainstorm de features…"
+            spellCheck
+          />
+          <p className="mt-1 text-xs text-[var(--muted)]">{context.trim().length} caracteres · {nodes.length} elementos</p>
+        </div>
+        <p className="rounded-lg border border-[var(--border)] bg-black/20 p-3 text-xs leading-relaxed text-[var(--muted-fg)]">
+          Dica: use formas, imagens, links e notas. Shift ao redimensionar mantém a proporção.
+        </p>
+      </div>
+    );
+  }
 
   async function applyProjectTemplate(id: string) {
     const tpl = PROJECT_TEMPLATES.find((t) => t.id === id);

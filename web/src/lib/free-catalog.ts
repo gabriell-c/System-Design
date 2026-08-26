@@ -5,12 +5,17 @@ import {
   Diamond,
   Hexagon,
   Hourglass,
+  Image,
+  Link2,
+  Music,
   Octagon,
   Pen,
   Plus,
   Square,
+  StickyNote,
   Triangle,
   Type,
+  Video,
   X,
   Zap,
   type LucideIcon,
@@ -124,6 +129,41 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     icon: Pen,
     description: "Anotação editável",
   },
+  {
+    id: "free-image",
+    kind: "free-image",
+    label: "Imagem",
+    icon: Image,
+    description: "URL ou upload de imagem",
+  },
+  {
+    id: "free-video",
+    kind: "free-video",
+    label: "Vídeo",
+    icon: Video,
+    description: "Embed de vídeo",
+  },
+  {
+    id: "free-audio",
+    kind: "free-audio",
+    label: "Áudio",
+    icon: Music,
+    description: "Player de áudio",
+  },
+  {
+    id: "free-note",
+    kind: "free-note",
+    label: "Nota",
+    icon: StickyNote,
+    description: "Post-it com anotações",
+  },
+  {
+    id: "free-link",
+    kind: "free-link",
+    label: "Link",
+    icon: Link2,
+    description: "Atalho para URL",
+  },
 ];
 
 export const FREE_NODE_DEFAULT_SIZE: Record<FreeNodeKind, { width: number; height: number }> = {
@@ -141,6 +181,11 @@ export const FREE_NODE_DEFAULT_SIZE: Record<FreeNodeKind, { width: number; heigh
   "free-plus": { width: 80, height: 80 },
   "free-text": { width: 180, height: 48 },
   "free-edit": { width: 160, height: 48 },
+  "free-image": { width: 200, height: 150 },
+  "free-video": { width: 280, height: 160 },
+  "free-audio": { width: 240, height: 64 },
+  "free-note": { width: 180, height: 120 },
+  "free-link": { width: 180, height: 56 },
 };
 
 export function findFreeCatalog(kind: string): FreeCatalogItem | undefined {

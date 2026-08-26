@@ -108,6 +108,32 @@ export default function FreePalette() {
           </div>
         </div>
 
+        {/* Seção: Mídia e links */}
+        <div className="border-t border-[var(--border)] px-3 py-2">
+          <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted-fg)]">
+            Mídia & links
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {FREE_CATALOG.filter((item) =>
+              ["free-image", "free-video", "free-audio", "free-note", "free-link"].includes(item.kind)
+            ).map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => placeShape(item.kind)}
+                  className="flex flex-col items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] p-2 text-center transition hover:border-[var(--accent)]/40 hover:bg-[var(--accent-muted)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  title={item.description}
+                >
+                  <Icon className="h-5 w-5 text-[var(--foreground)]" />
+                  <span className="text-[10px] font-medium text-[var(--muted-fg)]">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Seção: Texto */}
         <div className="border-t border-[var(--border)] px-3 py-2">
           <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted-fg)]">

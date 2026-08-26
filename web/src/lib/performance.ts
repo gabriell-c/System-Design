@@ -72,6 +72,6 @@ export function lodConfig(nodeCount: number): {
 }
 
 /** Threshold para ativar onlyRenderVisibleElements. */
-export function shouldEnableVisibleElements(nodeCount: number): boolean {
-  return nodeCount >= 120;
+export function shouldEnableVisibleElements(nodeCount: number, freeMode = false): boolean {
+  return nodeCount >= (freeMode ? 40 : 120);
 }

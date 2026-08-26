@@ -44,6 +44,9 @@ import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
 import CanvasComments from "@/components/canvas/CanvasComments";
 import LineageView from "@/components/canvas/LineageView";
 import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
+import { sortFreeNodesByLayer, freeLayerOrder } from "@/lib/free-layer";
+import { useProjectStore } from "@/lib/project-store";
+import { isFreeData } from "@/lib/types";
 
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
@@ -100,6 +103,9 @@ function CanvasInner() {
   const diagramKind = useGraphStore((s) => s.diagramKind);
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
+  const activeProjectId = useProjectStore((s) => s.activeProjectId);
+  const projects = useProjectStore((s) => s.projects);
+  const isFreeMode = projects.find((p) => p.id === activeProjectId)?.project_kind === "free";
   const { screenToFlowPosition, setNodes, fitView } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
@@ -145,9 +151,16 @@ function CanvasInner() {
   }, [deleteSelected, redo, undo]);
 
   const orderedNodes = useMemo(() => {
+    if (isFreeMode) {
+      // Containers (nodes with children) render first; siblings sorted by layerOrder (newest on top).
+      const hasChildren = new Set(nodes.filter((n) => n.parentId).map((n) => n.parentId!));
+      const containers = nodes.filter((n) => hasChildren.has(n.id));
+      const rest = nodes.filter((n) => !hasChildren.has(n.id));
+      return [...sortFreeNodesByLayer(containers), ...sortFreeNodesByLayer(rest)];
+    }
+
     const containers = nodes.filter((n) => isContainerNode(n));
     const rest = nodes.filter((n) => !isContainerNode(n));
-    // Sort containers by depth (deepest first so children render under their parent)
     const depth = (n: (typeof nodes)[0]) => {
       let d = 0;
       let p = n.parentId;
@@ -158,8 +171,17 @@ function CanvasInner() {
       return d;
     };
     containers.sort((a, b) => depth(b) - depth(a));
-    return [...containers, ...rest];
-  }, [nodes]);
+    // Non-containers: newest free nodes on top; arch nodes keep insertion order
+    const sortedRest = [...rest].sort((a, b) => {
+      const aFree = isFreeData(a.data);
+      const bFree = isFreeData(b.data);
+      if (aFree && bFree && isFreeData(a.data) && isFreeData(b.data)) {
+        return freeLayerOrder(a.data, a.id) - freeLayerOrder(b.data, b.id);
+      }
+      return 0;
+    });
+    return [...containers, ...sortedRest];
+  }, [nodes, isFreeMode]);
 
   const displayEdges = useMemo(() => {
     if (!blastHighlightEdgeIds.length) return edges;
@@ -312,7 +334,7 @@ function CanvasInner() {
 
   return (
     <div className="relative h-full w-full" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
-      {nodes.length === 0 && showOnboarding && (
+      {nodes.length === 0 && showOnboarding && !isFreeMode && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
           <div className="pointer-events-auto max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-1)]/95 p-6 elev-4 backdrop-blur text-center">
             <p className="text-base font-semibold text-[var(--foreground)]">Comece desenhando sua primeira arquitetura</p>
@@ -463,7 +485,7 @@ function CanvasInner() {
         }}
         onNodeDrag={(event, draggedNode) => {
           if (!snapRef.current.active || !draggedNode) return;
-          if (!_lod.snapEnabled) {
+          if (!_lod.snapEnabled || isFreeMode) {
             setGuidelines([]);
             return;
           }
@@ -498,7 +520,7 @@ function CanvasInner() {
         deleteKeyCode={null}
         connectionLineStyle={{ stroke: "var(--accent)", strokeWidth: 2 }}
         defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
-        onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length)}
+        onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length, isFreeMode)}
         onMove={(_, vp) => {
           // P2.1.3 — tracking zoom level for semantic LOD (xyflow v12)
           setZoomLevel(vp.zoom);
@@ -536,7 +558,7 @@ function CanvasInner() {
           </>
         )}
       </ReactFlow>
-      {!sequenceMode && (
+      {!sequenceMode && !isFreeMode && (
         <>
           <CanvasComments />
           <LineageView />

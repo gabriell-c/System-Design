@@ -594,7 +594,12 @@ export type FreeNodeKind =
   | "free-x"
   | "free-plus"
   | "free-text"
-  | "free-edit";
+  | "free-edit"
+  | "free-image"
+  | "free-video"
+  | "free-audio"
+  | "free-note"
+  | "free-link";
 
 export const ALL_FREE_NODE_KINDS: FreeNodeKind[] = [
   "free-rectangle",
@@ -611,12 +616,26 @@ export const ALL_FREE_NODE_KINDS: FreeNodeKind[] = [
   "free-plus",
   "free-text",
   "free-edit",
+  "free-image",
+  "free-video",
+  "free-audio",
+  "free-note",
+  "free-link",
 ];
 
 export type FreeNodeData = {
   kind: FreeNodeKind;
   label: string;
   text?: string;
+  notes?: string;
+  /** Higher values render on top. */
+  layerOrder?: number;
+  backgroundColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  borderRadius?: number;
+  linkUrl?: string;
+  mediaUrl?: string;
 };
 
 export type Project = {

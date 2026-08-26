@@ -28,6 +28,7 @@ import { findCatalog } from "./catalog";
 import { checkRecommendations, type StackRecommendation } from "./stack-recommend";
 import { saveSavedView } from "./saved-views";
 import { FREE_NODE_DEFAULT_SIZE } from "./free-catalog";
+import { nextFreeLayerOrder, freeLayerOrder, type FreeLayerDirection } from "./free-layer";
 import type {
   AnalysisResult,
   ArchEdgeData,
@@ -41,7 +42,7 @@ import type {
   UserRole,
   ZoneKind,
 } from "./types";
-import { isArchData, isBlockData, isZoneData } from "./types";
+import { isArchData, isBlockData, isFreeData, isZoneData } from "./types";
 import { emptyNfr, normalizeNfr } from "./nfr";
 import type { ProjectTemplate } from "./templates";
 import { createSwimlaneNode } from "./swimlanes";
@@ -160,6 +161,7 @@ type GraphState = {
   ) => void;
   addNote: (position: { x: number; y: number }, text?: string) => void;
   addFreeNode: (kind: FreeNodeKind, position: { x: number; y: number }, label?: string) => void;
+  moveFreeNodeLayer: (nodeId: string, direction: FreeLayerDirection) => void;
   addCidrBlock: (position: { x: number; y: number }, cidr?: string, label?: string) => void;
   addTenantBoundary: (
     position: { x: number; y: number },
@@ -181,7 +183,11 @@ type GraphState = {
   updateNodeData: (
     id: string,
     patch: Partial<
-      ArchNodeData | import("./types").ZoneNodeData | import("./types").NoteNodeData | import("./types").BlockNodeData
+      | ArchNodeData
+      | import("./types").ZoneNodeData
+      | import("./types").NoteNodeData
+      | import("./types").BlockNodeData
+      | import("./types").FreeNodeData
     >,
   ) => void;
   updateNodeConfig: (id: string, config: ArchNodeData["config"]) => void;
@@ -806,8 +812,24 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   addFreeNode: (kind, position, label) => {
     const id = nextId("free");
     const size = FREE_NODE_DEFAULT_SIZE[kind];
+    const layerOrder = nextFreeLayerOrder(get().nodes);
     const defaultLabel =
-      label ?? (kind === "free-text" ? "Texto" : kind === "free-diamond" ? "Decisão" : "Novo");
+      label ??
+      (kind === "free-text"
+        ? "Texto"
+        : kind === "free-diamond"
+          ? "Decisão"
+          : kind === "free-note"
+            ? "Nota"
+            : kind === "free-link"
+              ? "Link"
+              : kind === "free-image"
+                ? "Imagem"
+                : kind === "free-video"
+                  ? "Vídeo"
+                  : kind === "free-audio"
+                    ? "Áudio"
+                    : "Novo");
     withHistory(get, set, () => {
       set({
         nodes: [
@@ -820,12 +842,78 @@ export const useGraphStore = create<GraphState>((set, get) => ({
             data: {
               kind,
               label: defaultLabel,
-              ...(kind === "free-text" ? { text: defaultLabel } : {}),
+              layerOrder,
+              ...(kind === "free-text" || kind === "free-edit" ? { text: defaultLabel } : {}),
+              ...(kind === "free-note" ? { notes: "", backgroundColor: "#fef08a", textColor: "#422006" } : {}),
+              ...(kind === "free-link" ? { linkUrl: "https://" } : {}),
             },
           },
         ],
         dirty: true,
         selectedNodeId: id,
+      });
+    });
+  },
+
+  moveFreeNodeLayer: (nodeId, direction) => {
+    const nodes = get().nodes;
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node || !isFreeData(node.data)) return;
+
+    const siblings = nodes.filter(
+      (n) => isFreeData(n.data) && (n.parentId ?? null) === (node.parentId ?? null),
+    );
+    const ordered = siblings
+      .map((n) => ({
+        id: n.id,
+        order: isFreeData(n.data) ? freeLayerOrder(n.data, n.id) : 0,
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    const idx = ordered.findIndex((o) => o.id === nodeId);
+    if (idx < 0) return;
+
+    const updates = new Map<string, number>();
+
+    if (direction === "front") {
+      const max = Math.max(...ordered.map((o) => o.order));
+      updates.set(nodeId, max + 1);
+    } else if (direction === "back") {
+      const min = Math.min(...ordered.map((o) => o.order));
+      updates.set(nodeId, min - 1);
+    } else if (direction === "forward" && idx < ordered.length - 1) {
+      const next = ordered[idx + 1];
+      updates.set(nodeId, next.order + 0.5);
+    } else if (direction === "backward" && idx > 0) {
+      const prev = ordered[idx - 1];
+      updates.set(nodeId, prev.order - 0.5);
+    } else {
+      return;
+    }
+
+    withHistory(get, set, () => {
+      const nextNodes = get().nodes.map((n) => {
+        if (!updates.has(n.id) || !isFreeData(n.data)) return n;
+        return {
+          ...n,
+          data: { ...n.data, layerOrder: updates.get(n.id)! },
+        };
+      });
+      // Normalize layer orders to integers
+      const freeSorted = nextNodes
+        .filter((n) => isFreeData(n.data))
+        .sort((a, b) => {
+          if (!isFreeData(a.data) || !isFreeData(b.data)) return 0;
+          return freeLayerOrder(a.data, a.id) - freeLayerOrder(b.data, b.id);
+        });
+      const normalized = new Map<string, number>();
+      freeSorted.forEach((n, i) => normalized.set(n.id, i + 1));
+      set({
+        nodes: nextNodes.map((n) => {
+          if (!isFreeData(n.data) || !normalized.has(n.id)) return n;
+          return { ...n, data: { ...n.data, layerOrder: normalized.get(n.id) } };
+        }),
+        dirty: true,
       });
     });
   },

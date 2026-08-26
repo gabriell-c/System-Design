@@ -1,9 +1,11 @@
 "use client";
 
-import { Boxes, Layers, Link2, Trash2 } from "lucide-react";
+import { Boxes, ChevronDown, ChevronUp, Layers, Link2, Trash2 } from "lucide-react";
 import { RENDER_MODES, STATE_LIBS, UI_LIBS, findCatalog } from "@/lib/catalog";
 import { canNestIntoContainer, isBlockNode, isContainerNode } from "@/lib/blocks";
 import { FLOW_KIND_META, normalizeEdgeData } from "@/lib/edges";
+import { freeLayerOrder } from "@/lib/free-layer";
+import { findFreeCatalog } from "@/lib/free-catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CustomSelect from "@/components/ui/Select";
@@ -36,6 +38,8 @@ export default function PropertiesPanel() {
   const detachNode = useGraphStore((s) => s.detachNode);
   const deleteSelected = useGraphStore((s) => s.deleteSelected);
   const attachNodeToBlock = useGraphStore((s) => s.attachNodeToBlock);
+  const moveFreeNodeLayer = useGraphStore((s) => s.moveFreeNodeLayer);
+  const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
 
   const selectedEdge = edges.find((e) => e.id === selectedEdgeId);
   if (selectedEdge) {
@@ -374,12 +378,18 @@ export default function PropertiesPanel() {
   }
 
   if (isFreeData(node.data)) {
+    const childCount = nodes.filter((n) => n.parentId === node.id).length;
+    const layer = freeLayerOrder(node.data, node.id);
+    const catalog = findFreeCatalog(node.data.kind);
+    const isMedia = ["free-image", "free-video", "free-audio"].includes(node.data.kind);
+    const isLink = node.data.kind === "free-link";
+
     return (
       <div className="space-y-4 px-4 py-4">
         <div>
           <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-amber-300">
             <Layers size={12} />
-            Forma Livre
+            {catalog?.label ?? "Forma Livre"}
           </p>
           <label className="mt-2 block text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-label">
             Rótulo
@@ -391,9 +401,147 @@ export default function PropertiesPanel() {
             onChange={(e) => updateNodeData(node.id, { label: e.target.value.slice(0, 60) || "Novo" })}
           />
         </div>
+
+        <div>
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-notes">
+            Notas
+          </label>
+          <textarea
+            id="free-notes"
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
+            value={node.data.notes ?? ""}
+            onChange={(e) => updateNodeData(node.id, { notes: e.target.value || undefined })}
+            placeholder="Anotações sobre este elemento…"
+          />
+        </div>
+
+        {(isMedia || isLink) && (
+          <div>
+            <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-url">
+              {isLink ? "URL do link" : "URL da mídia"}
+            </label>
+            <input
+              id="free-url"
+              type="url"
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
+              value={isLink ? (node.data.linkUrl ?? "") : (node.data.mediaUrl ?? "")}
+              onChange={(e) =>
+                updateNodeData(node.id, isLink ? { linkUrl: e.target.value } : { mediaUrl: e.target.value })
+              }
+              placeholder="https://…"
+            />
+          </div>
+        )}
+
+        <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Aparência</p>
+          <div className="grid grid-cols-2 gap-2">
+            <ColorField
+              label="Fundo"
+              value={node.data.backgroundColor ?? "#1e293b"}
+              onChange={(v) => updateNodeData(node.id, { backgroundColor: v })}
+            />
+            <ColorField
+              label="Texto"
+              value={node.data.textColor ?? "#f1f5f9"}
+              onChange={(v) => updateNodeData(node.id, { textColor: v })}
+            />
+            <ColorField
+              label="Borda"
+              value={node.data.borderColor ?? "#334155"}
+              onChange={(v) => updateNodeData(node.id, { borderColor: v })}
+            />
+            <div>
+              <label className="text-xs text-[var(--muted-fg)]">Arredondamento</label>
+              <input
+                type="number"
+                min={0}
+                max={999}
+                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100"
+                value={node.data.borderRadius ?? 8}
+                onChange={(e) =>
+                  updateNodeData(node.id, { borderRadius: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+          </div>
+          {!isLink && (
+            <div>
+              <label className="text-xs text-[var(--muted-fg)]">Link opcional</label>
+              <input
+                type="url"
+                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100"
+                value={node.data.linkUrl ?? ""}
+                onChange={(e) => updateNodeData(node.id, { linkUrl: e.target.value || undefined })}
+                placeholder="https://…"
+              />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
+            Camada · #{layer}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" className="btn-ghost text-xs py-1.5" onClick={() => moveFreeNodeLayer(node.id, "front")}>
+              <ChevronUp size={12} className="inline mr-1" />
+              Frente
+            </button>
+            <button type="button" className="btn-ghost text-xs py-1.5" onClick={() => moveFreeNodeLayer(node.id, "back")}>
+              <ChevronDown size={12} className="inline mr-1" />
+              Fundo
+            </button>
+            <button type="button" className="btn-ghost text-xs py-1.5" onClick={() => moveFreeNodeLayer(node.id, "forward")}>
+              ↑ Acima
+            </button>
+            <button type="button" className="btn-ghost text-xs py-1.5" onClick={() => moveFreeNodeLayer(node.id, "backward")}>
+              ↓ Abaixo
+            </button>
+          </div>
+        </div>
+
+        {childCount > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
+              Elementos dentro ({childCount})
+            </p>
+            <ul className="space-y-1">
+              {nodes
+                .filter((n) => n.parentId === node.id)
+                .sort((a, b) => {
+                  const ao = isFreeData(a.data) ? freeLayerOrder(a.data, a.id) : 0;
+                  const bo = isFreeData(b.data) ? freeLayerOrder(b.data, b.id) : 0;
+                  return bo - ao;
+                })
+                .map((child) => (
+                  <li key={child.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-xs hover:border-[var(--accent)]/40"
+                      onClick={() => setSelectedNodeId(child.id)}
+                    >
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/60" />
+                      <span className="flex-1 truncate text-left text-slate-200">
+                        {isFreeData(child.data) ? child.data.label : child.id}
+                      </span>
+                      <span className="text-[var(--muted)]">
+                        {isFreeData(child.data) ? findFreeCatalog(child.data.kind)?.label : child.type}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+
         <p className="text-xs text-[var(--muted-fg)]">
           Tipo: <strong className="text-slate-200">{node.data.kind}</strong>
+          {" · "}
+          Segure <kbd className="rounded bg-white/10 px-1">Shift</kbd> ao redimensionar para manter proporção
         </p>
+
         <button
           type="button"
           className="btn-danger inline-flex w-full items-center justify-center gap-2"
@@ -599,6 +747,36 @@ function SelectField({
         options={options.map((o) => ({ value: o, label: optionLabel ? optionLabel(o) : o }))}
         onChange={onChange}
       />
+    </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-[var(--muted-fg)]">{label}</label>
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          type="color"
+          value={value.startsWith("#") ? value : "#1e293b"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-7 w-8 cursor-pointer rounded border border-[var(--border)] bg-transparent"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-xs text-slate-100"
+        />
+      </div>
     </div>
   );
 }

@@ -38,6 +38,7 @@ import KickoffPanel from "./KickoffPanel";
 import PropertiesPanel from "./PropertiesPanel";
 import ReviewPanel from "./ReviewPanel";
 import SettingsPanel from "./SettingsPanel";
+import FreeCanvasSettings from "./FreeCanvasSettings";
 import SimulationPanel from "./SimulationPanel";
 import DataArchitecturePanel from "./DataArchitecturePanel";
 import EventCatalogPanel from "./EventCatalogPanel";
@@ -73,6 +74,13 @@ const PRIMARY: TabItem[] = [
   { id: "analysis", label: "Análise", icon: Sparkles, hint: "Score e findings" },
   { id: "sim", label: "Simulação", icon: Zap, hint: "Carga e falhas" },
   { id: "governance", label: "Governança", icon: Shield, hint: "Policies e RACI" },
+];
+
+const FREE_TABS: TabItem[] = [
+  { id: "context", label: "Contexto", icon: FileText, hint: "Descrição do diagrama" },
+  { id: "props", label: "Props", icon: Wrench, hint: "Propriedades do elemento" },
+  { id: "history", label: "Histórico", icon: History, hint: "Undo / versões" },
+  { id: "settings", label: "Ajustes", icon: Settings2, hint: "Preferências do canvas" },
 ];
 
 const MORE: TabItem[] = [
@@ -119,14 +127,8 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
     [hideAnalysis],
   );
 
-  // Simplified tabs for free diagram mode
   const isFreeMode = hideAnalysis;
-  const simplifiedTabs = useMemo(
-    () => (isFreeMode
-      ? primaryTabs.filter((item) => ["context", "props", "history", "settings"].includes(item.id))
-      : primaryTabs),
-    [isFreeMode, primaryTabs],
-  );
+  const visibleTabs = isFreeMode ? FREE_TABS : primaryTabs;
 
   const filteredMore = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -158,10 +160,10 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
     >
       <div className="shrink-0 border-b border-[var(--border)] px-3 py-2.5">
         <p className="panel-section-title mb-2">Inspetor</p>
-        <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Painéis principais">
-          {simplifiedTabs.map((item) => {
+        <div className={`grid gap-2 ${isFreeMode ? "grid-cols-2" : "grid-cols-3"}`} role="tablist" aria-label="Painéis principais">
+          {visibleTabs.map((item) => {
             const Icon = item.icon;
-            const active = tab === item.id && !showMore;
+            const active = tab === item.id && (!isFreeMode ? !showMore : true);
             return (
               <Tooltip key={item.id} content={item.hint ?? item.label} side="bottom">
                 <button
@@ -181,6 +183,7 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
               </Tooltip>
             );
           })}
+          {!isFreeMode && (
           <button
             type="button"
             role="tab"
@@ -194,10 +197,11 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
           >
             Outros
           </button>
+          )}
         </div>
       </div>
 
-      {(showMore || activeInMore) && (
+      {(showMore || activeInMore) && !isFreeMode && (
         <div className="shrink-0 max-h-[38%] overflow-y-auto border-b border-[var(--border)] px-2 py-2">
           <div className="relative mb-2 px-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-fg)]" />
@@ -246,7 +250,7 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
       )}
 
       <div className="panel-body min-h-0 flex-1 overflow-y-auto">
-        {tab === "context" && <ContextPanel />}
+        {tab === "context" && <ContextPanel isFreeMode={isFreeMode} />}
         {tab === "kickoff" && <KickoffPanel />}
         {tab === "props" && <PropertiesPanel />}
         {tab === "arch" && <ArchitecturePanel />}
@@ -272,7 +276,7 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
         {tab === "adr" && <AdrPanel />}
         {tab === "review" && <ReviewPanel />}
         {tab === "history" && <HistoryPanel />}
-        {tab === "settings" && <SettingsPanel />}
+        {tab === "settings" && (isFreeMode ? <FreeCanvasSettings /> : <SettingsPanel />)}
       </div>
     </aside>
   );
