@@ -17,11 +17,7 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 function getInitialTheme(): Theme {
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("archia-theme");
-    if (stored === "light" || stored === "dark") return stored;
-    if (window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
-  }
+  // Default to dark to avoid hydration mismatch
   return "dark";
 }
 

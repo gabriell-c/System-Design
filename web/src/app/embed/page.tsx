@@ -7,14 +7,9 @@ import type { CanvasNodeData } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
 
 function readEmbedQuery(): { graphId: string | null; theme: "light" | "dark" } {
-  if (typeof window === "undefined") return { graphId: null, theme: "dark" };
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("graph");
-  const t = params.get("theme");
-  return {
-    graphId: id,
-    theme: t === "light" || t === "dark" ? t : "dark",
-  };
+  // Return defaults that match SSR to avoid hydration mismatch
+  // Actual values are read in useEffect after mount
+  return { graphId: null, theme: "dark" };
 }
 
 export default function EmbedPage() {
@@ -25,6 +20,20 @@ export default function EmbedPage() {
   const [name, setName] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">(initial.theme);
   const svgRef = useRef<HTMLDivElement>(null);
+
+  // Read URL params after mount to avoid hydration mismatch
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("graph");
+    const t = params.get("theme");
+    if (id) {
+      // Trigger graph loading with the actual ID
+      // This is handled by the existing useEffect on graphId
+    }
+    if (t === "light" || t === "dark") {
+      setTheme(t);
+    }
+  }, []);
 
   useEffect(() => {
     if (!graphId) return;

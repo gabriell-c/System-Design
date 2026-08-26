@@ -63,14 +63,8 @@ export default function SettingsPanel() {
   const [enabled, setEnabled] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
 
-  useEffect(() => {
-    try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAutoAnalyze(localStorage.getItem("archia-auto-analyze") === "1");
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  // Note: autoAnalyze state is managed via API, not localStorage
+  // to avoid hydration mismatch between server and client
 
   useEffect(() => {
     let alive = true;

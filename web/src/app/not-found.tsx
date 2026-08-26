@@ -6,13 +6,11 @@ import { useEffect, useState } from "react";
 
 export default function NotFoundPage() {
   const [countdown, setCountdown] = useState(10);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(true); // Default matches SSR
 
   useEffect(() => {
-    const root = document.documentElement;
-    const theme = localStorage.getItem("archia-theme");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsDark(theme !== "light");
+    // Theme is already applied by layout.tsx inline script before React hydrates
+    // No need to read localStorage here to avoid hydration mismatch
 
     const timer = setTimeout(() => {
       window.location.href = "/";
