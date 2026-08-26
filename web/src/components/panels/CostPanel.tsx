@@ -33,12 +33,12 @@ export default function CostPanel() {
   }, [graphId]);
 
   if (!graphId) {
-    return <p className="px-4 py-6 text-sm text-slate-500">Salve o diagrama para ver custos.</p>;
+    return <p className="px-4 py-6 text-sm text-[var(--muted)]">Salve o diagrama para ver custos.</p>;
   }
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-8 text-sm text-slate-400">
+      <div className="flex items-center gap-2 px-4 py-8 text-sm text-[var(--muted-fg)]">
         <Loader2 className="h-4 w-4 animate-spin" />
         Calculando custos…
       </div>
@@ -59,24 +59,24 @@ export default function CostPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Cost model</p>
-          <p className="mt-0.5 text-xs text-slate-400">{data.summary}</p>
+          <p className="mt-0.5 text-xs text-[var(--muted-fg)]">{data.summary}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-center">
-        <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+        <div className="rounded-lg border border-[var(--border)] bg-black/20 p-2">
           <p className="text-lg font-bold text-emerald-300">${data.total_usd_month}</p>
-          <p className="text-[10px] uppercase text-slate-500">Total / mês</p>
+          <p className="text-sm uppercase text-[var(--muted)]">Total / mês</p>
         </div>
-        <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+        <div className="rounded-lg border border-[var(--border)] bg-black/20 p-2">
           <p className="text-lg font-bold text-slate-300">{data.node_count}</p>
-          <p className="text-[10px] uppercase text-slate-500">Serviços</p>
+          <p className="text-sm uppercase text-[var(--muted)]">Serviços</p>
         </div>
       </div>
 
       {Object.keys(data.by_region).length > 0 && (
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Por região</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Por região</p>
           <ul className="mt-1 space-y-1 text-xs text-slate-300">
             {Object.entries(data.by_region).map(([region, usd]) => (
               <li key={region} className="flex justify-between">
@@ -89,10 +89,10 @@ export default function CostPanel() {
       )}
 
       <div>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Por serviço</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Por serviço</p>
         <ul className="mt-1 max-h-48 space-y-1 overflow-y-auto text-xs custom-scroll">
           {data.line_items.map((item) => (
-            <li key={item.node_id} className="flex justify-between gap-2 rounded border border-white/5 px-2 py-1">
+            <li key={item.node_id} className="flex justify-between gap-2 rounded border border-[var(--border)] px-2 py-1">
               <span className="truncate text-slate-300">{item.label}</span>
               <span className="shrink-0 tabular-nums text-emerald-300">${item.cost_usd_month}</span>
             </li>

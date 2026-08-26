@@ -61,7 +61,7 @@ export default function ExportMenu({ onDone }: Props) {
       if (kind === "json") {
         downloadJson(
           `${base}.graph.json`,
-          toExportPayload(name, nodes, edges, analysis, context, nfr),
+          await toExportPayload(name, nodes, edges, analysis, context, nfr),
         );
         pushUiNotice({ type: "success", text: "JSON exportado (reimportável)." });
       } else if (kind === "md") {
@@ -162,9 +162,9 @@ export default function ExportMenu({ onDone }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-1 w-60 rounded-xl border border-white/10 bg-[#121821] p-1 shadow-2xl"
+          className="absolute right-0 z-50 mt-1 w-60 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1 elev-4"
         >
-          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="px-3 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
             Baixar arquitetura
           </p>
           <ExportItem
@@ -275,7 +275,7 @@ function ExportItem({
       <span className="mt-0.5 text-slate-300">{icon}</span>
       <span>
         <span className="block text-sm text-slate-100">{label}</span>
-        <span className="block text-[11px] text-slate-500">{hint}</span>
+        <span className="block text-sm text-[var(--muted)]">{hint}</span>
       </span>
     </button>
   );

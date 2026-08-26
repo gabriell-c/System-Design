@@ -16,7 +16,21 @@ function isArchData(data: CanvasNodeData): data is ArchNodeData {
     data.kind !== "swimlane" &&
     data.kind !== "note" &&
     data.kind !== "cidr" &&
-    data.kind !== "tenant_boundary"
+    data.kind !== "tenant_boundary" &&
+    data.kind !== "free-rectangle" &&
+    data.kind !== "free-circle" &&
+    data.kind !== "free-oval" &&
+    data.kind !== "free-diamond" &&
+    data.kind !== "free-triangle" &&
+    data.kind !== "free-hexagon" &&
+    data.kind !== "free-octagon" &&
+    data.kind !== "free-arrow-right" &&
+    data.kind !== "free-arrow-double" &&
+    data.kind !== "free-check" &&
+    data.kind !== "free-x" &&
+    data.kind !== "free-plus" &&
+    data.kind !== "free-text" &&
+    data.kind !== "free-edit"
   );
 }
 
@@ -91,7 +105,9 @@ function blob(data: CanvasNodeData): string {
   if (data.kind === "tenant_boundary") {
     return `${data.label} ${data.tenantMode}`.toLowerCase();
   }
-  // Remaining union members are ArchNodeData
+  if (!isArchData(data)) {
+    return `${data.label} ${"text" in data ? data.text ?? "" : ""} ${data.kind}`.toLowerCase();
+  }
   const cfg = data.config || {};
   return `${data.label} ${data.tech} ${data.kind} ${data.catalogId} ${cfg.provider ?? ""} ${cfg.service ?? ""} ${cfg.capability ?? ""}`.toLowerCase();
 }

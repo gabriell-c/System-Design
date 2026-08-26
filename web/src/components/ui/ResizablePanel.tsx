@@ -76,7 +76,7 @@ export default function ResizablePanel({
     >
       {side === "right" && (
         <div
-          className="group flex w-2 shrink-0 cursor-col-resize items-center justify-center border-l border-white/5 bg-transparent hover:bg-cyan-500/10"
+          className="group flex w-2 shrink-0 cursor-col-resize items-center justify-center border-l border-[var(--border)] bg-transparent hover:bg-[var(--accent-muted)]"
           onMouseDown={(e) => {
             dragging.current = true;
             startX.current = e.clientX;
@@ -87,14 +87,14 @@ export default function ResizablePanel({
         >
           <GripVertical
             size={10}
-            className="text-slate-600 group-hover:text-cyan-400"
+            className="text-[var(--muted-fg)] group-hover:text-[var(--accent)]"
           />
         </div>
       )}
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
       {side === "left" && (
         <div
-          className="group flex w-2 shrink-0 cursor-col-resize items-center justify-center border-r border-white/5 bg-transparent hover:bg-cyan-500/10"
+          className="group flex w-2 shrink-0 cursor-col-resize items-center justify-center border-r border-[var(--border)] bg-transparent hover:bg-[var(--accent-muted)]"
           onMouseDown={(e) => {
             dragging.current = true;
             startX.current = e.clientX;
@@ -105,7 +105,7 @@ export default function ResizablePanel({
         >
           <GripVertical
             size={10}
-            className="text-slate-600 group-hover:text-cyan-400"
+            className="text-[var(--muted-fg)] group-hover:text-[var(--accent)]"
           />
         </div>
       )}

@@ -1,28 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
+  CloudOff,
   Ellipsis,
   FilePlus2,
   FolderOpen,
   GitCompareArrows,
   LayoutGrid,
-  Route,
+  LogOut,
   Maximize2,
   Redo2,
+  Route,
   Save,
-  CloudOff,
-  CheckCircle2,
   Sparkles,
   Trash2,
   Undo2,
   Upload,
-  FolderKanban,
+  UserRound,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ExportMenu from "@/components/layout/ExportMenu";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import CustomSelect from "@/components/ui/Select";
+import Tooltip from "@/components/ui/Tooltip";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { api } from "@/lib/api";
 import { parseImportPayload } from "@/lib/export";
@@ -34,12 +37,14 @@ type Props = {
   onAnalyze: () => void;
   onToggleFocus?: () => void;
   focusMode?: boolean;
+  hideAnalysis?: boolean;
 };
 
-export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
+export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalysis }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const router = useRouter();
   const { confirm, dialog } = useConfirmDialog();
 
   const name = useGraphStore((s) => s.name);
@@ -76,6 +81,10 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  const [syncStatus, setSyncStatus] = useState<"synced" | "saving" | "error" | "offline">("synced");
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -84,6 +93,25 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
     if (moreOpen) document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [moreOpen]);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    void import("@/hooks/useAutoSave").then(({ subscribeSyncStatus }) => {
+      unsub = subscribeSyncStatus(setSyncStatus);
+    });
+    return () => unsub?.();
+  }, []);
 
   async function save() {
     try {
@@ -104,7 +132,10 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
     } catch (err) {
       pushUiNotice({
         type: "error",
-        text: err instanceof Error ? err.message : "Falha ao salvar",
+        text:
+          err instanceof Error
+            ? `${err.message}. Verifique a conexão e tente novamente.`
+            : "Falha ao salvar o projeto. Verifique a conexão e tente novamente.",
       });
     }
   }
@@ -140,136 +171,178 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
   return (
     <>
       {dialog}
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-white/8 bg-[#0b1017] px-3">
-        <Link href="/" className="mr-1 shrink-0 text-sm font-semibold tracking-tight text-slate-100" title="Voltar aos projetos">
-          Archia
-        </Link>
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-1)] px-3">
+        <nav className="mr-1 hidden shrink-0 items-center gap-1.5 text-sm sm:flex" aria-label="Breadcrumb">
+          <Link href="/" className="font-semibold tracking-tight text-[var(--foreground)]" title="Voltar aos projetos">
+            Archia
+          </Link>
+          <span className="text-[var(--muted-fg)]">/</span>
+          <Link href="/" className="text-[var(--muted)] hover:text-[var(--foreground)]">
+            Projetos
+          </Link>
+          <span className="text-[var(--muted-fg)]">/</span>
+          <span className="max-w-[140px] truncate font-medium text-[var(--foreground)]" title={name || "Diagrama"}>
+            {name?.trim() || "Diagrama"}
+          </span>
+        </nav>
         <Link
           href="/"
-          className="hidden items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-white/5 hover:text-slate-200 sm:inline-flex"
+          className="mr-1 shrink-0 text-sm font-semibold tracking-tight text-[var(--foreground)] sm:hidden"
+          title="Voltar aos projetos"
         >
-          <FolderKanban className="h-3.5 w-3.5" />
-          Projetos
+          Archia
         </Link>
-        <input
-          aria-label="Nome da arquitetura"
-          className="min-w-[120px] max-w-[220px] flex-1 rounded-lg border border-white/10 bg-[#121821] px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-[var(--accent)]/50"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nome do desenho"
-        />
-        <span
-          className={`hidden items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex ${
-            dirty ? "bg-amber-500/15 text-amber-200" : "bg-emerald-500/15 text-emerald-200"
-          }`}
-        >
-          {dirty ? (
-            <>
-              <CloudOff className="h-3 w-3" />
-              não salvo
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-3 w-3" />
-              salvo
-            </>
-          )}
-        </span>
-
-        <div className="mx-0.5 hidden h-6 w-px bg-white/10 sm:block" />
-
-        <div
-          className="hidden items-center gap-0.5 rounded-lg border border-white/10 bg-[#121821] p-0.5 lg:flex"
-          role="group"
-          aria-label="Vista de arquitetura"
-          title="Alternar vistas AN/AD/AA/AI"
-        >
-          {ARCHITECTURE_VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className={`rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
-                architectureView === v.id
-                  ? "bg-cyan-500/20 text-cyan-200"
-                  : "text-slate-500 hover:text-slate-200"
-              }`}
-              aria-pressed={architectureView === v.id}
-              onClick={() => setArchitectureView(v.id as ArchitectureView)}
-              title={v.label}
-            >
-              {v.short}
-            </button>
-          ))}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <label htmlFor="topbar-graph-name" className="sr-only">
+            Nome do diagrama
+          </label>
+          <input
+            id="topbar-graph-name"
+            aria-label="Nome da arquitetura"
+            className="min-w-[120px] max-w-[220px] w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome do desenho"
+          />
         </div>
+        <Tooltip content={dirty ? "Alterações pendentes" : "Tudo salvo"}>
+          <span
+            className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-medium sm:inline-flex ${
+              dirty
+                ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
+                : "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
+            }`}
+          >
+            {dirty ? (
+              <>
+                <CloudOff className="h-3.5 w-3.5" />
+                não salvo
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                salvo
+              </>
+            )}
+          </span>
+        </Tooltip>
+        {!isOnline || syncStatus === "offline" || syncStatus === "error" ? (
+          <Tooltip
+            content={
+              !isOnline || syncStatus === "offline"
+                ? "Offline — rascunho salvo localmente"
+                : "Falha ao sincronizar com o servidor"
+            }
+          >
+            <span className="hidden items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 text-[12px] font-medium text-rose-100 sm:inline-flex">
+              <CloudOff className="h-3.5 w-3.5" />
+              {!isOnline || syncStatus === "offline" ? "offline" : "sync erro"}
+            </span>
+          </Tooltip>
+        ) : syncStatus === "saving" ? (
+          <span className="hidden text-[12px] text-[var(--muted)] sm:inline">salvando…</span>
+        ) : null}
 
-        <div className="flex items-center gap-0.5" aria-label="Desfazer e refazer">
-          <button
-            type="button"
-            className="btn-ghost px-2"
-            title="Desfazer (Ctrl+Z)"
-            disabled={past.length === 0}
-            onClick={() => undo()}
-          >
-            <Undo2 size={14} />
-          </button>
-          <button
-            type="button"
-            className="btn-ghost px-2"
-            title="Refazer (Shift+Z)"
-            disabled={future.length === 0}
-            onClick={() => redo()}
-          >
-            <Redo2 size={14} />
-          </button>
+        <div className="mx-0.5 hidden h-6 w-px bg-[var(--border-strong)] sm:block" />
+
+        <div className="flex items-center gap-2" aria-label="Desfazer e refazer">
+          <Tooltip content="Desfazer">
+            <button
+              type="button"
+              className="btn-ghost px-2"
+              disabled={past.length === 0}
+              onClick={() => undo()}
+              aria-label="Desfazer"
+            >
+              <Undo2 size={15} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Refazer">
+            <button
+              type="button"
+              className="btn-ghost px-2"
+              disabled={future.length === 0}
+              onClick={() => redo()}
+              aria-label="Refazer"
+            >
+              <Redo2 size={15} />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
           {onToggleFocus && (
+            <Tooltip content="Tela cheia (F)">
+              <button
+                type="button"
+                className="btn-ghost inline-flex items-center gap-1.5"
+                onClick={onToggleFocus}
+                aria-pressed={focusMode}
+                aria-label="Tela cheia"
+              >
+                <Maximize2 size={15} />
+                <span className="hidden md:inline">Tela cheia</span>
+              </button>
+            </Tooltip>
+          )}
+          <ExportMenu />
+          <Tooltip content="Salvar projeto agora">
             <button
               type="button"
               className="btn-ghost inline-flex items-center gap-1.5"
-              onClick={onToggleFocus}
-              title="Tela cheia do canvas (F) — esconde barras laterais e topo"
-              aria-pressed={focusMode}
+              onClick={() => void save()}
+              aria-label="Salvar projeto"
             >
-              <Maximize2 size={14} />
-              <span className="hidden md:inline">Tela cheia</span>
+              <Save size={15} />
+              <span className="hidden md:inline">Salvar projeto</span>
             </button>
-          )}
-          <ExportMenu />
-          <ThemeToggle />
-          <button type="button" className="btn-ghost inline-flex items-center gap-1.5" onClick={() => void save()}>
-            <Save size={14} />
-            <span className="hidden md:inline">Salvar</span>
-          </button>
-          <button
-            type="button"
-            className="btn-primary inline-flex items-center gap-1.5"
-            onClick={onAnalyze}
-            disabled={analyzing || nodes.length === 0}
-            title={nodes.length === 0 ? "Adicione blocos/cards antes" : "Avaliar se a arquitetura faz sentido"}
-          >
-            <Sparkles size={14} />
-            {analyzing ? "Analisando…" : "Analisar"}
-          </button>
+          </Tooltip>
+          <Tooltip content={nodes.length === 0 ? "Adicione blocos antes" : "Analisar arquitetura"}>
+            {!hideAnalysis && (
+              <button
+                type="button"
+                className="btn-primary inline-flex items-center gap-1.5"
+                onClick={onAnalyze}
+                disabled={analyzing || nodes.length === 0}
+              >
+                <Sparkles size={15} />
+                {analyzing ? "Analisando…" : "Analisar arquitetura"}
+              </button>
+            )}
+          </Tooltip>
 
-          <div className="ml-2 flex items-center gap-2">
-            <Link href="/profile" className="text-xs text-slate-400 hover:text-white transition-colors hidden md:inline">
-              {user?.username ?? "User"}
-            </Link>
+          <div className="ml-2 flex items-center gap-1.5">
+            <Tooltip content="Meu perfil">
+              <Link
+                href="/profile"
+                className="hidden items-center gap-2 rounded-lg px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:bg-white/5 hover:text-[var(--foreground)] md:inline-flex"
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                {user?.username ?? "User"}
+              </Link>
+            </Tooltip>
             {user?.role === "senior" && (
-              <Link href="/admin/users" className="text-xs text-purple-400 hover:text-purple-300 transition-colors hidden md:inline">
+              <Link
+                href="/admin/users"
+                className="hidden text-xs text-violet-300 transition-colors hover:text-violet-200 md:inline"
+              >
                 Admin
               </Link>
             )}
-            <button
-              type="button"
-              className="btn-ghost px-2 text-xs text-slate-400 hover:text-red-400"
-              onClick={() => { logout(); window.location.href = "/login"; }}
-              title="Logout"
-            >
-              Sair
-            </button>
+            <Tooltip content="Sair da conta">
+              <button
+                type="button"
+                className="btn-ghost inline-flex items-center gap-2 px-2 text-xs text-[var(--muted)] hover:text-rose-300"
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
+                aria-label="Sair da conta"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Sair da conta</span>
+              </button>
+            </Tooltip>
           </div>
 
           <div className="relative" ref={moreRef}>
@@ -286,10 +359,37 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
             {moreOpen && (
               <div
                 role="menu"
-                className="absolute right-0 z-50 mt-1 w-56 rounded-xl border border-white/10 bg-[#121821] p-1 shadow-2xl"
+                className="absolute right-0 z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1 elev-4"
               >
-                <div className="border-b border-white/8 px-2 py-2">
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Perfil de revisão</p>
+                <div className="border-b border-[var(--border)] px-2 py-2">
+                  {!hideAnalysis && (
+                    <>
+                      <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Vista</p>
+                      <div className="flex flex-wrap gap-2">
+                        {ARCHITECTURE_VIEWS.map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            className={`rounded-md px-2 py-1 text-[12px] font-semibold uppercase ${
+                              architectureView === v.id
+                                ? "bg-[var(--accent-muted)] text-indigo-200"
+                                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                            }`}
+                            onClick={() => setArchitectureView(v.id as ArchitectureView)}
+                          >
+                            {v.short}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="border-b border-[var(--border)] px-2 py-2">
+                  <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Tema</p>
+                  <ThemeToggle />
+                </div>
+                <div className="border-b border-[var(--border)] px-2 py-2">
+                  <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Perfil de revisão</p>
                   <CustomSelect
                     value={userRole}
                     options={[
@@ -377,13 +477,16 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode }: Props) {
             event.target.value = "";
             if (!file) return;
             try {
-              const parsed = parseImportPayload(JSON.parse(await file.text()));
+              const parsed = await parseImportPayload(JSON.parse(await file.text()));
               loadSnapshot(parsed.name, parsed.nodes, parsed.edges, parsed.analysis, parsed.context, parsed.nfr);
               pushUiNotice({ type: "success", text: "Arquitetura importada." });
             } catch (err) {
               pushUiNotice({
                 type: "error",
-                text: err instanceof Error ? err.message : "JSON inválido",
+                text:
+                  err instanceof Error
+                    ? `${err.message}. Verifique se o arquivo é um JSON exportado pelo Archia.`
+                    : "JSON inválido. Use um arquivo exportado pelo Archia e tente novamente.",
               });
             }
           }}

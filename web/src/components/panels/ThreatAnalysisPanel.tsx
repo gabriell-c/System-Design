@@ -1,8 +1,9 @@
 "use client";
 
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
 import { useGraphStore } from "@/lib/graph-store";
 import type { Finding } from "@/lib/types";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 function severityClass(severity: string): string {
   if (severity === "critical") return "border-rose-500/40 bg-rose-500/10 text-rose-100";
@@ -14,9 +15,9 @@ function FindingItem({ finding }: { finding: Finding }) {
   return (
     <li className={`rounded-lg border p-2.5 ${severityClass(finding.severity)}`}>
       <p className="text-xs font-medium">{finding.title}</p>
-      <p className="mt-1 text-[11px] opacity-90">{finding.detail}</p>
+      <p className="mt-1 text-sm opacity-90">{finding.detail}</p>
       {finding.metric && (
-        <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+        <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-black/20 px-2 py-0.5 text-sm uppercase tracking-wide">
           {finding.metric.label}: {finding.metric.value}
           {finding.metric.unit ? ` ${finding.metric.unit}` : ""}
           <span className="rounded bg-white/10 px-1">estimativa</span>
@@ -32,9 +33,11 @@ export default function ThreatAnalysisPanel() {
 
   if (!analysis) {
     return (
-      <div className="space-y-3 px-4 py-4">
-        <p className="text-sm text-slate-400">Jalankan analisis untuk melihat ancaman.</p>
-      </div>
+      <PanelEmpty
+        icon={Sparkles}
+        title="Ainda sem análise"
+        description="Execute a análise para ver ameaças STRIDE e LINDDUN."
+      />
     );
   }
 
@@ -49,27 +52,25 @@ export default function ThreatAnalysisPanel() {
           <ShieldAlert size={16} />
         </span>
         <div>
-          <p className="text-sm font-semibold text-slate-100">Threat Analysis (STRIDE + LINDDUN)</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-            Analisis ancaman keamanan arsitektur Anda.
+          <p className="text-sm font-semibold text-slate-100">Análise de ameaças (STRIDE + LINDDUN)</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
+            Ameaças de segurança e privacidade detectadas na arquitetura.
           </p>
         </div>
       </div>
 
       {threatFindings.length === 0 ? (
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={14} className="text-emerald-400" />
-            <p className="text-sm text-emerald-300">Tidak ada ancaman teridentifikasi</p>
-          </div>
-          <p className="mt-1 text-xs text-emerald-200/70">Arsitektur Anda terlihat aman dari ancaman yang dideteksi.</p>
-        </div>
+        <PanelEmpty
+          icon={ShieldCheck}
+          title="Nenhuma ameaça identificada"
+          description="A arquitetura não apresenta ameaças detectáveis pelos checks atuais."
+        />
       ) : (
         <>
           {critical.length > 0 && (
             <section>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-rose-300">
-                Critical Threats ({critical.length})
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-rose-300">
+                Ameaças críticas ({critical.length})
               </h3>
               <ul className="space-y-2">
                 {critical.map((f, i) => (
@@ -80,8 +81,8 @@ export default function ThreatAnalysisPanel() {
           )}
           {warnings.length > 0 && (
             <section>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
-                Warnings ({warnings.length})
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-300">
+                Alertas ({warnings.length})
               </h3>
               <ul className="space-y-2">
                 {warnings.map((f, i) => (
@@ -92,8 +93,8 @@ export default function ThreatAnalysisPanel() {
           )}
           {info.length > 0 && (
             <section>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-sky-300">
-                Info ({info.length})
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-300">
+                Informações ({info.length})
               </h3>
               <ul className="space-y-2">
                 {info.map((f, i) => (

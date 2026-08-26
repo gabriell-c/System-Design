@@ -16,6 +16,7 @@ import { Boxes, Keyboard, MousePointerClick, Share2, Unlink2 } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
+import FreeNode from "@/components/nodes/FreeNode";
 import SagaNode from "@/components/nodes/SagaNode";
 import CircuitBreakerNode from "@/components/nodes/CircuitBreakerNode";
 import SecurityGroupNode from "@/components/nodes/SecurityGroupNode";
@@ -39,7 +40,6 @@ import { computeSnap, type GuideLine } from "@/lib/snap";
 import type { CanvasNodeData, NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
 import { ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
-import { FLOW_KIND_META } from "@/lib/edges";
 import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
 import CanvasComments from "@/components/canvas/CanvasComments";
 import LineageView from "@/components/canvas/LineageView";
@@ -49,6 +49,7 @@ const nodeTypes: NodeTypes = {
   arch: ArchNode,
   block: BlockNode,
   zone: ZoneNode,
+  free: FreeNode,
   saga: SagaNode,
   circuitBreaker: CircuitBreakerNode,
   securityGroup: SecurityGroupNode,
@@ -93,6 +94,7 @@ function CanvasInner() {
   const undo = useGraphStore((s) => s.undo);
   const redo = useGraphStore((s) => s.redo);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
+  const loadSnapshot = useGraphStore((s) => s.loadSnapshot);
   const blastHighlightEdgeIds = useGraphStore((s) => s.blastHighlightEdgeIds);
   const reconcileOrphanCards = useGraphStore((s) => s.reconcileOrphanCards);
   const diagramKind = useGraphStore((s) => s.diagramKind);
@@ -145,7 +147,7 @@ function CanvasInner() {
   const orderedNodes = useMemo(() => {
     const containers = nodes.filter((n) => isContainerNode(n));
     const rest = nodes.filter((n) => !isContainerNode(n));
-    // parents before children for React Flow nesting
+    // Sort containers by depth (deepest first so children render under their parent)
     const depth = (n: (typeof nodes)[0]) => {
       let d = 0;
       let p = n.parentId;
@@ -155,7 +157,7 @@ function CanvasInner() {
       }
       return d;
     };
-    containers.sort((a, b) => depth(a) - depth(b));
+    containers.sort((a, b) => depth(b) - depth(a));
     return [...containers, ...rest];
   }, [nodes]);
 
@@ -205,6 +207,35 @@ function CanvasInner() {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+
+      const files = event.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith(".json") || file.type === "application/json") {
+          void (async () => {
+            try {
+              const { parseImportPayload } = await import("@/lib/export");
+              const parsed = await parseImportPayload(JSON.parse(await file.text()));
+              loadSnapshot(
+                parsed.name,
+                parsed.nodes,
+                parsed.edges,
+                parsed.analysis,
+                parsed.context,
+                parsed.nfr,
+              );
+              pushUiNotice({ type: "success", text: `Arquivo "${file.name}" importado.` });
+            } catch (err) {
+              pushUiNotice({
+                type: "error",
+                text: err instanceof Error ? err.message : "Falha ao importar arquivo.",
+              });
+            }
+          })();
+          return;
+        }
+      }
+
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
       const zoneKind = event.dataTransfer.getData("application/system-design-zone") as ZoneKind | "";
@@ -248,7 +279,7 @@ function CanvasInner() {
 
       addCatalogNode(catalogId, { x: position.x - 100, y: position.y - 30 });
     },
-    [addBlock, addCatalogNode, addSwimlane, addZone, nodes, screenToFlowPosition],
+    [addBlock, addCatalogNode, addSwimlane, addZone, loadSnapshot, nodes, pushUiNotice, screenToFlowPosition],
   );
 
   function startWithZone(kind: ZoneKind) {
@@ -267,58 +298,46 @@ function CanvasInner() {
     });
   }
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOnboarding(localStorage.getItem("archia-onboarded") !== "1");
+    } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOnboarding(true);
+    }
+  }, []);
+
   return (
     <div className="relative h-full w-full" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
-      {nodes.length === 0 && (
+      {nodes.length === 0 && showOnboarding && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
-          <div className="pointer-events-auto max-w-lg rounded-2xl border border-white/10 bg-[#0d1219]/95 p-6 shadow-2xl backdrop-blur">
-            <p className="text-center text-lg font-semibold text-slate-50">Comece em 3 passos</p>
-            <ol className="mt-4 space-y-3 text-sm text-slate-300">
-              <li className="flex gap-3">
-                <Boxes className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
-                <span>
-                  <strong className="text-slate-100">1. Zona</strong> — Region / VPC / AZ / Plane (arquitetura real).
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
-                <span>
-                  <strong className="text-slate-100">2. Serviços</strong> — cards multi-cloud dentro das zonas.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <Share2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                <span>
-                  <strong className="text-slate-100">3. Fluxos</strong> — ligações tipadas (sync/async) com número.
-                </span>
-              </li>
-            </ol>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              {(["region", "vpc", "plane", "security_boundary"] as ZoneKind[]).map((kind) => (
+          <div className="pointer-events-auto max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-1)]/95 p-6 elev-4 backdrop-blur text-center">
+            <p className="text-base font-semibold text-[var(--foreground)]">Comece desenhando sua primeira arquitetura</p>
+            <p className="mt-1 prose-measure mx-auto text-sm leading-relaxed text-[var(--muted)]">
+              Selecione um componente à esquerda ou clique para começar rápido
+            </p>
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {[
+                { kind: "region" as const, label: ZONE_META["region"].short, isZone: true as const },
+                { kind: "vpc" as const, label: ZONE_META["vpc"].short, isZone: true as const },
+                { kind: "frontend" as const, label: "Frontend", isZone: false as const },
+                { kind: "backend" as const, label: "Backend", isZone: false as const },
+              ].map((item) => (
                 <button
-                  key={kind}
+                  key={item.kind}
                   type="button"
-                  className="btn-ghost flex items-center justify-center gap-1.5 py-2"
-                  onClick={() => startWithZone(kind)}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--foreground)]"
+                  onClick={() => item.isZone ? startWithZone(item.kind as ZoneKind) : startWith(item.kind as NodeKind)}
                 >
-                  {ZONE_META[kind].short}
+                  {item.label}
                 </button>
               ))}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(["frontend", "backend", "database", "cloud"] as NodeKind[]).map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className="btn-ghost flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-slate-400"
-                  onClick={() => startWith(kind)}
-                >
-                  Bloco {KIND_META[kind].label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-[11px] text-slate-500">
-              Ou abra <strong className="text-slate-400">Contexto</strong> e escolha um template (MVP, SaaS, Marketplace…).
+            <p className="mt-3 text-sm text-[var(--muted-fg)]">
+              Abra o painel de Contexto e escolha um template (MVP, SaaS, Marketplace…)
             </p>
           </div>
         </div>
@@ -344,7 +363,7 @@ function CanvasInner() {
         <div className="pointer-events-auto">
           <button
             type="button"
-            className="btn-ghost inline-flex items-center gap-1.5 bg-[#0d1219]/90 text-[11px] backdrop-blur"
+            className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur"
             onClick={() => setHintsOpen((v) => !v)}
             aria-expanded={hintsOpen}
           >
@@ -352,7 +371,7 @@ function CanvasInner() {
             Atalhos
           </button>
           {hintsOpen && (
-            <ul className="mt-2 max-w-xs space-y-1.5 rounded-xl border border-white/10 bg-[#0d1219]/95 p-3 text-[11px] text-slate-300 shadow-xl backdrop-blur">
+            <ul className="mt-2 max-w-xs space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 p-3 text-sm text-slate-300 elev-3 backdrop-blur">
               <li className="flex gap-2">
                 <Unlink2 size={12} className="mt-0.5 shrink-0 text-amber-300" />
                 Duplo clique no ponto ou na linha remove a ligação
@@ -376,35 +395,11 @@ function CanvasInner() {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10">
-        <div className="pointer-events-none rounded-xl border border-white/10 bg-[#0d1219]/90 px-3 py-2 text-[10px] text-slate-400 backdrop-blur">
-          <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Fluxos</p>
-          <ul className="space-y-1">
-            {(Object.keys(FLOW_KIND_META) as (keyof typeof FLOW_KIND_META)[]).map((k) => (
-              <li key={k} className="flex items-center gap-2">
-                <span
-                  className="inline-block h-0.5 w-6"
-                  style={{
-                    background: FLOW_KIND_META[k].stroke,
-                    borderTop: FLOW_KIND_META[k].dash ? `1px dashed ${FLOW_KIND_META[k].stroke}` : undefined,
-                  }}
-                />
-                {FLOW_KIND_META[k].label}
-              </li>
-            ))}
-          </ul>
-        </div>
-        {/* P2.1.1 — badge de escala */}
-        <div className="pointer-events-none mt-1 rounded-xl border border-white/10 bg-[#0d1219]/90 px-2 py-1.5 text-[10px] text-slate-500 backdrop-blur">
-          <span className={nodes.length >= 500 ? "text-amber-400" : nodes.length >= 150 ? "text-cyan-400" : ""}>
-            {nodes.length} nós · {_lod.snapEnabled ? "snap" : "no-snap"}
-          </span>
-          {/* P2.1.3 — zoom semântico LOD */}
-          <span className="ml-2 text-slate-600">·</span>
-          <span className="ml-1">
-            {zoomLevel < 0.3 ? "zoom-out" : zoomLevel < 0.8 ? "subsystem" : zoomLevel < 1.3 ? "service" : "resource"}
-          </span>
-        </div>
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
+        <DiagramLegend variant="floating" />
+        <span className="text-sm tabular-nums text-[var(--muted-fg)]">
+          {nodes.length} nós · {zoomLevel < 0.3 ? "zoom-out" : zoomLevel < 0.8 ? "subsystem" : zoomLevel < 1.3 ? "service" : "resource"}
+        </span>
       </div>
 
       {/* Alignment guidelines */}
@@ -516,9 +511,9 @@ function CanvasInner() {
         {!sequenceMode && (
           <>
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
-            <Controls className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#121821] !shadow-none" />
+            <Controls className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-2)] !shadow-none" />
             <MiniMap
-              className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0d1219]"
+              className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
               maskColor="rgba(2,6,23,0.75)"
               nodeColor={(node) =>
                 node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : "#475569"

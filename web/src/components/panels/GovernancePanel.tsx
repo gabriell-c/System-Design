@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shield, Users } from "lucide-react";
+import { Shield, Users, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 import { useProjectStore } from "@/lib/project-store";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 type RaciRow = {
   component: string;
@@ -79,9 +80,9 @@ export default function GovernancePanel() {
           <Users size={16} className="text-violet-300" />
           Matriz RACI
         </p>
-        <div className="mt-2 overflow-x-auto rounded-lg border border-white/10">
-          <table className="w-full min-w-[480px] text-[10px]">
-            <thead className="bg-white/5 text-slate-400">
+        <div className="mt-2 overflow-x-auto rounded-lg border border-[var(--border)]">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead className="bg-white/5 text-[var(--muted-fg)]">
               <tr>
                 <th className="px-2 py-1 text-left">Componente</th>
                 <th className="px-2 py-1">A</th>
@@ -92,7 +93,7 @@ export default function GovernancePanel() {
             </thead>
             <tbody>
               {(raci?.rows ?? []).slice(0, 12).map((row) => (
-                <tr key={row.component} className="border-t border-white/5 text-slate-300">
+                <tr key={row.component} className="border-t border-[var(--border)] text-slate-300">
                   <td className="px-2 py-1">{row.component}</td>
                   <td className="px-2 py-1 text-center">{row.accountable}</td>
                   <td className="px-2 py-1 text-center">{row.responsible}</td>
@@ -111,13 +112,17 @@ export default function GovernancePanel() {
           Policy as code
         </p>
         {policies.length === 0 ? (
-          <p className="mt-1 text-xs text-emerald-400">Nenhuma violação de política detectada.</p>
+          <PanelEmpty
+            icon={ShieldCheck}
+            title="Nenhuma violação de política"
+            description="Nenhuma regra de policy as code foi violada neste grafo."
+          />
         ) : (
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-2 space-y-2">
             {policies.map((f, i) => (
-              <li key={`${f.policy_id}-${i}`} className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-xs text-rose-100">
-                <span className="font-mono text-[10px] text-rose-300">{f.policy_id}</span> · {f.title}
-                <p className="text-slate-400">{f.detail}</p>
+              <li key={`${f.policy_id}-${i}`} className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-2 text-xs text-rose-100">
+                <span className="font-mono text-sm text-rose-300">{f.policy_id}</span> · {f.title}
+                <p className="text-[var(--muted-fg)]">{f.detail}</p>
               </li>
             ))}
           </ul>

@@ -50,3 +50,5 @@ services:
 
 volumes:
   archia_pg:
+    name: system_design_archia_pg
+    external: false

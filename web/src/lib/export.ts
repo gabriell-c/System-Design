@@ -56,17 +56,32 @@ export type GraphExport = {
   nodes: Node<CanvasNodeData>[];
   edges: Edge[];
   analysis?: AnalysisResult | null;
+  /** SHA-256 hex of canonical payload (excluding this field). Optional for legacy files. */
+  checksum?: string;
 };
 
-export function toExportPayload(
+/** Stable JSON for hashing — sorted keys, no checksum field. */
+export function canonicalExportPayload(payload: Omit<GraphExport, "checksum">): string {
+  return JSON.stringify(payload, Object.keys(payload).sort());
+}
+
+export async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function toExportPayload(
   name: string,
   nodes: Node<CanvasNodeData>[],
   edges: Edge[],
   analysis?: AnalysisResult | null,
   context?: string,
   nfr?: ProjectNfr | null,
-): GraphExport {
-  return {
+): Promise<GraphExport> {
+  const base: Omit<GraphExport, "checksum"> = {
     format: "system-design-saas.graph",
     version: 1,
     name: name.trim() || "Arquitetura sem nome",
@@ -77,9 +92,11 @@ export function toExportPayload(
     edges,
     analysis: analysis ?? null,
   };
+  const checksum = await sha256Hex(canonicalExportPayload(base));
+  return { ...base, checksum };
 }
 
-export function parseImportPayload(raw: unknown): GraphExport {
+export async function parseImportPayload(raw: unknown): Promise<GraphExport> {
   if (!raw || typeof raw !== "object") {
     throw new Error("Arquivo inválido: JSON esperado.");
   }
@@ -90,7 +107,7 @@ export function parseImportPayload(raw: unknown): GraphExport {
   if (!Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
     throw new Error("Export sem nodes/edges.");
   }
-  return {
+  const parsed: GraphExport = {
     format: "system-design-saas.graph",
     version: 1,
     name: typeof data.name === "string" ? data.name : "Importado",
@@ -101,6 +118,14 @@ export function parseImportPayload(raw: unknown): GraphExport {
     edges: data.edges as Edge[],
     analysis: data.analysis ?? null,
   };
+  if (typeof data.checksum === "string" && data.checksum.length > 0) {
+    const expected = await sha256Hex(canonicalExportPayload(parsed));
+    if (expected !== data.checksum) {
+      throw new Error("Arquivo corrompido: checksum não corresponde.");
+    }
+    parsed.checksum = data.checksum;
+  }
+  return parsed;
 }
 
 export function slugifyFilename(value: string): string {
@@ -313,6 +338,13 @@ export function toArchitectureMarkdown(
         if (!isArchData(card.data)) continue;
         const bits = [card.data.tech, card.data.catalogId].filter(Boolean);
         lines.push(`- **${card.data.label}**${bits.length ? ` (\`${bits.join(" · ")}\`)` : ""}`);
+        if (card.data.notes?.trim()) {
+          const plain = card.data.notes
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (plain) lines.push(`  - Notas: ${plain}`);
+        }
       }
       lines.push("");
     }

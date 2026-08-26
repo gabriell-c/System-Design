@@ -22,7 +22,7 @@ export default function CidrNode({ id, data, selected }: NodeProps<Node<CidrNode
         <Network size={14} className="text-teal-300" />
         <div>
           <p className="text-xs font-semibold text-teal-100">{data.label}</p>
-          <p className="font-mono text-[11px] text-teal-300/90">{cidr}</p>
+          <p className="font-mono text-sm text-teal-300/90">{cidr}</p>
         </div>
       </div>
     </article>

@@ -4,6 +4,7 @@ import { Shield, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { TeamAccess } from "@/lib/types";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 interface Props {
   graphId: string;
@@ -41,24 +42,24 @@ export default function AccessPanel({ graphId }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex items-center gap-2 panel-section-title">
         <Shield size={12} className="text-amber-400" />
         Acesso por squad
       </div>
-      <p className="text-[10px] text-slate-500">
+      <p className="panel-hint">
         Controle quais squads podem ver ou editar este diagrama.
       </p>
 
       <div className="space-y-2">
         {access.map((a) => (
-          <div key={a.team} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <div key={a.team} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2">
             <div className="flex items-center gap-2">
-              <Users size={11} className="text-slate-400" />
-              <span className="text-[11px] text-slate-200">{a.team}</span>
+              <Users size={11} className="text-[var(--muted-fg)]" />
+              <span className="text-sm text-slate-200">{a.team}</span>
               <span
-                className={`rounded px-1.5 py-0.5 text-[9px] font-semibold ${
+                className={`rounded px-2 py-0.5 text-sm font-semibold ${
                   a.role === "admin" ? "bg-violet-500/20 text-violet-200" :
-                  a.role === "write" ? "bg-cyan-500/20 text-cyan-200" :
+                  a.role === "write" ? "bg-[var(--accent-muted)] text-indigo-200" :
                   "bg-slate-500/20 text-slate-300"
                 }`}
               >
@@ -67,7 +68,7 @@ export default function AccessPanel({ graphId }: Props) {
             </div>
             <button
               type="button"
-              className="text-slate-500 hover:text-rose-400"
+              className="text-[var(--muted)] hover:text-rose-400"
               onClick={() => handleDelete(a.team)}
               title="Remover acesso"
             >
@@ -76,21 +77,25 @@ export default function AccessPanel({ graphId }: Props) {
           </div>
         ))}
         {access.length === 0 && (
-          <p className="text-[10px] text-slate-600">Nenhum squad configurado. O proprietário original mantém acesso total.</p>
+          <PanelEmpty
+            icon={Users}
+            title="Nenhum squad ainda"
+            description="O proprietário mantém acesso total. Adicione squads abaixo."
+          />
         )}
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2">
+      <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-2">
         <input
-          className="w-full rounded-md border border-white/10 bg-[#0d1219] px-2 py-1.5 text-[11px] text-slate-100 outline-none placeholder:text-slate-600"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)]"
           placeholder="Nome do squad (ex: ads-team)"
           value={team}
           onChange={(e) => setTeam(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <select
-            className="flex-1 rounded-md border border-white/10 bg-[#0d1219] px-2 py-1.5 text-[11px] text-slate-200"
+            className="flex-1 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-sm text-slate-200"
             value={role}
             onChange={(e) => setRole(e.target.value as "read" | "write" | "admin")}
           >
@@ -100,7 +105,7 @@ export default function AccessPanel({ graphId }: Props) {
           </select>
           <button
             type="button"
-            className="rounded-md bg-cyan-600/80 px-3 py-1.5 text-[11px] text-white hover:bg-cyan-500 disabled:opacity-50"
+            className="rounded-md bg-[var(--accent)]/80 px-3 py-2 text-sm text-white hover:bg-[var(--accent)] disabled:opacity-50"
             onClick={handleAdd}
             disabled={loading || !team.trim()}
           >

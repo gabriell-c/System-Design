@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { GitBranch, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 /**
  * P1.1.7 — Visual lineage graph rendered as an overlay on the canvas.
@@ -47,17 +48,17 @@ export default function LineageView() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDismissed(true)}>
       <div
-        className="w-full max-w-3xl rounded-2xl border border-white/15 bg-[#0d1219] p-5 shadow-2xl"
+        className="w-full max-w-3xl rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-1)] p-5 elev-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-100">Lineage visual</p>
-            <p className="text-xs text-slate-500">Fluxos de dados detectados no diagrama</p>
+            <p className="text-xs text-[var(--muted)]">Fluxos de dados detectados no diagrama</p>
           </div>
           <button
             type="button"
-            className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-slate-300 hover:border-cyan-400/40"
+            className="rounded-md border border-[var(--border-strong)] bg-black/40 px-2 py-1 text-xs text-slate-300 hover:border-[var(--accent)]/40"
             onClick={() => setDismissed(true)}
           >
             <X size={14} />
@@ -67,40 +68,44 @@ export default function LineageView() {
         {error ? (
           <p className="mt-4 text-sm text-rose-300">{error}</p>
         ) : data?.lineage_edges.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">
-            Nenhum fluxo de dados detectado. Adicione arestas com flowKind=data ou preencha o lineage no Contexto.
-          </p>
+          <div className="mt-4">
+            <PanelEmpty
+              icon={GitBranch}
+              title="Nenhum fluxo de dados"
+              description="Adicione arestas com flowKind=data ou preencha o lineage no Contexto."
+            />
+          </div>
         ) : (
           <div className="mt-4 space-y-3">
             {data?.lineage_edges.map((edge, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs"
+                className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-black/30 px-3 py-2 text-xs"
               >
-                <span className="min-w-[120px] truncate text-cyan-200">{edge.source_label}</span>
-                <span className="text-slate-500">→</span>
+                <span className="min-w-[120px] truncate text-indigo-200">{edge.source_label}</span>
+                <span className="text-[var(--muted)]">→</span>
                 {edge.transform && (
-                  <span className="rounded bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-200">
+                  <span className="rounded bg-violet-500/20 px-2 py-0.5 text-sm text-violet-200">
                     {edge.transform}
                   </span>
                 )}
-                <span className="text-slate-500">→</span>
+                <span className="text-[var(--muted)]">→</span>
                 <span className="min-w-[120px] truncate text-emerald-200">{edge.target_label}</span>
                 {edge.origin === "nfr" && (
-                  <span className="ml-auto text-[10px] text-slate-600">NFR</span>
+                  <span className="ml-auto text-sm text-[var(--muted-fg)]">NFR</span>
                 )}
               </div>
             ))}
             {data?.entities.length ? (
-              <div className="mt-3 rounded-lg border border-white/8 bg-black/20 p-2">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              <div className="mt-3 rounded-lg border border-[var(--border)] bg-black/20 p-2">
+                <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[var(--muted-fg)]">
                   Entidades
                 </p>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {data.entities.map((e) => (
                     <span
                       key={e}
-                      className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                      className="rounded-full border border-[var(--border-strong)] bg-white/5 px-2 py-0.5 text-sm text-[var(--muted-fg)]"
                     >
                       {e}
                     </span>

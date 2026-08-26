@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import _parse_json_list
 from app.services.deployment import analyze_deployment_flows
 from app.services.network_policy import analyze_network_policy
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/api/v1", tags=["network"])
 
 
 @router.get("/graphs/{graph_id}/network-policy")
-def network_policy_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def network_policy_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -25,7 +27,7 @@ def network_policy_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/deployment-flows")
-def deployment_flows_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def deployment_flows_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")

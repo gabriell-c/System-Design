@@ -11,6 +11,7 @@ import { TechIcon } from "@/lib/tech-icons";
 import type { CatalogCategory, NodeKind } from "@/lib/types";
 import { ALL_NODE_KINDS } from "@/lib/types";
 import { ScrollCarousel } from "@/components/ui/ScrollCarousel";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 import { CATEGORY_LABELS, groupCatalog, useCatalogPrefs } from "@/hooks/useCatalogPrefs";
 
 const KIND_TAB_ICONS: Record<string, typeof Layout> = {
@@ -97,17 +98,17 @@ export default function CatalogLibrary({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="flex h-[88vh] w-[800px] flex-col rounded-2xl border border-white/10 bg-[#0d1219] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="flex h-[88vh] w-[800px] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] elev-4" onMouseDown={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-300">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-muted)] text-indigo-300">
               <BookOpen size={18} />
             </span>
             <div>
               <h2 className="text-sm font-semibold text-slate-100">Biblioteca de componentes</h2>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-[var(--muted-fg)]">
                 {hasCustomPrefs ? `${selectedCount}/${totalCount} na sua palete` : `${totalCount} disponiveis`}
               </p>
             </div>
@@ -117,10 +118,10 @@ export default function CatalogLibrary({ open, onClose }: Props) {
               <button
                 type="button"
                 onClick={toggleAllVisible}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition ${
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   allVisible
                     ? "border-amber-400/30 text-amber-400 hover:bg-amber-500/10"
-                    : "border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    : "border-[var(--border)] text-[var(--muted-fg)] hover:bg-white/5 hover:text-slate-200"
                 }`}
               >
                 {allVisible ? <CheckSquare size={13} /> : <Square size={13} />}
@@ -130,7 +131,7 @@ export default function CatalogLibrary({ open, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+              className="rounded-lg p-2 text-[var(--muted-fg)] transition hover:bg-white/5 hover:text-slate-200"
             >
               <X size={18} />
             </button>
@@ -140,12 +141,12 @@ export default function CatalogLibrary({ open, onClose }: Props) {
         {/* Search */}
         <div className="px-6 pt-3 pb-2">
           <label className="relative block">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar React, Python, Docker..."
-              className="w-full rounded-xl border border-white/10 bg-[#0a0f16] py-2.5 pl-9 pr-4 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-0)] py-2.5 pl-9 pr-4 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]/50"
             />
           </label>
         </div>
@@ -162,8 +163,8 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                 onClick={() => setKindFilter(kt.value)}
                 className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold transition ${
                   active
-                    ? "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    ? "bg-[var(--accent-muted)] text-indigo-300 ring-1 ring-cyan-500/30"
+                    : "text-[var(--muted-fg)] hover:bg-white/5 hover:text-slate-200"
                 }`}
               >
                 <Icon size={15} />
@@ -178,19 +179,19 @@ export default function CatalogLibrary({ open, onClose }: Props) {
           <select
             value={catFilter}
             onChange={(e) => setCatFilter(e.target.value as CatalogCategory | "all")}
-            className="appearance-none rounded-xl border border-white/10 bg-[#0a0f16] px-3 py-2 pr-8 text-[12px] font-semibold text-slate-200 outline-none cursor-pointer focus:border-purple-400/50"
+            className="appearance-none rounded-xl border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2 pr-8 text-[12px] font-semibold text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer focus:border-purple-400/50"
             style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
           >
             {CAT_TABS.map((ct) => (
               <option key={ct.value} value={ct.value}>{ct.label}</option>
             ))}
           </select>
-          <label className="ml-auto flex shrink-0 items-center gap-1.5 text-[11px] text-slate-500">
+          <label className="ml-auto flex shrink-0 items-center gap-1.5 text-sm text-[var(--muted)]">
             <input
               type="checkbox"
               checked={showOnlySelected}
               onChange={(e) => setShowOnlySelected(e.target.checked)}
-              className="rounded border-white/20 accent-cyan-400"
+              className="rounded border-[var(--border-strong)] accent-cyan-400"
             />
             So selecionados
           </label>
@@ -199,7 +200,11 @@ export default function CatalogLibrary({ open, onClose }: Props) {
         {/* Catalog list */}
         <div className="custom-scroll flex-1 overflow-y-auto px-6 py-2">
           {groups.length === 0 && (
-            <p className="py-12 text-center text-sm text-slate-500">Nenhum componente encontrado.</p>
+            <PanelEmpty
+              icon={Search}
+              title="Nenhum componente encontrado"
+              description="Ajuste a busca ou os filtros da biblioteca."
+            />
           )}
 
           {groups.map((group) => {
@@ -216,12 +221,12 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                   >
                     {isExpanded ? <ChevronDown size={14} style={{ color: meta.accent }} /> : <ChevronRight size={14} style={{ color: meta.accent }} />}
                     <span className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.accent }}>{meta.label}</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-sm text-[var(--muted-fg)]">
                       {group.categories.reduce((acc, c) => acc + c.items.length, 0)}
                     </span>
                     {hasCustomPrefs && (
                       <>
-                        <span className="ml-auto text-[10px] text-slate-600">
+                        <span className="ml-auto text-sm text-[var(--muted-fg)]">
                           {group.categories.reduce((acc, c) => acc + c.items.filter((i) => visibleSet.has(i.id)).length, 0)} sel.
                         </span>
                         <button
@@ -231,7 +236,7 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                             const all = group.categories.every((c) => c.items.every((i) => visibleSet.has(i.id)));
                             if (all) removeAllOfKind(group.kind); else addAllOfKind(group.kind);
                           }}
-                          className="ml-1 rounded-md px-2 py-0.5 text-[10px] text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
+                          className="ml-1 rounded-md px-2 py-0.5 text-sm text-[var(--muted)] transition hover:bg-white/10 hover:text-slate-300"
                         >
                           {group.categories.every((c) => c.items.every((i) => visibleSet.has(i.id))) ? "Desmarcar" : "Marcar"}
                         </button>
@@ -241,11 +246,11 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                 ) : (
                   <div className="mb-2 flex items-center gap-2 px-3 py-2">
                     <span className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.accent }}>{meta.label}</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-sm text-[var(--muted-fg)]">
                       {group.categories.reduce((acc, c) => acc + c.items.length, 0)}
                     </span>
                     {hasCustomPrefs && (
-                      <span className="ml-auto text-[10px] text-slate-600">
+                      <span className="ml-auto text-sm text-[var(--muted-fg)]">
                         {group.categories.reduce((acc, c) => acc + c.items.filter((i) => visibleSet.has(i.id)).length, 0)} selecionados
                       </span>
                     )}
@@ -256,9 +261,9 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                   <div className="space-y-4 pl-2">
                     {group.categories.map((catGroup) => (
                       <div key={catGroup.category}>
-                        <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <p className="mb-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wider text-[var(--muted)]">
                           <span>{CATEGORY_LABELS[catGroup.category] ?? catGroup.category}</span>
-                          <span className="rounded bg-white/5 px-1 text-[9px] text-slate-600">{catGroup.items.length}</span>
+                          <span className="rounded bg-white/5 px-1 text-sm text-[var(--muted-fg)]">{catGroup.items.length}</span>
                         </p>
                         <div className="grid grid-cols-2 gap-2">
                           {catGroup.items.map((item) => {
@@ -269,8 +274,8 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                                 key={item.id}
                                 className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition ${
                                   isSelected
-                                    ? "border-white/15 bg-[#141c28]"
-                                    : "border-white/5 bg-transparent opacity-55 hover:opacity-80"
+                                    ? "border-[var(--border-strong)] bg-[#141c28]"
+                                    : "border-[var(--border)] bg-transparent opacity-55 hover:opacity-80"
                                 }`}
                               >
                                 <button
@@ -278,8 +283,8 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                                   onClick={() => toggleVisible(item.id)}
                                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition ${
                                     isSelected
-                                      ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
-                                      : "border-white/15 bg-transparent text-transparent hover:border-white/30"
+                                      ? "border-[var(--accent)] bg-[var(--accent-muted)] text-indigo-300"
+                                      : "border-[var(--border-strong)] bg-transparent text-transparent hover:border-[var(--border-strong)]"
                                   }`}
                                 >
                                   {isSelected && <Check size={13} strokeWidth={3} />}
@@ -291,20 +296,20 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                                   <span className="flex items-center gap-1.5">
                                     <span className="text-sm font-semibold text-slate-100">{item.label}</span>
                                     {item.popularity && item.popularity >= 8 && (
-                                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">
+                                      <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-semibold text-amber-400">
                                         <Star size={8} /> popular
                                       </span>
                                     )}
                                   </span>
-                                  <span className="block text-[11px] leading-tight text-slate-500">{item.description}</span>
+                                  <span className="block text-sm leading-tight text-[var(--muted)]">{item.description}</span>
                                 </span>
 
                                 {hasCustomPrefs && (
                                   <button
                                     type="button"
                                     onClick={() => togglePin(item.id)}
-                                    className={`shrink-0 rounded-lg p-1.5 transition ${
-                                      isPinned ? "text-amber-400 hover:bg-amber-500/15" : "text-slate-700 hover:bg-white/5 hover:text-slate-400 opacity-0 group-hover:opacity-100"
+                                    className={`shrink-0 rounded-lg p-2 transition ${
+                                      isPinned ? "text-amber-400 hover:bg-amber-500/15" : "text-slate-700 hover:bg-white/5 hover:text-[var(--muted-fg)] opacity-0 group-hover:opacity-100"
                                     }`}
                                     title={isPinned ? "Desafixar" : "Fixar no topo"}
                                   >
@@ -326,11 +331,11 @@ export default function CatalogLibrary({ open, onClose }: Props) {
 
         {/* Footer */}
         {hasCustomPrefs && (
-          <div className="border-t border-white/8 px-6 py-3">
+          <div className="border-t border-[var(--border)] px-6 py-3">
             <button
               type="button"
               onClick={resetToDefaults}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs text-[var(--muted-fg)] transition hover:bg-white/5 hover:text-slate-200"
             >
               <RotateCcw size={12} />
               Mostrar todos novamente

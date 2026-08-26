@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import _nfr_out, _parse_json_list
 from app.services.blast_radius import compute_blast_radius
 from app.services.circuit_breaker import analyze_circuit_breakers
@@ -29,6 +31,7 @@ def failure_injection_graph(
     graph_id: str,
     payload: FailureInjectionRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
@@ -49,6 +52,7 @@ def blast_radius_graph(
     graph_id: str,
     payload: FailureInjectionRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
@@ -64,7 +68,7 @@ def blast_radius_graph(
 
 
 @router.get("/graphs/{graph_id}/circuit-breakers")
-def circuit_breakers_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def circuit_breakers_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -74,7 +78,7 @@ def circuit_breakers_graph(graph_id: str, db: Session = Depends(get_db)) -> dict
 
 
 @router.get("/graphs/{graph_id}/cost-estimate")
-def cost_estimate_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def cost_estimate_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -84,7 +88,7 @@ def cost_estimate_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/doc")
-def live_doc_graph(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def live_doc_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")

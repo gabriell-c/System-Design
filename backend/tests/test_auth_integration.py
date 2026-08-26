@@ -89,6 +89,7 @@ class TestLogout:
         assert resp.status_code == 200
 
     def test_logout_without_auth(self, client):
+        client.cookies.clear()
         resp = client.post("/api/v1/auth/logout")
         assert resp.status_code == 200
 
@@ -102,10 +103,12 @@ class TestMe:
         assert resp.json()["username"] == "ALICE"
 
     def test_me_without_auth(self, client):
+        client.cookies.clear()
         resp = client.get("/api/v1/auth/me")
         assert resp.status_code == 401
 
     def test_me_with_invalid_token(self, client):
+        client.cookies.clear()
         resp = client.get("/api/v1/auth/me", headers=_auth_header("fake.token.here"))
         assert resp.status_code == 401
 

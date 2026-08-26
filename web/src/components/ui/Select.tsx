@@ -59,7 +59,7 @@ export default function CustomSelect({
     <div ref={ref} className={`relative ${className ?? ""}`}>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-left text-sm text-slate-100 outline-none transition focus:border-cyan-400/50"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-left text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition focus:border-[var(--accent)]/50"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -74,17 +74,17 @@ export default function CustomSelect({
           }
         }}
       >
-        <span className={selected ? "" : "text-slate-500"}>
+        <span className={selected ? "" : "text-[var(--muted)]"}>
           {selected?.label ?? placeholder ?? "Selecione"}
         </span>
-        <ChevronDown size={14} className={`shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div
           id={listId}
           role="listbox"
           tabIndex={-1}
-          className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#121821] p-1 shadow-2xl outline-none"
+          className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1 elev-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
@@ -117,13 +117,13 @@ export default function CustomSelect({
                 role="option"
                 aria-selected={active}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                  focused || active ? "bg-cyan-500/15 text-cyan-200" : "text-slate-200 hover:bg-white/5"
+                  focused || active ? "bg-[var(--accent-muted)] text-indigo-200" : "text-slate-200 hover:bg-white/5"
                 }`}
                 onMouseEnter={() => setHighlight(index)}
                 onClick={() => selectAt(index)}
               >
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                {active && <Check size={14} className="shrink-0 text-cyan-400" />}
+                {active && <Check size={14} className="shrink-0 text-[var(--accent)]" />}
               </button>
             );
           })}

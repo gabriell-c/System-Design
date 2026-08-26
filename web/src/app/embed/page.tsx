@@ -50,16 +50,16 @@ export default function EmbedPage() {
   const iframeSnippet = embedResult.iframeSnippet;
 
   if (!graphId) {
-    return <p className="p-8 text-slate-400">Missing ?graph= id</p>;
+    return <p className="p-8 text-[var(--muted-fg)]">Missing ?graph= id</p>;
   }
 
   return (
-    <div className={`min-h-screen ${theme === "light" ? "bg-slate-50" : "bg-[#070b10]"}`}>
-      <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0d1219]/95 px-4 py-3 backdrop-blur">
+    <div className={`min-h-screen ${theme === "light" ? "bg-slate-50" : "bg-[var(--background)]"}`}>
+      <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-1)]/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-sm font-semibold text-slate-100">{name || "Embed Diagram"}</h1>
-            <p className="text-xs text-slate-500">Graph: {graphId.slice(0, 8)}…</p>
+            <h1 className="text-sm font-semibold text-slate-100">{name || "Diagrama Incorporado"}</h1>
+            <p className="text-xs text-[var(--muted)]">Graph: {graphId.slice(0, 8)}…</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -92,23 +92,23 @@ export default function EmbedPage() {
       <div ref={svgRef} className="p-4">
         {svgCode ? (
           <div
-            className="rounded-lg border border-white/10 bg-white shadow-lg"
+            className="rounded-lg border border-[var(--border)] bg-white elev-2"
             dangerouslySetInnerHTML={{ __html: svgCode }}
           />
         ) : (
-          <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-white/20">
-            <p className="text-sm text-slate-500">Carregando diagrama…</p>
+          <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-[var(--border-strong)]">
+            <p className="text-sm text-[var(--muted)]">Carregando diagrama…</p>
           </div>
         )}
       </div>
 
       {iframeSnippet && (
-        <div className="border-t border-white/10 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Snippet para embed</p>
-          <pre className="rounded bg-[#0d1219] p-3 text-[10px] text-slate-300 overflow-x-auto">
+        <div className="border-t border-[var(--border)] p-4">
+          <p className="mb-2 text-xs font-semibold uppercase text-[var(--muted)]">Snippet para embed</p>
+          <pre className="rounded bg-[var(--surface-1)] p-3 text-sm text-slate-300 overflow-x-auto">
             {iframeSnippet}
           </pre>
-          <p className="mt-2 text-[10px] text-slate-500">
+          <p className="mt-2 text-sm text-[var(--muted)]">
             Cole o snippet em Notion, Confluence ou qualquer HTML. O SVG é renderizado inline.
           </p>
         </div>

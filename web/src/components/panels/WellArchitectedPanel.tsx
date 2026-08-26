@@ -10,7 +10,7 @@ export default function WellArchitectedPanel() {
   if (!analysis) {
     return (
       <div className="space-y-3 px-4 py-4">
-        <p className="text-sm text-slate-400">Jalankan analisis untuk melihat Well-Architected Scorecard.</p>
+        <p className="text-sm text-[var(--muted-fg)]">Jalankan analisis untuk melihat Well-Architected Scorecard.</p>
       </div>
     );
   }
@@ -18,7 +18,7 @@ export default function WellArchitectedPanel() {
   if (!wa) {
     return (
       <div className="space-y-3 px-4 py-4">
-        <p className="text-sm text-slate-400">Scorecard Well-Architected belum tersedia.</p>
+        <p className="text-sm text-[var(--muted-fg)]">Scorecard Well-Architected belum tersedia.</p>
       </div>
     );
   }
@@ -40,20 +40,20 @@ export default function WellArchitectedPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Well-Architected Review</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             AWS Well-Architected Framework assessment (P1.2.7).
           </p>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Overall Score</p>
+          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Overall Score</p>
           <span className={`text-2xl font-semibold tabular-nums ${
             wa.overall >= 7 ? "text-emerald-400" : wa.overall >= 5 ? "text-amber-400" : "text-rose-400"
           }`}>
             {wa.overall.toFixed(1)}
-            <span className="text-sm text-slate-500">/10</span>
+            <span className="text-sm text-[var(--muted)]">/10</span>
           </span>
         </div>
         {wa.review_ready && (
@@ -63,7 +63,7 @@ export default function WellArchitectedPanel() {
 
       <div className="space-y-2">
         {pillars.map((pillar) => (
-          <div key={pillar.key} className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <div key={pillar.key} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2">
             <span className="flex-1 text-xs text-slate-200">{pillar.name}</span>
             <span className={`text-sm font-semibold ${
               pillar.score >= 7 ? "text-emerald-400" : pillar.score >= 5 ? "text-amber-400" : "text-rose-400"

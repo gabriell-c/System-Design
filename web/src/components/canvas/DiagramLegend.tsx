@@ -1,69 +1,179 @@
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { FLOW_KIND_META } from "@/lib/edges";
+import { ZONE_META } from "@/lib/zones";
+
 interface DiagramLegendProps {
-  variant?: 'overlay' | 'inline';
   className?: string;
+  /** When false the legend is hidden behind a toggle. Default: true (shown). */
+  open?: boolean;
+  onToggle?: () => void;
+  variant?: "overlay" | "floating";
 }
 
-export default function DiagramLegend({ variant = 'overlay', className = '' }: DiagramLegendProps) {
-  const shell =
-    variant === 'overlay'
-      ? 'bg-zinc-900/95 backdrop-blur border border-zinc-700 rounded-lg shadow-xl p-3 text-xs'
-      : 'bg-[#0d1219] border border-white/10 rounded-lg p-3 text-xs';
+const ZONE_KEYS = [
+  "region" as const,
+  "vpc" as const,
+  "availability_zone" as const,
+  "subnet_public" as const,
+  "subnet_private" as const,
+  "security_boundary" as const,
+];
 
-  return (
-    <div className={`${shell} ${className}`.trim()}>
-      <p className="font-semibold text-zinc-300 mb-2">Legenda</p>
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-slate-400 rounded" />
-          <span className="text-zinc-400">Sync (HTTP/gRPC)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-6 border-t-2 border-dashed border-violet-400" />
-          <span className="text-zinc-400">Async (Kafka/AMQP)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-emerald-500 rounded" />
-          <span className="text-zinc-400">Data flow</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-6 h-0.5 bg-pink-400 rounded" />
-          <span className="text-zinc-400">Critical path ★</span>
-        </div>
+const FLOW_KEYS = Object.keys(FLOW_KIND_META) as (keyof typeof FLOW_KIND_META)[];
 
-        <div className="mt-2 pt-2 border-t border-zinc-800">
-          <p className="text-zinc-500 mb-1">Fluxos numerados</p>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white">
-              1
-            </span>
-            <span className="text-zinc-400">Ordem de execução</span>
-          </div>
-        </div>
+export default function DiagramLegend({ className = "", open: propOpen, onToggle, variant = "overlay" }: DiagramLegendProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = propOpen !== undefined ? propOpen : internalOpen;
 
-        <div className="mt-2 pt-2 border-t border-zinc-800">
-          <p className="text-zinc-500 mb-1">Zonas</p>
-          <div className="grid grid-cols-2 gap-1">
-            <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Region</span>
-            <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">VPC</span>
-            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">AZ</span>
-            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Public</span>
-            <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">Private</span>
-            <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Security</span>
-          </div>
-        </div>
+  const toggle = () => {
+    if (propOpen === undefined) setInternalOpen((v) => !v);
+    onToggle?.();
+  };
 
-        <div className="mt-2 pt-2 border-t border-zinc-800">
-          <p className="text-zinc-500 mb-1">Indicadores</p>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            <span className="text-zinc-400">Gargalo crítico</span>
+  const sectionTitle = "text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]";
+  const container = variant === "floating"
+    ? "rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2.5 text-sm text-[var(--muted)] backdrop-blur elev-2 max-w-[200px]"
+    : "rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2.5 text-sm text-[var(--muted)] backdrop-blur elev-2";
+
+  if (variant === "floating") {
+    return (
+      <div className={`pointer-events-auto ${className}`}>
+        <button
+          type="button"
+          onClick={toggle}
+          className="mb-1 flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/90 px-2 py-1 text-sm font-medium text-[var(--muted)] backdrop-blur transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          aria-label={open ? "Ocultar legenda" : "Mostrar legenda"}
+        >
+          {open ? <EyeOff size={12} /> : <Eye size={12} />}
+          Legenda
+        </button>
+        {open && (
+          <div className={container}>
+            <p className={sectionTitle + " mb-1.5"}>Fluxos</p>
+            <div className="space-y-1">
+              {FLOW_KEYS.map((k) => {
+                const m = FLOW_KIND_META[k];
+                return (
+                  <div key={k} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-0.5 w-5 shrink-0"
+                      style={{
+                        background: m.stroke,
+                        borderTop: m.dash ? `1px dashed ${m.stroke}` : undefined,
+                      }}
+                    />
+                    <span>{m.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-[var(--border)]">
+              <p className={sectionTitle + " mb-1.5"}>Zonas</p>
+              <div className="flex flex-wrap gap-2">
+                {ZONE_KEYS.map((zk) => (
+                  <span
+                    key={zk}
+                    className="rounded border px-2 py-0.5 text-sm font-medium"
+                    style={{
+                      background: ZONE_META[zk].bg,
+                      borderColor: ZONE_META[zk].border,
+                      color: ZONE_META[zk].accent,
+                    }}
+                  >
+                    {ZONE_META[zk].short}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-[var(--border)]">
+              <p className={sectionTitle + " mb-1.5"}>Estado</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
+                  <span>Gargalo</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                  <span>Aviso</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-zinc-400">Aviso</span>
-          </div>
-        </div>
+        )}
       </div>
+    );
+  }
+
+  // overlay variant — compact inline legend (legacy)
+  return (
+    <div className={`pointer-events-auto ${className}`}>
+      <button
+        type="button"
+        onClick={toggle}
+        className="mb-1 flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/90 px-2 py-1 text-sm font-medium text-[var(--muted)] backdrop-blur transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+        aria-label={open ? "Ocultar legenda" : "Mostrar legenda"}
+      >
+        {open ? <EyeOff size={12} /> : <Eye size={12} />}
+        Legenda
+      </button>
+      {open && (
+        <div className={container}>
+          <p className={sectionTitle + " mb-1.5"}>Fluxos</p>
+          <div className="space-y-1">
+            {FLOW_KEYS.map((k) => {
+              const m = FLOW_KIND_META[k];
+              return (
+                <div key={k} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-0.5 w-5 shrink-0"
+                    style={{
+                      background: m.stroke,
+                      borderTop: m.dash ? `1px dashed ${m.stroke}` : undefined,
+                    }}
+                  />
+                  <span>{m.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-2 pt-2 border-t border-[var(--border)]">
+            <p className={sectionTitle + " mb-1.5"}>Zonas</p>
+            <div className="flex flex-wrap gap-2">
+              {ZONE_KEYS.map((zk) => (
+                <span
+                  key={zk}
+                  className="rounded border px-2 py-0.5 text-sm font-medium"
+                  style={{
+                    background: ZONE_META[zk].bg,
+                    borderColor: ZONE_META[zk].border,
+                    color: ZONE_META[zk].accent,
+                  }}
+                >
+                  {ZONE_META[zk].short}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-2 pt-2 border-t border-[var(--border)]">
+            <p className={sectionTitle + " mb-1.5"}>Estado</p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
+                <span>Gargalo</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                <span>Aviso</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

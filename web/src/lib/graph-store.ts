@@ -27,12 +27,14 @@ import { buildArchEdge, nextFlowNumber, normalizeEdgeData, styleEdgeFromData } f
 import { findCatalog } from "./catalog";
 import { checkRecommendations, type StackRecommendation } from "./stack-recommend";
 import { saveSavedView } from "./saved-views";
+import { FREE_NODE_DEFAULT_SIZE } from "./free-catalog";
 import type {
   AnalysisResult,
   ArchEdgeData,
   ArchNodeData,
   CanvasNodeData,
   CloudProvider,
+  FreeNodeKind,
   GraphRecord,
   NodeKind,
   ProjectNfr,
@@ -157,6 +159,7 @@ type GraphState = {
     opts?: { label?: string },
   ) => void;
   addNote: (position: { x: number; y: number }, text?: string) => void;
+  addFreeNode: (kind: FreeNodeKind, position: { x: number; y: number }, label?: string) => void;
   addCidrBlock: (position: { x: number; y: number }, cidr?: string, label?: string) => void;
   addTenantBoundary: (
     position: { x: number; y: number },
@@ -792,6 +795,33 @@ export const useGraphStore = create<GraphState>((set, get) => ({
             type: "note",
             position,
             data: { kind: "note", label: text.slice(0, 40), text },
+          },
+        ],
+        dirty: true,
+        selectedNodeId: id,
+      });
+    });
+  },
+
+  addFreeNode: (kind, position, label) => {
+    const id = nextId("free");
+    const size = FREE_NODE_DEFAULT_SIZE[kind];
+    const defaultLabel =
+      label ?? (kind === "free-text" ? "Texto" : kind === "free-diamond" ? "Decisão" : "Novo");
+    withHistory(get, set, () => {
+      set({
+        nodes: [
+          ...get().nodes,
+          {
+            id,
+            type: "free",
+            position,
+            style: { width: size.width, height: size.height },
+            data: {
+              kind,
+              label: defaultLabel,
+              ...(kind === "free-text" ? { text: defaultLabel } : {}),
+            },
           },
         ],
         dirty: true,

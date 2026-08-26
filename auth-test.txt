@@ -1,0 +1,6 @@
+PROJECTS (no auth): 401
+Body: {"detail":"Not authenticated"}
+PROJECTS (with auth): 200
+Count: 7
+Container has auth dep: True
+stderr: 

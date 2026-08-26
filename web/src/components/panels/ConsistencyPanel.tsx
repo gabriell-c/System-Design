@@ -1,11 +1,12 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { analyzeDiagramConsistency, type ConsistencyIssue } from "@/lib/diagram-consistency";
 import { diagramKindLabel } from "@/lib/diagram-library";
 import { useProjectStore } from "@/lib/project-store";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 /** P0.1.6 — Painel de inconsistências cross-diagram. */
 export default function ConsistencyPanel() {
@@ -79,9 +80,9 @@ export default function ConsistencyPanel() {
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-slate-100">Consistência do pacote</p>
-          <p className="text-xs text-slate-400">Serviços presentes em todas as vistas tipadas.</p>
+          <p className="text-xs text-[var(--muted-fg)]">Serviços presentes em todas as vistas tipadas.</p>
         </div>
-        <button type="button" className="btn-ghost p-1.5" onClick={() => setTick((t) => t + 1)} aria-label="Atualizar">
+        <button type="button" className="btn-ghost p-2" onClick={() => setTick((t) => t + 1)} aria-label="Atualizar">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
@@ -93,7 +94,11 @@ export default function ConsistencyPanel() {
       )}
 
       {issues.length === 0 && !loading ? (
-        <p className="text-xs text-slate-500">Nenhuma inconsistência detectada (mín. 2 diagramas no projeto).</p>
+        <PanelEmpty
+          icon={Layers}
+          title="Nenhuma inconsistência detectada"
+          description="É preciso ter pelo menos 2 diagramas no projeto para comparar."
+        />
       ) : (
         <ul className="space-y-2">
           {issues.map((issue) => (
@@ -109,8 +114,8 @@ export default function ConsistencyPanel() {
                 <AlertTriangle size={12} />
                 {issue.label}
               </p>
-              <p className="mt-1 text-slate-400">{issue.detail}</p>
-              <p className="mt-1 text-[10px] text-slate-500">
+              <p className="mt-1 text-[var(--muted-fg)]">{issue.detail}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
                 Em: {issue.presentIn.join(", ") || "—"} · Falta: {issue.missingIn.join(", ") || "—"}
               </p>
             </li>
@@ -119,11 +124,11 @@ export default function ConsistencyPanel() {
       )}
 
       {project?.diagrams?.length ? (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-          <p className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">Vistas</p>
+        <div className="rounded-lg border border-[var(--border)] bg-black/20 p-2">
+          <p className="mb-1 text-sm uppercase tracking-wide text-[var(--muted)]">Vistas</p>
           <ul className="space-y-0.5">
             {project.diagrams.map((d) => (
-              <li key={d.id} className="text-[11px] text-slate-300">
+              <li key={d.id} className="text-sm text-slate-300">
                 {diagramKindLabel(d.diagram_kind)} · {d.name}
               </li>
             ))}

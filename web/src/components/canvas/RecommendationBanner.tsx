@@ -45,7 +45,7 @@ export default function RecommendationBanner({
               <p className="text-xs font-medium text-slate-800 dark:text-slate-100">
                 {rec.title}
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-[var(--muted)] dark:text-[var(--muted-fg)] mt-0.5">
                 {rec.reason}
               </p>
             </div>

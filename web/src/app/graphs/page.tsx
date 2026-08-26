@@ -10,8 +10,8 @@ export default function GraphsPage() {
     router.replace("/");
   }, [router]);
   return (
-    <div className="flex h-screen items-center justify-center bg-[#070b10]">
-      <p className="text-sm text-slate-400">Redirecionando para o dashboard…</p>
+    <div className="flex h-screen items-center justify-center bg-[var(--background)]">
+      <p className="text-sm text-[var(--muted-fg)]">Redirecionando para o dashboard…</p>
     </div>
   );
 }

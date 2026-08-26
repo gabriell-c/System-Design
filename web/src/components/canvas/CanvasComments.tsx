@@ -85,8 +85,8 @@ export default function CanvasComments() {
     <>
       <button
         type="button"
-        className={`absolute left-3 top-3 z-20 rounded-lg border px-2 py-1.5 text-xs ${
-          mode ? "border-cyan-400 bg-cyan-500/20 text-cyan-100" : "border-white/10 bg-black/40 text-slate-300"
+        className={`absolute left-3 top-3 z-20 rounded-lg border px-2 py-2 text-xs ${
+          mode ? "border-[var(--accent)] bg-[var(--accent-muted)] text-indigo-100" : "border-[var(--border)] bg-black/40 text-slate-300"
         }`}
         onClick={() => setMode((v) => !v)}
         title="Comentários no canvas"
@@ -109,21 +109,21 @@ export default function CanvasComments() {
 
       {pendingPos && (
         <div
-          className="canvas-comment-pin absolute z-30 w-56 rounded-xl border border-cyan-400/40 bg-[#0d1219] p-2 shadow-xl"
+          className="canvas-comment-pin absolute z-30 w-56 rounded-xl border border-[var(--accent)]/40 bg-[var(--surface-1)] p-2 elev-3"
           style={{ left: pendingPos.x, top: pendingPos.y, transform: "translate(-50%, -100%)" }}
         >
           <textarea
-            className="w-full rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-slate-100"
+            className="w-full rounded border border-[var(--border)] bg-black/30 px-2 py-1 text-xs text-slate-100"
             rows={3}
             placeholder="Comentário… use @email para mencionar"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
-          <div className="mt-1 flex gap-1">
-            <button type="button" className="btn-ghost text-[10px]" onClick={() => void submitComment()}>
+          <div className="mt-1 flex gap-2">
+            <button type="button" className="btn-ghost text-sm" onClick={() => void submitComment()}>
               Salvar
             </button>
-            <button type="button" className="btn-ghost text-[10px]" onClick={() => setPendingPos(null)}>
+            <button type="button" className="btn-ghost text-sm" onClick={() => setPendingPos(null)}>
               <X size={12} />
             </button>
           </div>
@@ -146,18 +146,18 @@ function CommentPin({ comment }: { comment: CanvasComment }) {
     >
       <button
         type="button"
-        className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold ${
-          comment.resolved ? "border-slate-500 bg-slate-700 text-slate-400" : "border-cyan-400 bg-cyan-500/30 text-cyan-100"
+        className={`flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold ${
+          comment.resolved ? "border-slate-500 bg-slate-700 text-[var(--muted-fg)]" : "border-[var(--accent)] bg-[var(--accent)]/30 text-indigo-100"
         }`}
         onClick={() => setOpen((v) => !v)}
       >
         !
       </button>
       {open && (
-        <div className="absolute left-8 top-0 w-52 rounded-lg border border-white/10 bg-[#121821] p-2 text-xs text-slate-200 shadow-lg">
-          <p className="text-[10px] text-slate-500">{comment.author}</p>
+        <div className="absolute left-8 top-0 w-52 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2 text-xs text-slate-200 elev-2">
+          <p className="text-sm text-[var(--muted)]">{comment.author}</p>
           <p className="mt-1">{comment.text}</p>
-          {comment.assignee && <p className="mt-1 text-cyan-300">@{comment.assignee}</p>}
+          {comment.assignee && <p className="mt-1 text-indigo-300">@{comment.assignee}</p>}
         </div>
       )}
     </div>

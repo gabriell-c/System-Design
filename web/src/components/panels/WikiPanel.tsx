@@ -42,12 +42,12 @@ export default function WikiPanel() {
   }
 
   if (!graphId) {
-    return <p className="px-4 py-6 text-sm text-slate-500">Salve o diagrama para gerar a wiki.</p>;
+    return <p className="px-4 py-6 text-sm text-[var(--muted)]">Salve o diagrama para gerar a wiki.</p>;
   }
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-8 text-sm text-slate-400">
+      <div className="flex items-center gap-2 px-4 py-8 text-sm text-[var(--muted-fg)]">
         <Loader2 className="h-4 w-4 animate-spin" />
         Gerando documentação…
       </div>
@@ -63,24 +63,24 @@ export default function WikiPanel() {
           </span>
           <div>
             <p className="text-sm font-semibold text-slate-100">Wiki viva</p>
-            <p className="text-[10px] text-slate-500">Atualizado: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+            <p className="text-sm text-[var(--muted)]">Atualizado: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
           </div>
         </div>
-        <div className="flex gap-1">
-          <button type="button" className="btn-ghost text-[10px]" onClick={() => void copyMd()}>
+        <div className="flex gap-2">
+          <button type="button" className="btn-ghost text-sm" onClick={() => void copyMd()}>
             <Copy size={12} className="mr-1 inline" />
             {copied ? "Copiado" : "Copiar"}
           </button>
           <button
             type="button"
-            className="btn-ghost text-[10px]"
+            className="btn-ghost text-sm"
             onClick={() => downloadText(`${slugifyFilename(name)}-wiki.md`, markdown, "text/markdown")}
           >
             .md
           </button>
         </div>
       </div>
-      <pre className="custom-scroll mt-3 min-h-0 flex-1 overflow-auto rounded-lg border border-white/10 bg-black/30 p-3 text-[11px] leading-relaxed text-slate-300 whitespace-pre-wrap">
+      <pre className="custom-scroll mt-3 min-h-0 flex-1 overflow-auto rounded-lg border border-[var(--border)] bg-black/30 p-3 text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
         {markdown}
       </pre>
     </div>

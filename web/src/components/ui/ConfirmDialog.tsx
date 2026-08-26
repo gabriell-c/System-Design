@@ -55,7 +55,7 @@ export default function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121821] p-5 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5 elev-4"
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-50">
           {title}

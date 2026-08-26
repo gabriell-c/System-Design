@@ -41,7 +41,7 @@ export default function CompareView() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-50">Comparador de arquiteturas</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[var(--muted-fg)]">
             Importe dois exports JSON e compare custo, complexidade, performance e segurança.
           </p>
         </div>
@@ -57,14 +57,14 @@ export default function CompareView() {
         type="button"
         disabled={!canCompare || busy}
         onClick={() => void run()}
-        className="self-start rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40"
+        className="self-start rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40"
       >
         {busy ? "Comparando…" : "Comparar"}
       </button>
       {error && <p className="text-sm text-rose-300">{error}</p>}
       {result && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-white/10 bg-[#121821] p-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
             <p className="text-sm text-slate-300">
               Delta de nota: <strong className="text-slate-50">{result.comparison.score_delta.toFixed(1)}</strong>
               {" · "}Mais barata (heurística): {result.comparison.cheaper}
@@ -101,9 +101,9 @@ function ImportSlot({
   }, [value]);
 
   return (
-    <label className="flex cursor-pointer flex-col rounded-xl border border-dashed border-white/15 bg-[#121821] p-4">
+    <label className="flex cursor-pointer flex-col rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-2)] p-4">
       <span className="text-sm font-medium text-slate-100">{title}</span>
-      <span className="mt-1 text-xs text-slate-500">{value ? `${value.name} — ${summary}` : "Clique para importar .json"}</span>
+      <span className="mt-1 text-xs text-[var(--muted)]">{value ? `${value.name} — ${summary}` : "Clique para importar .json"}</span>
       <input
         type="file"
         accept="application/json"
@@ -112,7 +112,7 @@ function ImportSlot({
           const file = event.target.files?.[0];
           event.target.value = "";
           if (!file) return;
-          onLoad(parseImportPayload(JSON.parse(await file.text())));
+          onLoad(await parseImportPayload(JSON.parse(await file.text())));
         }}
       />
     </label>
@@ -121,13 +121,13 @@ function ImportSlot({
 
 function ResultCard({ title, analysis }: { title: string; analysis: AnalysisResult }) {
   return (
-    <article className="rounded-xl border border-white/10 bg-[#121821] p-4">
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
         <span className="text-2xl font-semibold tabular-nums text-slate-50">{analysis.score.toFixed(1)}</span>
       </div>
-      <p className="mt-2 text-sm text-slate-400">{analysis.summary}</p>
-      <ul className="mt-3 space-y-1 text-xs text-slate-400">
+      <p className="mt-2 text-sm text-[var(--muted-fg)]">{analysis.summary}</p>
+      <ul className="mt-3 space-y-1 text-xs text-[var(--muted-fg)]">
         {analysis.risks.slice(0, 4).map((risk) => (
           <li key={risk}>• {risk}</li>
         ))}

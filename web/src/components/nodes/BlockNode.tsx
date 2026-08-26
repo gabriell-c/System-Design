@@ -16,7 +16,7 @@ export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNo
   return (
     <div
       className={`relative h-full min-h-[220px] min-w-[320px] rounded-2xl border-2 border-dashed shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] ${
-        selected ? "ring-2 ring-cyan-400/60" : ""
+        selected ? "ring-2 ring-indigo-400/60" : ""
       }`}
       style={{
         background: `linear-gradient(180deg, ${meta.bg} 0%, rgba(7,11,16,0.92) 48%)`,
@@ -28,8 +28,8 @@ export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNo
         minWidth={320}
         minHeight={220}
         isVisible={selected}
-        lineClassName="!border-cyan-400/40"
-        handleClassName="!h-2.5 !w-2.5 !rounded-sm !border-cyan-300 !bg-slate-950"
+        lineClassName="!border-[var(--accent)]/40"
+        handleClassName="!h-2.5 !w-2.5 !rounded-sm !border-indigo-300 !bg-slate-950"
       />
 
       <AnchorHandle tone="block" nodeId={id} handleId="b-left" type="target" position={Position.Left} style={{ top: "50%" }} />
@@ -50,21 +50,21 @@ export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNo
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
+          <p className="text-sm uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
             Bloco · {meta.label}
           </p>
         </div>
         {data.score != null && (
-          <span className="rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
+          <span className="rounded-md border border-[var(--border)] bg-black/30 px-2 py-0.5 text-sm font-semibold text-slate-200">
             {data.score.toFixed(1)}
           </span>
         )}
       </header>
-      <p className="pointer-events-none flex items-center gap-1.5 px-4 pb-2 text-[11px] text-slate-400">
-        <Link2 size={12} className="shrink-0 text-cyan-400/80" />
+      <p className="pointer-events-none flex items-center gap-1.5 px-4 pb-2 text-sm text-[var(--muted-fg)]">
+        <Link2 size={12} className="shrink-0 text-[var(--accent)]/80" />
         Cards do mesmo domínio · duplo clique no ponto desfaz a linha
       </p>
-      <div className="pointer-events-none mx-3 mb-3 min-h-[140px] rounded-xl border border-white/5 bg-black/15" />
+      <div className="pointer-events-none mx-3 mb-3 min-h-[140px] rounded-xl border border-[var(--border)] bg-black/15" />
     </div>
   );
 }

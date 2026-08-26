@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph, Project
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import _nfr_out, _parse_json_list
 from app.services.benchmark import run_graph_benchmark
 from app.services.diagram_consistency import analyze_project_consistency
@@ -30,7 +32,7 @@ def _project_graphs(db: Session, project_id: str) -> list[Graph]:
 
 
 @router.get("/projects/{project_id}/consistency")
-def project_consistency(project_id: str, db: Session = Depends(get_db)) -> dict:
+def project_consistency(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graphs = _project_graphs(db, project_id)
     payload = [
         {
@@ -45,7 +47,7 @@ def project_consistency(project_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/projects/{project_id}/policy")
-def project_policy(project_id: str, db: Session = Depends(get_db)) -> dict:
+def project_policy(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graphs = _project_graphs(db, project_id)
     all_findings: list[dict] = []
     for g in graphs:
@@ -59,7 +61,7 @@ def project_policy(project_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/projects/{project_id}/raci")
-def project_raci(project_id: str, db: Session = Depends(get_db)) -> dict:
+def project_raci(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graphs = _project_graphs(db, project_id)
     if not graphs:
         return build_raci_matrix([])
@@ -69,7 +71,7 @@ def project_raci(project_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/slo")
-def graph_slo(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def graph_slo(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -83,7 +85,7 @@ def graph_slo(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.post("/graphs/{graph_id}/benchmark")
-def graph_benchmark(graph_id: str, db: Session = Depends(get_db), target_nodes: int = 500) -> dict:
+def graph_benchmark(graph_id: str, db: Session = Depends(get_db), target_nodes: int = 500, current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -93,7 +95,7 @@ def graph_benchmark(graph_id: str, db: Session = Depends(get_db), target_nodes: 
 
 
 @router.post("/projects/{project_id}/adrs/export")
-def export_adrs(project_id: str, payload: AdrPersistIn, db: Session = Depends(get_db)) -> dict:
+def export_adrs(project_id: str, payload: AdrPersistIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     _project_graphs(db, project_id)
     if not payload.adrs:
         raise HTTPException(status_code=400, detail="Nenhum ADR informado")

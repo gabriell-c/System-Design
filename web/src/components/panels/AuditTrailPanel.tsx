@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
+import PanelEmpty from "@/components/ui/PanelEmpty";
+import Skeleton from "@/components/ui/Skeleton";
 
 type AuditEntryRow = {
   id: string;
@@ -48,7 +50,7 @@ export default function AuditTrailPanel() {
 
   if (!graphId) {
     return (
-      <p className="px-4 py-4 text-sm text-slate-400">Salve o diagrama para ver o histórico de auditoria.</p>
+      <p className="px-4 py-4 text-sm text-[var(--muted-fg)]">Salve o diagrama para ver o histórico de auditoria.</p>
     );
   }
 
@@ -60,17 +62,21 @@ export default function AuditTrailPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Audit Trail</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             Registro de todas as alterações (P1.4.4).
           </p>
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-400">Carregando...</p>}
+      {loading && <Skeleton rows={4} className="px-1" />}
       {error && <p className="text-sm text-rose-300">{error}</p>}
 
       {!loading && entries.length === 0 && (
-        <p className="text-sm text-slate-500">Nenhuma entrada de auditoria encontrada.</p>
+        <PanelEmpty
+          icon={History}
+          title="Nenhuma entrada de auditoria"
+          description="Ações de save, análise e mudanças de acesso aparecerão aqui."
+        />
       )}
 
       {!loading && entries.length > 0 && (
@@ -79,29 +85,29 @@ export default function AuditTrailPanel() {
             {entries.map((entry) => (
               <li
                 key={entry.id}
-                className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs"
+                className="rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-200">{entry.action}</span>
-                  <span className="text-slate-500">{new Date(entry.created_at).toLocaleString()}</span>
+                  <span className="text-[var(--muted)]">{new Date(entry.created_at).toLocaleString()}</span>
                 </div>
-                <p className="mt-1 text-slate-400">
-                  <span className="text-slate-500">Por: </span>
+                <p className="mt-1 text-[var(--muted-fg)]">
+                  <span className="text-[var(--muted)]">Por: </span>
                   {entry.user_email}
                 </p>
-                <p className="mt-1 text-slate-400">
-                  <span className="text-slate-500">Entidade: </span>
+                <p className="mt-1 text-[var(--muted-fg)]">
+                  <span className="text-[var(--muted)]">Entidade: </span>
                   {entry.entity_type} {entry.entity_id && `#${entry.entity_id.slice(0, 8)}`}
                 </p>
                 {entry.ip_address != null && entry.ip_address !== "" && (
-                  <p className="mt-1 text-slate-500">IP: {String(entry.ip_address)}</p>
+                  <p className="mt-1 text-[var(--muted)]">IP: {String(entry.ip_address)}</p>
                 )}
               </li>
             ))}
           </ul>
 
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">{total} entradas totais</p>
+            <p className="text-xs text-[var(--muted)]">{total} entradas totais</p>
             <div className="flex gap-2">
               <button
                 type="button"

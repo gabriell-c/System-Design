@@ -12,7 +12,7 @@ export default function BlastRadiusOverlay() {
 
   return (
     <div
-      className="pointer-events-none absolute bottom-20 left-4 z-20 max-w-xs rounded-xl border border-rose-500/40 bg-rose-950/90 px-3 py-2 text-xs text-rose-100 shadow-lg backdrop-blur-sm"
+      className="pointer-events-none absolute bottom-20 left-4 z-20 max-w-xs rounded-xl border border-rose-500/40 bg-rose-950/90 px-3 py-2 text-xs text-rose-100 elev-2 backdrop-blur-sm"
       role="status"
       aria-live="polite"
     >

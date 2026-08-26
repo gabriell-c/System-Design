@@ -57,8 +57,8 @@ class GraphPayload(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     context: str = Field(default="", max_length=20000)
     nfr: ProjectNfr | None = None
-    nodes: list[dict[str, Any]] = Field(default_factory=list)
-    edges: list[dict[str, Any]] = Field(default_factory=list)
+    nodes: list[dict[str, Any]] = Field(default_factory=list, max_length=500)
+    edges: list[dict[str, Any]] = Field(default_factory=list, max_length=2000)
     project_id: str | None = Field(default=None, max_length=36)
     owner_team: str | None = Field(default=None, max_length=80)
     diagram_kind: str | None = Field(default=None, max_length=32)
@@ -70,8 +70,8 @@ class GraphUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     context: str | None = Field(default=None, max_length=20000)
     nfr: ProjectNfr | None = None
-    nodes: list[dict[str, Any]] | None = None
-    edges: list[dict[str, Any]] | None = None
+    nodes: list[dict[str, Any]] | None = Field(default=None, max_length=500)
+    edges: list[dict[str, Any]] | None = Field(default=None, max_length=2000)
     analysis: dict[str, Any] | None = None
     project_id: str | None = Field(default=None, max_length=36)
     owner_team: str | None = Field(default=None, max_length=80)

@@ -48,19 +48,27 @@ export default function SearchFilter() {
   };
 
   return (
-    <div className="space-y-2 border-b border-white/10 px-3 py-3">
-      <label className="relative block">
-        <Search size={12} className="pointer-events-none absolute left-2.5 top-2.5 text-slate-500" />
-        <input
-          className="w-full rounded-lg border border-white/10 bg-[#0d1219] py-1.5 pl-7 pr-2 text-xs text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-          placeholder="Buscar nó, zona, tech, catalogId…"
-          value={canvasFilter.query}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, query: e.target.value })}
-        />
-      </label>
+    <div className="space-y-2 border-b border-[var(--border)] px-3 py-3">
+      <div>
+        <label htmlFor="canvas-filter-query" className="mb-1 block text-[12px] font-medium text-[var(--muted)]">
+          Buscar no canvas
+        </label>
+        <div className="relative">
+          <Search size={12} className="pointer-events-none absolute left-2.5 top-2.5 text-[var(--muted)]" />
+          <input
+            id="canvas-filter-query"
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] py-2 pl-7 pr-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]/50"
+            placeholder="nó, zona, tech, catalogId…"
+            value={canvasFilter.query}
+            onChange={(e) => setCanvasFilter({ ...canvasFilter, query: e.target.value })}
+          />
+        </div>
+      </div>
+      <p className="text-[12px] font-medium text-[var(--muted)]">Filtros</p>
       <div className="grid grid-cols-2 gap-1.5">
         <select
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          aria-label="Domínio"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.kind}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, kind: e.target.value as NodeKind | "all" })}
         >
@@ -72,7 +80,7 @@ export default function SearchFilter() {
           ))}
         </select>
         <select
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.zoneKind}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, zoneKind: e.target.value as ZoneKind | "all" })}
         >
@@ -84,7 +92,7 @@ export default function SearchFilter() {
           ))}
         </select>
         <select
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.provider}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, provider: e.target.value as CloudProvider | "all" })}
         >
@@ -95,13 +103,13 @@ export default function SearchFilter() {
           ))}
         </select>
         <input
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200 outline-none"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           placeholder="Squad / team"
           value={canvasFilter.ownerTeam}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, ownerTeam: e.target.value })}
         />
         <select
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.catalogId}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, catalogId: e.target.value })}
         >
@@ -113,7 +121,7 @@ export default function SearchFilter() {
           ))}
         </select>
         <select
-          className="rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.piiSensitivity}
           onChange={(e) =>
             setCanvasFilter({ ...canvasFilter, piiSensitivity: e.target.value as PiiSensitivity | "all" })
@@ -126,7 +134,7 @@ export default function SearchFilter() {
           ))}
         </select>
         <select
-          className="col-span-2 rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200"
+          className="col-span-2 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.c4Level}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, c4Level: e.target.value as C4Level | "all" })}
         >
@@ -139,32 +147,32 @@ export default function SearchFilter() {
       </div>
 
       {showSave && (
-        <div className="space-y-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2">
+        <div className="space-y-2 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-muted)] p-2">
           <input
-            className="w-full rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200 outline-none"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             placeholder="Nome da view (ex: só PII + ads)"
             value={viewName}
             onChange={(e) => setViewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSaveView()}
           />
           <input
-            className="w-full rounded-md border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-200 outline-none"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             placeholder="Tags (pii, ads, media…) separadas por vírgula"
             value={viewTags}
             onChange={(e) => setViewTags(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSaveView()}
           />
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <button
               type="button"
-              className="flex-1 rounded bg-cyan-600/80 py-1 text-[10px] text-white hover:bg-cyan-500"
+              className="flex-1 rounded bg-[var(--accent)]/80 py-1 text-sm text-white hover:bg-[var(--accent)]"
               onClick={handleSaveView}
             >
               Confirmar
             </button>
             <button
               type="button"
-              className="rounded px-2 py-1 text-[10px] text-slate-400 hover:text-slate-200"
+              className="rounded px-2 py-1 text-sm text-[var(--muted-fg)] hover:text-slate-200"
               onClick={() => setShowSave(false)}
             >
               Cancelar
@@ -173,12 +181,12 @@ export default function SearchFilter() {
         </div>
       )}
 
-      <div className="flex items-center justify-between text-[10px] text-slate-500">
+      <div className="flex items-center justify-between text-sm text-[var(--muted)]">
         <span>{nodes.length} nós no canvas</span>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
+            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-indigo-300"
             onClick={() => setShowSave((v) => !v)}
           >
             <BookmarkPlus size={11} />
@@ -186,7 +194,7 @@ export default function SearchFilter() {
           </button>
           <button
             type="button"
-            className="text-slate-400 hover:text-slate-200"
+            className="text-[var(--muted-fg)] hover:text-slate-200"
             onClick={() => setCanvasFilter(EMPTY_CANVAS_FILTER)}
           >
             Limpar filtros

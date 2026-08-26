@@ -9,13 +9,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph, GraphAccess, new_uuid
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.schemas.graph import TeamAccess
 
 router = APIRouter(prefix="/api/v1", tags=["acl"])
 
 
 @router.get("/graphs/{graph_id}/access")
-def list_graph_access(graph_id: str, db: Annotated[Session, Depends(get_db)]):
+def list_graph_access(graph_id: str, db: Annotated[Session, Depends(get_db)], current_user: User = Depends(get_current_user)):
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -28,6 +30,7 @@ def add_graph_access(
     graph_id: str,
     access: TeamAccess,
     db: Annotated[Session, Depends(get_db)],
+    current_user: User = Depends(get_current_user),
 ):
     if access.role not in ("read", "write", "admin"):
         raise HTTPException(status_code=422, detail="role must be read/write/admin")
@@ -49,7 +52,7 @@ def add_graph_access(
 
 
 @router.delete("/graphs/{graph_id}/access/{team}")
-def delete_graph_access(graph_id: str, team: str, db: Annotated[Session, Depends(get_db)]):
+def delete_graph_access(graph_id: str, team: str, db: Annotated[Session, Depends(get_db)], current_user: User = Depends(get_current_user)):
     row = (
         db.execute(select(GraphAccess).where(GraphAccess.graph_id == graph_id, GraphAccess.team == team))
         .scalars()

@@ -64,12 +64,12 @@ export default function AdrPanel() {
           </span>
           <div>
             <p className="text-sm font-semibold text-slate-100">ADRs leves</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
               Decisões inferidas do canvas — vincule Jira/Confluence (P1.4.6).
             </p>
           </div>
         </div>
-        <button type="button" className="btn-ghost inline-flex items-center gap-1 text-[11px]" onClick={copyAll}>
+        <button type="button" className="btn-ghost inline-flex items-center gap-2 text-sm" onClick={copyAll}>
           <Copy size={12} />
           Copiar
         </button>
@@ -77,46 +77,46 @@ export default function AdrPanel() {
 
       <ul className="space-y-3">
         {adrs.map((adr) => (
-          <li key={adr.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <li key={adr.id} className="rounded-xl border border-[var(--border)] bg-black/20 px-3 py-3">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
               {adr.id} · {adr.status}
             </p>
             <p className="mt-1 text-sm font-medium text-slate-100">{adr.title}</p>
             <div className="mt-2 grid gap-2">
               <input
-                className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-100"
+                className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-100"
                 placeholder="Jira key (LDEV-123)"
                 value={adr.jira_key ?? ""}
                 onChange={(e) => saveLink(adr.id, { jira_key: e.target.value })}
               />
               <input
-                className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-[11px] text-slate-100"
+                className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-100"
                 placeholder="Confluence URL"
                 value={adr.confluence_url ?? ""}
                 onChange={(e) => saveLink(adr.id, { confluence_url: e.target.value })}
               />
             </div>
             {(adr.jira_key || adr.confluence_url) && (
-              <div className="mt-2 flex gap-2 text-[11px]">
+              <div className="mt-2 flex gap-2 text-sm">
                 {adr.jira_key && (
                   <a
                     href={`https://ligiaacademy.atlassian.net/browse/${adr.jira_key}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-cyan-300"
+                    className="inline-flex items-center gap-2 text-indigo-300"
                   >
                     <ExternalLink size={10} /> {adr.jira_key}
                   </a>
                 )}
                 {adr.confluence_url && (
-                  <a href={adr.confluence_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-violet-300">
+                  <a href={adr.confluence_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-violet-300">
                     <ExternalLink size={10} /> Confluence
                   </a>
                 )}
               </div>
             )}
-            <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-              <span className="text-slate-500">Decisão: </span>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted-fg)]">
+              <span className="text-[var(--muted)]">Decisão: </span>
               {adr.decision}
             </p>
           </li>

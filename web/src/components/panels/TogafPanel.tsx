@@ -12,15 +12,15 @@ export default function TogafPanel() {
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">TOGAF ADM</p>
-      <p className="text-[10px] text-slate-400">Cobertura das fases do Architecture Development Method.</p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">TOGAF ADM</p>
+      <p className="text-sm text-[var(--muted-fg)]">Cobertura das fases do Architecture Development Method.</p>
 
       {/* Coverage badge */}
-      <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+      <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-slate-300">Cobertura</span>
+          <span className="text-sm text-slate-300">Cobertura</span>
           <span
-            className={`text-[11px] font-semibold ${
+            className={`text-sm font-semibold ${
               summary.coverage.coveragePct >= 0.8 ? "text-emerald-400" :
               summary.coverage.coveragePct >= 0.5 ? "text-amber-400" :
               "text-rose-400"
@@ -44,13 +44,13 @@ export default function TogafPanel() {
           return (
             <div
               key={phase}
-              className="flex items-center justify-between rounded border border-white/5 px-2 py-1.5"
+              className="flex items-center justify-between rounded border border-[var(--border)] px-2 py-2"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-violet-300">{phaseInfo.short}</span>
-                <span className="text-[11px] text-slate-200">{phaseInfo.label}</span>
+                <span className="text-sm font-mono text-violet-300">{phaseInfo.short}</span>
+                <span className="text-sm text-slate-200">{phaseInfo.label}</span>
               </div>
-              <span className="text-[10px] text-slate-500">{count} nós</span>
+              <span className="text-sm text-[var(--muted)]">{count} nós</span>
             </div>
           );
         })}
@@ -59,8 +59,8 @@ export default function TogafPanel() {
       {/* Gaps */}
       {summary.coverage.gaps.length > 0 && (
         <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-          <p className="text-[10px] font-semibold text-rose-300">Fases sem cobertura:</p>
-          <ul className="mt-1 space-y-0.5 text-[10px] text-rose-200">
+          <p className="text-sm font-semibold text-rose-300">Fases sem cobertura:</p>
+          <ul className="mt-1 space-y-0.5 text-sm text-rose-200">
             {summary.coverage.gaps.map((g) => (
               <li key={g}>• {getPhaseInfo(g).label}</li>
             ))}
@@ -69,7 +69,7 @@ export default function TogafPanel() {
       )}
 
       {/* Recommendation */}
-      <p className="text-[10px] text-slate-400">{summary.recommendation}</p>
+      <p className="text-sm text-[var(--muted-fg)]">{summary.recommendation}</p>
     </div>
   );
 }

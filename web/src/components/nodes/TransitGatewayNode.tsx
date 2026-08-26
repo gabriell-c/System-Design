@@ -13,7 +13,7 @@ export default function TransitGatewayNode({ id, data, selected }: NodeProps<Nod
 
   return (
     <article
-      className={`min-w-[240px] max-w-[300px] rounded-xl border px-3 py-2.5 shadow-lg ${
+      className={`min-w-[240px] max-w-[300px] rounded-xl border px-3 py-2.5 elev-2 ${
         selected ? "ring-2 ring-violet-400/80" : ""
       } ${inBlast ? "ring-2 ring-rose-500/70" : ""}`}
       style={{
@@ -32,8 +32,8 @@ export default function TransitGatewayNode({ id, data, selected }: NodeProps<Nod
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-violet-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-wide text-violet-300/90">Transit Gateway Hub</p>
-          <ul className="mt-1.5 space-y-0.5 text-[10px] text-slate-400">
+          <p className="text-sm uppercase tracking-wide text-violet-300/90">Transit Gateway Hub</p>
+          <ul className="mt-1.5 space-y-0.5 text-sm text-[var(--muted-fg)]">
             {attachments.length === 0 ? (
               <li>Hub central — conecte VPC attachments</li>
             ) : (

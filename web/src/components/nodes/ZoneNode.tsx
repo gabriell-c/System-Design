@@ -17,7 +17,7 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
   return (
     <div
       className={`relative h-full min-h-[160px] min-w-[240px] rounded-2xl border-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] ${
-        selected ? "ring-2 ring-cyan-400/60" : ""
+        selected ? "ring-2 ring-indigo-400/60" : ""
       }`}
       style={{
         background: `linear-gradient(180deg, ${meta.bg} 0%, rgba(7,11,16,0.88) 42%)`,
@@ -30,8 +30,8 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
         minWidth={240}
         minHeight={160}
         isVisible={selected}
-        lineClassName="!border-cyan-400/40"
-        handleClassName="!h-2.5 !w-2.5 !rounded-sm !border-cyan-300 !bg-slate-950"
+        lineClassName="!border-[var(--accent)]/40"
+        handleClassName="!h-2.5 !w-2.5 !rounded-sm !border-indigo-300 !bg-slate-950"
       />
 
       <AnchorHandle tone="block" nodeId={id} handleId="z-left" type="target" position={Position.Left} style={{ top: "50%" }} />
@@ -50,7 +50,7 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
         </span>
         <div className="pointer-events-none min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
+          <p className="text-sm uppercase tracking-[0.14em]" style={{ color: meta.accent }}>
             Zona · {meta.short}
             {data.boundedContext ? ` · ${data.boundedContext}` : ""}
             {data.provider && data.provider !== "generic" ? ` · ${data.provider.toUpperCase()}` : ""}
@@ -58,7 +58,7 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
         </div>
         <button
           type="button"
-          className="pointer-events-auto rounded-md border border-white/15 bg-black/40 px-1.5 py-0.5 text-[10px] text-cyan-200 hover:border-cyan-400/40"
+          className="pointer-events-auto rounded-md border border-[var(--border-strong)] bg-black/40 px-2 py-0.5 text-sm text-indigo-200 hover:border-[var(--accent)]/40"
           onClick={(e) => {
             e.stopPropagation();
             useGraphStore.getState().setFocusedZoneId(id);
@@ -67,12 +67,12 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
           Focar
         </button>
         {data.score != null && (
-          <span className="rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
+          <span className="rounded-md border border-[var(--border)] bg-black/30 px-2 py-0.5 text-sm font-semibold text-slate-200">
             {data.score.toFixed(1)}
           </span>
         )}
       </header>
-      <div className="pointer-events-none mx-2.5 mb-2.5 min-h-[100px] rounded-xl border border-white/5 bg-black/10" />
+      <div className="pointer-events-none mx-2.5 mb-2.5 min-h-[100px] rounded-xl border border-[var(--border)] bg-black/10" />
     </div>
   );
 }

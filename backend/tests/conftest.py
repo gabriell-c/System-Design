@@ -25,10 +25,37 @@ def _clear_rate_limiter():
 
 @pytest.fixture()
 def client() -> TestClient:
+    """Authenticated TestClient (SENIOR cookie). Clear cookies for anonymous cases."""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    with TestClient(app) as test_client:
+        login = test_client.post(
+            "/api/v1/auth/login",
+            json={"username": "SENIOR", "password": "CHANGEPASSWORD"},
+        )
+        assert login.status_code == 200, login.text
+        yield test_client
+
+
+@pytest.fixture()
+def anonymous_client() -> TestClient:
+    """Unauthenticated client for 401 / public-route tests."""
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture()
+def auth_headers(client: TestClient) -> dict[str, str]:
+    """Bearer header from current session (login already done in client)."""
+    # Re-login to obtain access_token in body
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"username": "SENIOR", "password": "CHANGEPASSWORD"},
+    )
+    assert login.status_code == 200, login.text
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 
 @pytest.fixture()

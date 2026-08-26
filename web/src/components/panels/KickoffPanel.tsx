@@ -25,22 +25,22 @@ export default function KickoffPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Checklist de kickoff</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             O que costuma faltar ao iniciar um projeto — baseado no canvas + NFRs.
           </p>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
-        <p className="text-[11px] uppercase tracking-wide text-slate-500">Prontidão</p>
+      <div className="rounded-xl border border-[var(--border)] bg-black/25 px-3 py-3">
+        <p className="text-sm uppercase tracking-wide text-[var(--muted)]">Prontidão</p>
         <p className={`mt-1 text-2xl font-semibold tabular-nums ${score.ready ? "text-emerald-300" : "text-amber-200"}`}>
           {score.ok}/{score.total}
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-[var(--muted-fg)]">
           {score.ready ? "Base mínima ok para discutir go-live." : "Ainda há buracos críticos no desenho."}
         </p>
         <p
-          className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-sm font-semibold ${
             score.reviewReady ? "bg-emerald-500/20 text-emerald-200" : "bg-violet-500/15 text-violet-200"
           }`}
         >
@@ -70,7 +70,7 @@ export default function KickoffPanel() {
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-100">{item.label}</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{item.detail}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-[var(--muted-fg)]">{item.detail}</p>
               </div>
             </div>
           </li>

@@ -27,7 +27,7 @@ export default function SwimlaneNode({ id, data, selected }: NodeProps<Node<Swim
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "50%" }} />
 
       <div
-        className="absolute left-0 top-0 flex h-full w-8 items-center justify-center rounded-l-xl text-[10px] font-bold uppercase tracking-widest"
+        className="absolute left-0 top-0 flex h-full w-8 items-center justify-center rounded-l-xl text-sm font-bold uppercase tracking-widest"
         style={{
           writingMode: "vertical-rl",
           transform: "rotate(180deg)",
@@ -41,7 +41,7 @@ export default function SwimlaneNode({ id, data, selected }: NodeProps<Node<Swim
         <p className="text-sm font-semibold" style={{ color: meta.accent }}>
           {data.label}
         </p>
-        <p className="text-[10px] text-slate-500 mt-0.5">Swimlane · arraste cards para dentro</p>
+        <p className="text-sm text-[var(--muted)] mt-0.5">Swimlane · arraste cards para dentro</p>
       </div>
     </article>
   );

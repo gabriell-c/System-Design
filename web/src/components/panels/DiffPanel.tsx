@@ -53,17 +53,17 @@ export default function DiffPanel({ graphId }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
         <FileDiff size={12} className="text-emerald-400" />
         Diff visual
       </div>
-      <p className="text-[10px] text-slate-500">
+      <p className="text-sm text-[var(--muted)]">
         Compare com uma versão anterior — verde=adicionado, vermelho=removido, amarelo=modificado.
       </p>
 
       <div className="space-y-2">
         <select
-          className="w-full rounded-md border border-white/10 bg-[#0d1219] px-2 py-1.5 text-[11px] text-slate-200"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-sm text-slate-200"
           value={selectedVersion}
           onChange={(e) => setSelectedVersion(e.target.value)}
         >
@@ -76,7 +76,7 @@ export default function DiffPanel({ graphId }: Props) {
         </select>
         <button
           type="button"
-          className="w-full rounded-md bg-emerald-600/80 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-500 disabled:opacity-50"
+          className="w-full rounded-md bg-emerald-600/80 px-3 py-2 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
           onClick={handleCompare}
           disabled={loading || !selectedVersion}
         >
@@ -86,9 +86,9 @@ export default function DiffPanel({ graphId }: Props) {
       </div>
 
       {diffResult && (
-        <div className="space-y-1 rounded-lg border border-white/10 bg-black/20 p-3">
-          <p className="text-[11px] font-semibold text-slate-300">Resumo</p>
-          <div className="space-y-1 text-[10px] text-slate-400">
+        <div className="space-y-1 rounded-lg border border-[var(--border)] bg-black/20 p-3">
+          <p className="text-sm font-semibold text-slate-300">Resumo</p>
+          <div className="space-y-1 text-sm text-[var(--muted-fg)]">
             <p><span className="text-emerald-400">●</span> {Array.isArray(diffResult.added_nodes) ? diffResult.added_nodes.length : 0} nós adicionados</p>
             <p><span className="text-rose-400">●</span> {Array.isArray(diffResult.removed_nodes) ? diffResult.removed_nodes.length : 0} nós removidos</p>
             <p><span className="text-amber-400">●</span> {Array.isArray(diffResult.changed_nodes) ? diffResult.changed_nodes.length : 0} nós modificados</p>

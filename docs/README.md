@@ -1,6 +1,7 @@
 # Archia — documentação
 
 - [**Design System**](./system_design.md) — tipografia, cores, tokens, componentes, a11y
+- [**Audit de Design**](./AUDIT-DESIGN.md) — falhas encontradas vs. manual global, organizadas por prioridade (P0/P1/P2)
 - [Arquitetura](./arquitetura.md)
 - [Padrão de diagrama review-ready](./PADRAO-DIAGRAMA-ARQUITETURA.md)
 - [Profissionalização Fase 1 (CI, Alembic, logs, API v1)](./features/profissionalizacao-fase1.md)

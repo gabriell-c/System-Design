@@ -39,12 +39,12 @@ export default function GraphByIdPage() {
       {error ? (
         <div>
           <p className="text-sm text-rose-300">{error}</p>
-          <Link href="/" className="mt-4 inline-block text-sm text-cyan-300">
+          <Link href="/" className="mt-4 inline-block text-sm text-indigo-300">
             Voltar ao dashboard
           </Link>
         </div>
       ) : (
-        <p className="text-sm text-slate-400">Redirecionando para o projeto…</p>
+        <p className="text-sm text-[var(--muted-fg)]">Redirecionando para o projeto…</p>
       )}
     </div>
   );

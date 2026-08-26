@@ -28,10 +28,12 @@ class TestGetProfile:
         assert data["role"] == "user"
 
     def test_get_profile_no_auth(self, client):
+        client.cookies.clear()
         resp = client.get("/api/v1/profile/")
         assert resp.status_code == 401
 
     def test_get_profile_invalid_token(self, client):
+        client.cookies.clear()
         resp = client.get("/api/v1/profile/", headers=_auth_header("bad.token.here"))
         assert resp.status_code == 401
 
@@ -113,6 +115,7 @@ class TestUpdateProfile:
         assert resp.json()["birth_date"] == "1988-03-22"
 
     def test_update_no_auth(self, client):
+        client.cookies.clear()
         resp = client.put("/api/v1/profile/", json={"email": "x@test.com"})
         assert resp.status_code == 401
 
@@ -142,6 +145,7 @@ class TestDeleteAccount:
         assert resp.status_code == 401
 
     def test_delete_account_no_auth(self, client):
+        client.cookies.clear()
         resp = client.delete("/api/v1/profile/")
         assert resp.status_code == 401
 

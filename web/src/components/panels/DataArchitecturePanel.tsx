@@ -127,14 +127,14 @@ export default function DataArchitecturePanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Arquitetura de Dados</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             Ownership, contratos de API, tópicos de eventos e lineage
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-800/50 p-1 rounded-lg">
+      <div className="flex gap-2 bg-zinc-800/50 p-1 rounded-lg">
         {[
           { id: "ownership", label: "Ownership", icon: Key },
           { id: "api", label: "API Contracts", icon: Share2 },
@@ -147,7 +147,7 @@ export default function DataArchitecturePanel() {
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
               activeTab === tab.id
                 ? "bg-emerald-500/20 text-emerald-300"
-                : "text-slate-400 hover:text-slate-200"
+                : "text-[var(--muted-fg)] hover:text-slate-200"
             }`}
           >
             <tab.icon size={14} />
@@ -165,7 +165,7 @@ export default function DataArchitecturePanel() {
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               placeholder="Nome da entidade..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-emerald-500"
               onKeyDown={(e) => e.key === "Enter" && addOwnership()}
             />
             <button
@@ -181,7 +181,7 @@ export default function DataArchitecturePanel() {
               <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                 <div>
                   <p className="text-sm font-medium text-slate-200">{entry.entity}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--muted-fg)]">
                     {entry.owner_team && `${entry.owner_team} · `}
                     {entry.classification?.toUpperCase()}
                   </p>
@@ -207,7 +207,7 @@ export default function DataArchitecturePanel() {
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               placeholder="Nome do serviço..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-emerald-500"
               onKeyDown={(e) => e.key === "Enter" && addApiContract()}
             />
             <button
@@ -224,7 +224,7 @@ export default function DataArchitecturePanel() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-200">{entry.service}</p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[var(--muted-fg)]">
                       {entry.protocol?.toUpperCase()} · {entry.method} · v{entry.version ?? '—'}
                     </p>
                   </div>
@@ -236,7 +236,7 @@ export default function DataArchitecturePanel() {
                   </button>
                 </div>
                 <input
-                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-white"
                   placeholder="OpenAPI URL (rest/graphql/grpc)"
                   value={entry.openapi_url ?? ""}
                   onChange={(e) =>
@@ -248,7 +248,7 @@ export default function DataArchitecturePanel() {
                   }
                 />
                 <input
-                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-white"
                   placeholder="AsyncAPI URL (async)"
                   value={entry.asyncapi_url ?? ""}
                   onChange={(e) =>
@@ -260,7 +260,7 @@ export default function DataArchitecturePanel() {
                   }
                 />
                 <input
-                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-white"
                   placeholder="Endpoints separados por vírgula (ex: /api/v1/users, /api/v1/orders)"
                   value={entry.endpoint ?? ""}
                   onChange={(e) =>
@@ -271,7 +271,7 @@ export default function DataArchitecturePanel() {
                     })
                   }
                 />
-                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-[var(--muted-fg)] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={entry.flow_exists ?? false}
@@ -306,7 +306,7 @@ export default function DataArchitecturePanel() {
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               placeholder="Nome do tópico..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-emerald-500"
               onKeyDown={(e) => e.key === "Enter" && addEventTopic()}
             />
             <button
@@ -326,12 +326,12 @@ export default function DataArchitecturePanel() {
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--muted-fg)]">
                   {entry.protocol} · {entry.schema_type}
                   {entry.schema_version ? ` v${entry.schema_version}` : ""}
                 </p>
                 <input
-                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-white"
                   placeholder="Schema registry URL"
                   value={entry.schema_registry_url ?? ""}
                   onChange={(e) =>
@@ -343,7 +343,7 @@ export default function DataArchitecturePanel() {
                   }
                 />
                 <input
-                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-white"
+                  className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-white"
                   placeholder="DLQ topic"
                   value={entry.dlq ?? ""}
                   onChange={(e) =>
@@ -369,7 +369,7 @@ export default function DataArchitecturePanel() {
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               placeholder="Entidade origem..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-emerald-500"
               onKeyDown={(e) => e.key === "Enter" && addLineage()}
             />
             <button
@@ -385,7 +385,7 @@ export default function DataArchitecturePanel() {
               <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                 <div>
                   <p className="text-sm font-medium text-slate-200">{entry.source_entity}</p>
-                  <p className="text-xs text-slate-400">→ {entry.target_entity || "..."}</p>
+                  <p className="text-xs text-[var(--muted-fg)]">→ {entry.target_entity || "..."}</p>
                 </div>
                 <button
                   onClick={() => removeLineage(idx)}

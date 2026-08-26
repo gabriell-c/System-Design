@@ -52,25 +52,25 @@ export default function AdminUsersPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#070b10]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#070b10] p-4 md:p-8">
+    <div className="min-h-screen bg-[var(--background)] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-[var(--muted-fg)] hover:text-white mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Editor
         </Link>
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center"><Users className="w-6 h-6 text-purple-400" /></div>
-            <div><h1 className="text-2xl font-bold text-white">User Management</h1><p className="text-sm text-slate-400">Manage all users in the system</p></div>
+            <div><h1 className="text-2xl font-bold text-white">User Management</h1><p className="text-sm text-[var(--muted-fg)]">Manage all users in the system</p></div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead><tr className="border-b border-slate-700 text-slate-400 text-sm">
+              <thead><tr className="border-b border-slate-700 text-[var(--muted-fg)] text-sm">
                 <th className="pb-3 pr-4">User</th>
                 <th className="pb-3 pr-4">Email</th>
                 <th className="pb-3 pr-4">Role</th>
@@ -80,11 +80,11 @@ export default function AdminUsersPage() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 pr-4"><div className="text-white font-medium">{u.username}</div><div className="text-slate-500 text-xs">ID: {u.id}</div></td>
+                    <td className="py-4 pr-4"><div className="text-white font-medium">{u.username}</div><div className="text-[var(--muted)] text-xs">ID: {u.id}</div></td>
                     <td className="py-4 pr-4 text-slate-300">{u.email}</td>
                     <td className="py-4 pr-4">
                       <button onClick={() => toggleRole(u)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${u.role === "senior" ? "bg-purple-500/20 text-purple-400" : "bg-slate-700 text-slate-300"}`}>
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${u.role === "senior" ? "bg-purple-500/20 text-purple-400" : "bg-slate-700 text-slate-300"}`}>
                         <Shield className="w-3 h-3" /> {u.role}
                       </button>
                     </td>
@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-            {users.length === 0 && <p className="text-center text-slate-500 py-8">No users found.</p>}
+            {users.length === 0 && <p className="text-center text-[var(--muted)] py-8">No users found.</p>}
           </div>
         </div>
       </div>

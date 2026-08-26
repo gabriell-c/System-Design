@@ -14,7 +14,7 @@ export default function CircuitBreakerNode({ id, data, selected }: NodeProps<Nod
 
   return (
     <article
-      className={`min-w-[200px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg ${
+      className={`min-w-[200px] max-w-[240px] rounded-xl border px-3 py-2.5 elev-2 ${
         selected ? "ring-2 ring-amber-400/80" : ""
       } ${inBlast ? "ring-2 ring-rose-500/70" : ""}`}
       style={{
@@ -32,8 +32,8 @@ export default function CircuitBreakerNode({ id, data, selected }: NodeProps<Nod
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-amber-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-wide text-amber-300/90">Circuit breaker</p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="text-sm uppercase tracking-wide text-amber-300/90">Circuit breaker</p>
+          <p className="mt-1 text-xs text-[var(--muted-fg)]">
             {cb?.failure_threshold ?? 5} falhas / {cb?.window_seconds ?? 60}s · {state}
           </p>
         </div>

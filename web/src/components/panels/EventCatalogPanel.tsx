@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Workflow } from "lucide-react";
 import { useGraphStore } from "@/lib/graph-store";
 import type { EventTopic } from "@/lib/types";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 
 export default function EventCatalogPanel() {
   const nfr = useGraphStore((s) => s.nfr);
@@ -54,7 +55,7 @@ export default function EventCatalogPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Event Catalog</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             Schema registry, versões, DLQ e retenção amarrados aos tópicos Kafka do desenho (P1.1.3).
           </p>
         </div>
@@ -66,7 +67,7 @@ export default function EventCatalogPanel() {
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder="Nome do tópico…"
-          className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+          className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-violet-500"
           onKeyDown={(e) => e.key === "Enter" && addTopic()}
         />
         <button
@@ -79,7 +80,7 @@ export default function EventCatalogPanel() {
 
       <div className="space-y-3">
         {topics.map((entry, idx) => (
-          <div key={idx} className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2">
+          <div key={idx} className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-slate-100">{entry.name}</p>
               <button
@@ -90,11 +91,11 @@ export default function EventCatalogPanel() {
                 <Trash2 size={14} />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <label className="flex flex-col gap-1">
-                <span className="text-slate-500">Protocolo</span>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <label className="flex flex-col gap-2">
+                <span className="text-[var(--muted)]">Protocolo</span>
                 <select
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                   value={entry.protocol ?? "kafka"}
                   onChange={(e) => updateTopic(idx, "protocol", e.target.value)}
                 >
@@ -104,10 +105,10 @@ export default function EventCatalogPanel() {
                   <option value="pubsub">Pub/Sub</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-slate-500">Schema</span>
+              <label className="flex flex-col gap-2">
+                <span className="text-[var(--muted)]">Schema</span>
                 <select
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                   value={entry.schema_type ?? "jsonschema"}
                   onChange={(e) => updateTopic(idx, "schema_type", e.target.value)}
                 >
@@ -117,38 +118,38 @@ export default function EventCatalogPanel() {
                   <option value="protobuf">Protobuf</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-slate-500">Versão</span>
+              <label className="flex flex-col gap-2">
+                <span className="text-[var(--muted)]">Versão</span>
                 <input
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                   value={entry.schema_version ?? ""}
                   onChange={(e) => updateTopic(idx, "schema_version", e.target.value)}
                   placeholder="v1.0.0"
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-slate-500">Retenção (h)</span>
+              <label className="flex flex-col gap-2">
+                <span className="text-[var(--muted)]">Retenção (h)</span>
                 <input
                   type="number"
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                   value={entry.retention_hours ?? 72}
                   onChange={(e) => updateTopic(idx, "retention_hours", e.target.value)}
                 />
               </label>
             </div>
-            <label className="flex flex-col gap-1">
-              <span className="text-slate-500">Schema registry URL</span>
+            <label className="flex flex-col gap-2">
+              <span className="text-[var(--muted)]">Schema registry URL</span>
               <input
-                className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                 value={entry.schema_registry_url ?? ""}
                 onChange={(e) => updateTopic(idx, "schema_registry_url", e.target.value)}
                 placeholder="https://schema-registry.internal"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-slate-500">DLQ (nome do tópico)</span>
+            <label className="flex flex-col gap-2">
+              <span className="text-[var(--muted)]">DLQ (nome do tópico)</span>
               <input
-                className="rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-slate-100"
+                className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-slate-100"
                 value={entry.dlq ?? ""}
                 onChange={(e) => updateTopic(idx, "dlq", e.target.value)}
                 placeholder="topic-name-dlq"
@@ -157,7 +158,11 @@ export default function EventCatalogPanel() {
           </div>
         ))}
         {topics.length === 0 && (
-          <p className="text-xs text-slate-500">Nenhum tópico cadastrado. Adicione acima.</p>
+          <PanelEmpty
+            icon={Workflow}
+            title="Nenhum tópico cadastrado"
+            description="Adicione um tópico acima para documentar eventos do domínio."
+          />
         )}
       </div>
     </div>

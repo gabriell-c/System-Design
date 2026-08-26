@@ -29,7 +29,7 @@ def configure_logging(*, level: str = "INFO", json_logs: bool = True) -> None:
 
     if json_logs:
         try:
-            from pythonjsonlogger.json import JsonFormatter
+            from pythonjsonlogger.jsonlog import JsonFormatter
         except ImportError:  # pragma: no cover
             from pythonjsonlogger.jsonlogger import (
                 JsonFormatter,  # type: ignore[attr-defined]

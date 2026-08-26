@@ -29,14 +29,14 @@ export default function AnchorHandle({
 
   const base =
     tone === "block"
-      ? "!h-3 !w-3 !rounded-full !border-2 !border-slate-950 !bg-cyan-300 hover:!scale-125 transition-transform"
-      : "!h-2.5 !w-2.5 !rounded-full !border-2 !border-slate-950 !bg-slate-200 hover:!bg-cyan-300 hover:!scale-125 transition-transform";
+      ? "!h-3 !w-3 !rounded-full !border-2 !border-slate-950 !bg-indigo-300 hover:!scale-125 transition-transform"
+      : "!h-2.5 !w-2.5 !rounded-full !border-2 !border-slate-950 !bg-slate-200 hover:!bg-indigo-300 hover:!scale-125 transition-transform";
 
   return (
     <Handle
       {...rest}
       id={handleId}
-      className={`${base} ${connected ? "!bg-cyan-400 ring-2 ring-cyan-300/50" : ""} ${className ?? ""}`}
+      className={`${base} ${connected ? "!bg-indigo-400 ring-2 ring-indigo-300/50" : ""} ${className ?? ""}`}
       title={
         connected
           ? "Duplo clique: desassociar conexões deste ponto"

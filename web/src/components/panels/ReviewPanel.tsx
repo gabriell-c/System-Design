@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ClipboardCheck, Save } from "lucide-react";
 import CustomSelect from "@/components/ui/Select";
+import PanelEmpty from "@/components/ui/PanelEmpty";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
 import type { ReviewStatus, ReviewTemplateItem } from "@/lib/types";
@@ -125,7 +127,11 @@ export default function ReviewPanel() {
         {analysis ? (
           <p className="text-xs text-emerald-300">Análise disponível — scorecard {analysis.review_scorecard?.overall.toFixed(1) ?? analysis.score.toFixed(1)}</p>
         ) : (
-          <p className="text-xs text-slate-500">Rode uma análise para fechar o ciclo.</p>
+          <PanelEmpty
+            icon={ClipboardCheck}
+            title="Análise pendente"
+            description="Rode uma análise para fechar o ciclo de review."
+          />
         )}
       </div>
     );
@@ -133,9 +139,11 @@ export default function ReviewPanel() {
 
   if (!graphId) {
     return (
-      <p className="px-4 py-4 text-sm text-slate-400">
-        Salve a arquitetura antes de solicitar revisão humana.
-      </p>
+      <PanelEmpty
+        icon={Save}
+        title="Arquitetura ainda não salva"
+        description="Salve a arquitetura antes de solicitar revisão humana."
+      />
     );
   }
 
@@ -185,7 +193,7 @@ export default function ReviewPanel() {
       />
       <textarea
         id="review-comment"
-        className="min-h-[80px] w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100"
+        className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Comentário da revisão"
@@ -193,7 +201,7 @@ export default function ReviewPanel() {
       <button type="submit" className="btn-primary w-full" disabled={busy || (status === "approved" && !canApprove)}>
         {busy ? "Enviando…" : "Registrar revisão"}
       </button>
-      {message && <p className="text-xs text-slate-400">{message}</p>}
+      {message && <p className="text-xs text-[var(--muted-fg)]">{message}</p>}
     </form>
   );
 }
@@ -208,8 +216,8 @@ function ChecklistBlock({
   onToggle: (id: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Design review</p>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Design review</p>
       <ul className="mt-2 space-y-2">
         {checklist.map((item) => (
           <li key={item.id} className="flex items-start gap-2 text-xs">
@@ -219,7 +227,7 @@ function ChecklistBlock({
               onChange={() => onToggle(item.id)}
               className="mt-0.5"
             />
-            <span className={item.required ? "text-slate-200" : "text-slate-400"}>
+            <span className={item.required ? "text-slate-200" : "text-[var(--muted-fg)]"}>
               {item.label}
               {item.required && <span className="text-rose-300"> *</span>}
               {autoHints[item.id] && <span className="ml-1 text-emerald-400">· detectado</span>}
@@ -249,18 +257,18 @@ function IsoQualityBlock({
   }, []);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ISO 25010 — Qualidade</p>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">ISO 25010 — Qualidade</p>
       <div className="mt-2 space-y-3">
         {categories.map(([cat, attrs]) => (
           <div key={cat}>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase">{cat}</p>
+            <p className="text-sm font-semibold text-[var(--muted-fg)] uppercase">{cat}</p>
             <div className="mt-1 space-y-1">
               {attrs.map((attr) => (
                 <div key={attr.id} className="flex items-center gap-2">
-                  <span className="flex-1 text-[11px] text-slate-300">{attr.label}</span>
+                  <span className="flex-1 text-sm text-slate-300">{attr.label}</span>
                   <select
-                    className="rounded border border-white/10 bg-[#0d1219] px-2 py-0.5 text-[10px] text-slate-200"
+                    className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-0.5 text-sm text-slate-200"
                     value={scores[attr.id] ?? ""}
                     onChange={(e) => onChange({ ...scores, [attr.id]: Number(e.target.value) })}
                   >
@@ -291,8 +299,8 @@ function AtamScenariosBlock({
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ATAM — Cenários de Qualidade</p>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">ATAM — Cenários de Qualidade</p>
       <div className="mt-2 space-y-2">
         {ATAM_SCENARIOS.map((s) => {
           const selected = scenarios.includes(s.id);
@@ -301,26 +309,26 @@ function AtamScenariosBlock({
               key={s.id}
               type="button"
               className={`w-full rounded-lg border p-2 text-left transition-colors ${
-                selected ? "border-emerald-500/50 bg-emerald-500/10" : "border-white/10 bg-black/20 hover:border-white/20"
+                selected ? "border-emerald-500/50 bg-emerald-500/10" : "border-[var(--border)] bg-black/20 hover:border-[var(--border-strong)]"
               }`}
               onClick={() => toggle(s.id)}
             >
               <div className="flex items-center justify-between">
-                <span className={`text-[11px] font-medium ${selected ? "text-emerald-300" : "text-slate-200"}`}>
+                <span className={`text-sm font-medium ${selected ? "text-emerald-300" : "text-slate-200"}`}>
                   {s.label}
                 </span>
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] text-slate-400">{s.category}</span>
+                <span className="rounded bg-white/10 px-2 py-0.5 text-sm text-[var(--muted-fg)]">{s.category}</span>
               </div>
-              <div className="mt-1 space-y-0.5 text-[10px] text-slate-400">
-                <p><span className="text-slate-500">Estímulo:</span> {s.stimulus}</p>
-                <p><span className="text-slate-500">Resposta:</span> {s.response}</p>
-                <p><span className="text-slate-500">Métrica:</span> {s.measure}</p>
+              <div className="mt-1 space-y-0.5 text-sm text-[var(--muted-fg)]">
+                <p><span className="text-[var(--muted)]">Estímulo:</span> {s.stimulus}</p>
+                <p><span className="text-[var(--muted)]">Resposta:</span> {s.response}</p>
+                <p><span className="text-[var(--muted)]">Métrica:</span> {s.measure}</p>
               </div>
             </button>
           );
         })}
       </div>
-      <p className="mt-2 text-[10px] text-slate-500">
+      <p className="mt-2 text-sm text-[var(--muted)]">
         {scenarios.length > 0 ? `${scenarios.length} cenários selecionados` : "Nenhum cenário selecionado"}
       </p>
     </div>

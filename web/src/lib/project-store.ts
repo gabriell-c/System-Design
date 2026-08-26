@@ -58,7 +58,7 @@ export const useProjectStore = create<ProjectState>()(
             limit: 50,
             offset: 0,
           });
-          const projects = resp.items ?? resp;
+          const projects = Array.isArray(resp) ? resp : (resp.items ?? []);
           const withDiagrams = await Promise.all(
             projects.map(async (p) => {
               try {

@@ -1,4 +1,4 @@
-"""Simple in-memory rate limiter for login/recover endpoints."""
+"""Simple in-memory rate limiter for auth and costly endpoints."""
 
 import threading
 import time
@@ -35,3 +35,15 @@ def rate_limit_recover(request: Request, username: str) -> None:
     """Rate limit: 3 attempts per 300 seconds per IP+username."""
     ip = request.client.host if request.client else "unknown"
     _rate_limit(f"recover:{ip}:{username.upper()}", max_attempts=3, window_seconds=300)
+
+
+def rate_limit_analyze(request: Request, user_key: str) -> None:
+    """Rate limit: 10 analysis requests per 60 seconds per IP+user."""
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"analyze:{ip}:{user_key}", max_attempts=10, window_seconds=60)
+
+
+def rate_limit_simulation(request: Request, user_key: str) -> None:
+    """Rate limit: 5 simulation requests per 60 seconds per IP+user."""
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"simulation:{ip}:{user_key}", max_attempts=5, window_seconds=60)

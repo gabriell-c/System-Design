@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { useTranslation } from "@/i18n";
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -31,11 +33,11 @@ export default function RegisterPage() {
     setSuccess("");
 
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("register.passwords_no_match"));
       return;
     }
     if (form.password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t("register.password_min_8"));
       return;
     }
 
@@ -49,34 +51,34 @@ export default function RegisterPage() {
         birth_date: form.birth_date || undefined,
       });
       if (success) {
-        setSuccess("Account created! Redirecting to login...");
+        setSuccess(t("register.account_created"));
         setTimeout(() => router.push("/login"), 1500);
       } else {
-        setError("Registration failed. Username or email may already exist.");
+        setError(t("register.registration_failed"));
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("auth.error_try_again"));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#070b10] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Archia</h1>
-          <p className="text-slate-400">Create your account</p>
+          <p className="text-[var(--muted-fg)]">{t("register.create_account")}</p>
         </div>
 
-        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-8 shadow-xl">
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-8 elev-3">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Sign up</h2>
-              <p className="text-sm text-slate-400">Create a new account</p>
+              <h2 className="text-xl font-semibold text-white">{t("register.sign_up")}</h2>
+              <p className="text-sm text-[var(--muted-fg)]">{t("register.create_new_account")}</p>
             </div>
           </div>
 
@@ -93,65 +95,65 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Username *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("auth.username")} *</label>
               <input
                 type="text"
                 value={form.username}
                 onChange={(e) => update("username", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="Choose a username"
+                placeholder={t("register.choose_username")}
                 required
                 minLength={3}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("register.email")} *</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="your@email.com"
+                placeholder={t("register.your_email")}
                 required
               />
             </div>
 
             <div className="relative">
-              <label className="block text-sm font-medium text-slate-300 mb-1">Password *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("auth.password")} *</label>
               <input
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => update("password", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all pr-12"
-                placeholder="Min. 8 characters"
+                placeholder={t("register.min_8_chars")}
                 required
                 minLength={8}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-slate-400 hover:text-white transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-9 text-[var(--muted-fg)] hover:text-white transition-colors"
+                aria-label={showPassword ? t("auth.hide_password") : t("auth.show_password")}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("register.confirm_password")} *</label>
               <input
                 type="password"
                 value={form.confirmPassword}
                 onChange={(e) => update("confirmPassword", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="Repeat your password"
+                placeholder={t("register.repeat_password")}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Phone (optional)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("register.phone_optional")}</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -162,7 +164,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Birth Date (optional)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">{t("register.birth_date_optional")}</label>
               <input
                 type="date"
                 value={form.birth_date}
@@ -178,22 +180,22 @@ export default function RegisterPage() {
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account...
+                  <div className="w-5 h-5 border-2 border-[var(--border-strong)] border-t-white rounded-full animate-spin" />
+                  {t("register.creating_account")}
                 </>
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  Create account
+                  {t("register.sign_up")}
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-400">
-            Already have an account?{" "}
+          <div className="mt-6 text-center text-sm text-[var(--muted-fg)]">
+            {t("register.already_have_account")}{" "}
             <Link href="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors">
-              Sign in
+              {t("auth.sign_in")}
             </Link>
           </div>
         </div>

@@ -27,13 +27,13 @@ export default function DrillDownNavigator({ diagramKind, parentGraphId, onDrill
   ].filter(Boolean);
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0d1219]/95 px-3 py-2 text-xs text-slate-300">
-      <Layers size={14} className="text-cyan-400 shrink-0" />
-      <nav aria-label="C4 drill-down" className="flex flex-wrap items-center gap-1 min-w-0">
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-slate-300">
+      <Layers size={14} className="text-[var(--accent)] shrink-0" />
+      <nav aria-label="C4 drill-down" className="flex flex-wrap items-center gap-2 min-w-0">
         {crumbs.map((c, i) => (
-          <span key={`${c}-${i}`} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight size={12} className="text-slate-600" />}
-            <span className={i === crumbs.length - 1 ? "text-slate-100 font-medium truncate" : "text-slate-500"}>
+          <span key={`${c}-${i}`} className="flex items-center gap-2">
+            {i > 0 && <ChevronRight size={12} className="text-[var(--muted-fg)]" />}
+            <span className={i === crumbs.length - 1 ? "text-slate-100 font-medium truncate" : "text-[var(--muted)]"}>
               {c}
             </span>
           </span>
@@ -42,7 +42,7 @@ export default function DrillDownNavigator({ diagramKind, parentGraphId, onDrill
       {canDrill && selected && isArchData(selected.data) && (
         <button
           type="button"
-          className="ml-auto shrink-0 rounded-md bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 hover:bg-cyan-500/25"
+          className="ml-auto shrink-0 rounded-md bg-[var(--accent-muted)] px-2 py-1 text-sm font-semibold text-indigo-200 hover:bg-[var(--accent-muted)]"
           onClick={() => {
             const data = selected.data;
             if (!isArchData(data)) return;

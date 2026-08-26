@@ -6,10 +6,8 @@ import DesignCanvas from "@/components/canvas/DesignCanvas";
 import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
+import FreePalette from "@/components/sidebar/FreePalette";
 import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
-import SearchFilter from "@/components/sidebar/SearchFilter";
-import SavedViewsPanel from "@/components/sidebar/SavedViewsPanel";
-import ViewTabs from "@/components/sidebar/ViewTabs";
 import PresentationMode from "@/components/layout/PresentationMode";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
@@ -19,7 +17,9 @@ import { useProjectStore } from "@/lib/project-store";
 import TopBar from "./TopBar";
 
 const FOCUS_KEY = "archia-focus-mode";
+const AUTO_ANALYZE_KEY = "archia-auto-analyze";
 
+/** Lightweight stable fingerprint — avoids JSON.stringify of full graph each change. */
 function structureKey(
   nodes: {
     id: string;
@@ -28,23 +28,31 @@ function structureKey(
   }[],
   edges: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }[],
 ): string {
-  return JSON.stringify({
-    nodes: nodes.map((n) => ({
-      id: n.id,
-      parentId: n.parentId ?? null,
-      kind: n.data.kind,
-      domain: n.data.domain ?? null,
-      catalogId: n.data.catalogId ?? null,
-      label: n.data.label,
-      config: n.data.config ?? null,
-    })),
-    edges: edges.map((e) => ({
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle ?? null,
-      targetHandle: e.targetHandle ?? null,
-    })),
-  });
+  let h = 2166136261;
+  const mix = (s: string) => {
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+  };
+  mix(String(nodes.length));
+  for (const n of nodes) {
+    mix(n.id);
+    mix(n.parentId ?? "");
+    mix(n.data.kind);
+    mix(n.data.domain ?? "");
+    mix(n.data.catalogId ?? "");
+    mix(n.data.label);
+    mix(typeof n.data.config === "string" ? n.data.config : JSON.stringify(n.data.config ?? null));
+  }
+  mix(String(edges.length));
+  for (const e of edges) {
+    mix(e.source);
+    mix(e.target);
+    mix(e.sourceHandle ?? "");
+    mix(e.targetHandle ?? "");
+  }
+  return (h >>> 0).toString(36);
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -54,7 +62,9 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export default function EditorShell() {
   useAutoSave();
-  const { loadProjects } = useProjectStore();
+  const { loadProjects, projects, activeProjectId } = useProjectStore();
+  const activeProject = projects.find((p) => p.id === activeProjectId);
+  const isFreeProject = activeProject?.project_kind === "free";
 
   useEffect(() => {
     void loadProjects();
@@ -154,6 +164,14 @@ export default function EditorShell() {
       skipFirst.current = false;
       return;
     }
+    if (isFreeProject) return;
+    let enabled = false;
+    try {
+      enabled = localStorage.getItem(AUTO_ANALYZE_KEY) === "1";
+    } catch {
+      /* ignore */
+    }
+    if (!enabled) return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       void runAnalyzeRef.current({ silent: true });
@@ -161,7 +179,7 @@ export default function EditorShell() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [fingerprint]);
+  }, [fingerprint, isFreeProject]);
 
   return (
     <div className="flex h-full min-h-0 bg-[var(--background)] text-[var(--foreground)]">
@@ -169,59 +187,59 @@ export default function EditorShell() {
       <DiagramSidebar collapsed={true} />
       <div className="flex min-h-0 flex-1 flex-col">
         {!focusMode && (
-          <TopBar onAnalyze={() => void runAnalyze()} onToggleFocus={toggleFocus} focusMode={focusMode} />
+          <TopBar
+            onAnalyze={() => void runAnalyze()}
+            onToggleFocus={toggleFocus}
+            focusMode={focusMode}
+            hideAnalysis={isFreeProject}
+          />
         )}
         <div className="flex min-h-0 flex-1">
           {!focusMode && (
             <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
-              <div className="flex h-full min-h-0 flex-col">
-                <SearchFilter />
-                <SavedViewsPanel />
-                <ViewTabs />
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <ComponentPalette />
-                </div>
+              <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                {isFreeProject ? <FreePalette /> : <ComponentPalette />}
               </div>
             </ResizablePanel>
           )}
-        <main className="relative min-w-0 flex-1 bg-[var(--canvas-bg)]">
-          <DesignCanvas />
-          {focusMode && (
-            <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-2">
-              <span className="pointer-events-none hidden rounded-lg border border-white/10 bg-[#0d1219]/90 px-2.5 py-1 text-[11px] text-slate-400 backdrop-blur sm:inline">
-                Esc sai · F alterna
-              </span>
+          <main className="relative min-w-0 flex-1 bg-[var(--canvas-bg)]">
+            <DesignCanvas />
+            {focusMode && (
+              <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-2">
+                <span className="pointer-events-none hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/90 px-2.5 py-1 text-sm text-[var(--muted-fg)] backdrop-blur sm:inline">
+                  Esc sai · F alterna
+                </span>
+                <button
+                  type="button"
+                  className="pointer-events-auto btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/95 elev-2 backdrop-blur"
+                  onClick={() => setFocus(false)}
+                  title="Sair da tela cheia (Esc)"
+                >
+                  <Minimize2 size={14} />
+                  Sair
+                </button>
+              </div>
+            )}
+            {!focusMode && (
               <button
                 type="button"
-                className="pointer-events-auto btn-ghost inline-flex items-center gap-1.5 bg-[#0d1219]/95 shadow-lg backdrop-blur"
-                onClick={() => setFocus(false)}
-                title="Sair da tela cheia (Esc)"
+                className="absolute right-3 top-3 z-20 btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/80 backdrop-blur lg:hidden"
+                onClick={toggleFocus}
+                title="Tela cheia (F)"
               >
-                <Minimize2 size={14} />
-                Sair
+                <Maximize2 size={14} />
               </button>
-            </div>
-          )}
+            )}
+          </main>
           {!focusMode && (
-            <button
-              type="button"
-              className="absolute right-3 top-3 z-20 btn-ghost inline-flex items-center gap-1.5 bg-[#0d1219]/80 backdrop-blur lg:hidden"
-              onClick={toggleFocus}
-              title="Tela cheia (F)"
-            >
-              <Maximize2 size={14} />
-            </button>
+            <ResizablePanel storageKey="archia-sidebar-right" defaultWidth={380} side="right">
+              <Inspector hideAnalysis={isFreeProject} />
+            </ResizablePanel>
           )}
-        </main>
-        {!focusMode && (
-          <ResizablePanel storageKey="archia-sidebar-right" defaultWidth={380} side="right">
-            <Inspector />
-          </ResizablePanel>
-        )}
+        </div>
       </div>
       {/* P3.1.2 — Presentation Mode */}
       <PresentationMode graphId={graphId ?? ""} />
-    </div>
     </div>
   );
 }

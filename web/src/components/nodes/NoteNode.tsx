@@ -20,7 +20,7 @@ export default function NoteNode({ id, data, selected }: NodeProps<Node<NoteNode
       aria-label={`Nota: ${data.label}`}
     >
       <textarea
-        className="w-full resize-none bg-transparent text-xs font-medium leading-snug outline-none min-h-[48px]"
+        className="w-full resize-none bg-transparent text-xs font-medium leading-snug focus:outline-none focus:ring-2 focus:ring-[var(--accent)] min-h-[48px]"
         value={data.text ?? data.label}
         onChange={(e) =>
           updateNodeData(id, { text: e.target.value, label: e.target.value.slice(0, 40) || "Nota" })
@@ -28,7 +28,7 @@ export default function NoteNode({ id, data, selected }: NodeProps<Node<NoteNode
         placeholder="Anotação do arquiteto…"
       />
       {data.anchorNodeId && (
-        <p className="mt-1 text-[10px] opacity-60">↗ {data.anchorNodeId}</p>
+        <p className="mt-1 text-sm opacity-60">↗ {data.anchorNodeId}</p>
       )}
     </article>
   );

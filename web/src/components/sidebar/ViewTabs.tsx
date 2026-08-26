@@ -12,19 +12,19 @@ export default function ViewTabs() {
   const drillDownToView = useGraphStore((s) => s.drillDownToView);
 
   return (
-    <div className="border-b border-white/10">
+    <div className="border-b border-[var(--border)]">
       {/* P3.1.1 — 4+1 Architecture Views */}
-      <div className="flex flex-wrap gap-1 px-3 py-1.5">
+      <div className="flex flex-wrap gap-2 px-3 py-2">
         {ARCHITECTURE_VIEWS.map((view) => {
           const active = architectureView === view.id;
           return (
             <button
               key={view.id}
               type="button"
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+              className={`rounded-full border px-2 py-0.5 text-sm font-medium ${
                 active
                   ? "border-violet-400/60 bg-violet-500/20 text-violet-100"
-                  : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200"
+                  : "border-[var(--border)] text-[var(--muted-fg)] hover:border-[var(--border-strong)] hover:text-slate-200"
               }`}
               onClick={() => drillDownToView(view.id)}
               title={view.label}
@@ -35,17 +35,17 @@ export default function ViewTabs() {
         })}
       </div>
       {/* Layer Views */}
-      <div className="flex flex-wrap gap-1 px-3 py-1.5">
+      <div className="flex flex-wrap gap-2 px-3 py-2">
         {LAYER_VIEWS.map((view) => {
           const on = canvasFilter.layerView === view.id;
           return (
             <button
               key={view.id}
               type="button"
-              className={`rounded-full border px-2 py-0.5 text-[10px] ${
+              className={`rounded-full border px-2 py-0.5 text-sm ${
                 on
-                  ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                  : "border-white/10 text-slate-400 hover:border-white/20"
+                  ? "border-[var(--accent)]/40 bg-[var(--accent-muted)] text-indigo-100"
+                  : "border-[var(--border)] text-[var(--muted-fg)] hover:border-[var(--border-strong)]"
               }`}
               onClick={() => setCanvasFilter({ ...canvasFilter, layerView: view.id })}
             >

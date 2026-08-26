@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph, GraphBoundaryContract, new_uuid
+from app.models.user import User
+from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["boundary"])
 
@@ -22,6 +24,7 @@ router = APIRouter(prefix="/api/v1", tags=["boundary"])
 def list_boundary_contracts(
     graph_id: str,
     db: Annotated[Session, Depends(get_db)],
+    current_user: User = Depends(get_current_user),
 ):
     graph = db.get(Graph, graph_id)
     if not graph:
@@ -50,6 +53,7 @@ def create_boundary_contract(
     graph_id: str,
     body: dict,
     db: Annotated[Session, Depends(get_db)],
+    current_user: User = Depends(get_current_user),
 ):
     graph = db.get(Graph, graph_id)
     if not graph:
@@ -76,6 +80,7 @@ def delete_boundary_contract(
     graph_id: str,
     contract_id: str,
     db: Annotated[Session, Depends(get_db)],
+    current_user: User = Depends(get_current_user),
 ):
     row = db.get(GraphBoundaryContract, contract_id)
     if not row or row.graph_id != graph_id:

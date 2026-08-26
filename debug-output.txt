@@ -1,0 +1,9 @@
+Status: 401
+Headers: {'date': 'Mon, 24 Aug 2026 17:33:41 GMT', 'server': 'uvicorn', 'content-length': '30', 'content-type': 'application/json', 'x-request-id': '66171291-e89c-438b-9929-b6a6624071c8'}
+Body: {"detail":"Not authenticated"}
+
+With empty cookies: 401
+Body: {"detail":"Not authenticated"}
+
+With params: 401
+Body: {"detail":"Not authenticated"}

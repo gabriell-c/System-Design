@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { parseImportPayload, toArchitectureMarkdown, toExportPayload } from "./export.ts";
 
-test("export roundtrip preserves nodes and edges", () => {
+test("export roundtrip preserves nodes and edges", async () => {
   const nodes = [
     {
       id: "n1",
@@ -18,15 +18,25 @@ test("export roundtrip preserves nodes and edges", () => {
     },
   ];
   const edges = [{ id: "e1", source: "n1", target: "n1" }];
-  const exported = toExportPayload("Demo", nodes, edges, null);
-  const parsed = parseImportPayload(JSON.parse(JSON.stringify(exported)));
+  const exported = await toExportPayload("Demo", nodes, edges, null);
+  assert.ok(exported.checksum && exported.checksum.length === 64);
+  const parsed = await parseImportPayload(JSON.parse(JSON.stringify(exported)));
   assert.equal(parsed.name, "Demo");
   assert.equal(parsed.nodes.length, 1);
   assert.equal(parsed.edges.length, 1);
 });
 
-test("parseImportPayload rejects unknown format", () => {
-  assert.throws(() => parseImportPayload({ format: "other" }), /não é um export/);
+test("parseImportPayload rejects unknown format", async () => {
+  await assert.rejects(() => parseImportPayload({ format: "other" }), /não é um export/);
+});
+
+test("parseImportPayload rejects corrupted checksum", async () => {
+  const exported = await toExportPayload("Demo", [], [], null);
+  exported.checksum = "0".repeat(64);
+  await assert.rejects(
+    () => parseImportPayload(exported),
+    /checksum não corresponde/,
+  );
 });
 
 test("toArchitectureMarkdown includes components, edges and NFRs", () => {

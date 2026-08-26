@@ -13,7 +13,7 @@ type Props = {
 export default function Toggle({ checked, onChange, label, disabled, className }: Props) {
   return (
     <label
-      className={`flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm transition ${
+      className={`flex items-center gap-3 rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-sm transition ${
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer text-slate-200 hover:bg-white/[0.03]"
       } ${className ?? ""}`}
     >
@@ -23,7 +23,7 @@ export default function Toggle({ checked, onChange, label, disabled, className }
         aria-checked={checked}
         disabled={disabled}
         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? "bg-cyan-500" : "bg-slate-700"
+          checked ? "bg-[var(--accent)]" : "bg-slate-700"
         }`}
         onClick={(e) => {
           e.preventDefault();

@@ -182,7 +182,7 @@ def _ensure_sqlite_columns() -> None:
             """))
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan, strict_slashes=False)
 app.add_middleware(AuditMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(ApiVersionRewriteMiddleware)

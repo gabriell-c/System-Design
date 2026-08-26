@@ -31,7 +31,7 @@ function pct(n: number): string {
 function severityClass(sev: string): string {
   if (sev === "critical") return "text-rose-400";
   if (sev === "warning") return "text-amber-400";
-  return "text-slate-400";
+  return "text-[var(--muted-fg)]";
 }
 
 function modeIcon(mode: string) {
@@ -95,7 +95,7 @@ export default function SimulationPanel() {
 
   if (loadingPresets) {
     return (
-      <div className="flex items-center gap-2 px-4 py-8 text-sm text-slate-400">
+      <div className="flex items-center gap-2 px-4 py-8 text-sm text-[var(--muted-fg)]">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando cenários…
       </div>
@@ -110,7 +110,7 @@ export default function SimulationPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Simulação de carga</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             Testa se a arquitetura aguenta a carga, onde estão os gargalos, e o que quebra sob pressão.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function SimulationPanel() {
 
       {/* Test Mode Selector */}
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Modo de teste</label>
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Modo de teste</label>
         <div className="mt-1 grid grid-cols-3 gap-2">
           {(["load", "stress", "soak"] as const).map((mode) => (
             <button
@@ -127,51 +127,51 @@ export default function SimulationPanel() {
               onClick={() => setTestMode(mode)}
               className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
                 testMode === mode
-                  ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300"
-                  : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:text-slate-300"
+                  ? "border-[var(--accent)]/50 bg-indigo-400/10 text-indigo-300"
+                  : "border-[var(--border)] bg-black/20 text-[var(--muted-fg)] hover:border-[var(--border-strong)] hover:text-slate-300"
               }`}
             >
               <div className="flex items-center justify-center gap-1.5">
                 {modeIcon(mode)}
                 {modeLabel(mode)}
               </div>
-              <div className="mt-1 text-[10px] opacity-70">{modeDesc(mode)}</div>
+              <div className="mt-1 text-sm opacity-70">{modeDesc(mode)}</div>
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Cenário</label>
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Cenário</label>
         <CustomSelect
           className="mt-1"
           value={presetId}
           options={presets.map((p) => ({ value: p.id, label: p.label }))}
           onChange={setPresetId}
         />
-        {selected && <p className="mt-1 text-[11px] text-slate-500">{selected.description}</p>}
+        {selected && <p className="mt-1 text-sm text-[var(--muted)]">{selected.description}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="sim-seed">
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="sim-seed">
             Semente
           </label>
-          <p className="mt-0.5 text-[10px] text-slate-600">Mesma semente = mesmo resultado</p>
+          <p className="mt-0.5 text-sm text-[var(--muted-fg)]">Mesma semente = mesmo resultado</p>
           <input
             id="sim-seed"
             type="number"
             min={0}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 font-mono text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 font-mono text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={seed}
             onChange={(e) => setSeed(Number(e.target.value) || 0)}
           />
         </div>
         <div>
-          <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="sim-realism">
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="sim-realism">
             Realismo {(realism * 100).toFixed(0)}%
           </label>
-          <p className="mt-0.5 text-[10px] text-slate-600">Quanto de imprevisibilidade</p>
+          <p className="mt-0.5 text-sm text-[var(--muted-fg)]">Quanto de imprevisibilidade</p>
           <input
             id="sim-realism"
             type="range"
@@ -227,7 +227,7 @@ export default function SimulationPanel() {
       )}
 
       {result && (
-        <div className="space-y-4 border-t border-white/8 pt-4">
+        <div className="space-y-4 border-t border-[var(--border)] pt-4">
           {/* Summary */}
           <p className="text-xs leading-relaxed text-slate-300">{result.summary}</p>
 
@@ -286,8 +286,8 @@ export default function SimulationPanel() {
 
           {/* Engineering Audit - Bottleneck Analysis */}
           {result.engineering_audit && (
-            <div className="rounded-lg border border-white/8 bg-black/20 p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
                 <ShieldAlert size={12} />
                 Análise de Engenharia
               </p>
@@ -295,11 +295,11 @@ export default function SimulationPanel() {
               {/* Bottleneck */}
               {result.engineering_audit.bottleneck_component && (
                 <div className="mb-2 rounded-md border border-rose-500/20 bg-rose-950/20 px-2.5 py-2">
-                  <p className="text-[11px] text-rose-300">
+                  <p className="text-sm text-rose-300">
                     <span className="font-medium">Gargalo:</span>{" "}
                     {result.engineering_audit.bottleneck_tech} (~{result.engineering_audit.bottleneck_rps} RPS)
                   </p>
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--muted-fg)]">
                     Sistema suporta ~{result.engineering_audit.system_capacity_rps} RPS · Margem atual: {result.engineering_audit.headroom_pct}%
                   </p>
                 </div>
@@ -308,13 +308,13 @@ export default function SimulationPanel() {
               {/* Component Capacities */}
               {result.engineering_audit.component_capacities.length > 0 && (
                 <div className="mb-2">
-                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Componentes</p>
+                  <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Componentes</p>
                   <div className="space-y-1">
                     {result.engineering_audit.component_capacities.map((comp, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-md border border-white/5 bg-black/20 px-2 py-1.5">
-                        <span className="text-[10px] text-slate-300">{comp.component}</span>
-                        <span className="text-[10px] font-mono text-slate-400">{comp.tech}</span>
-                        <span className="text-[10px] font-mono text-slate-500">{comp.capacity_rps} RPS</span>
+                      <div key={i} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-black/20 px-2 py-2">
+                        <span className="text-sm text-slate-300">{comp.component}</span>
+                        <span className="text-sm font-mono text-[var(--muted-fg)]">{comp.tech}</span>
+                        <span className="text-sm font-mono text-[var(--muted)]">{comp.capacity_rps} RPS</span>
                       </div>
                     ))}
                   </div>
@@ -324,10 +324,10 @@ export default function SimulationPanel() {
               {/* Failure Scenarios */}
               {result.engineering_audit.failure_scenarios.length > 0 && (
                 <div className="mb-2">
-                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Riscos identificados</p>
+                  <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Riscos identificados</p>
                   <ul className="space-y-1">
                     {result.engineering_audit.failure_scenarios.map((s, i) => (
-                      <li key={i} className="text-[10px] leading-snug text-amber-300/90">
+                      <li key={i} className="text-sm leading-snug text-amber-300/90">
                         {s}
                       </li>
                     ))}
@@ -338,10 +338,10 @@ export default function SimulationPanel() {
               {/* Recommendations */}
               {result.engineering_audit.recommendations.length > 0 && (
                 <div>
-                  <p className="mb-1 text-[10px] font-medium uppercase text-slate-500">Recomendações</p>
+                  <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Recomendações</p>
                   <ul className="space-y-1">
                     {result.engineering_audit.recommendations.map((r, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-[10px] text-emerald-300/90">
+                      <li key={i} className="flex items-start gap-1.5 text-sm text-emerald-300/90">
                         <span className="mt-0.5 text-emerald-400">→</span>
                         <span>{r}</span>
                       </li>
@@ -354,11 +354,11 @@ export default function SimulationPanel() {
 
           {/* Findings */}
           {result.findings.length > 0 && (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {result.findings.map((f) => (
                 <li
                   key={f}
-                  className="rounded-lg border border-white/8 bg-black/20 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300"
+                  className="rounded-lg border border-[var(--border)] bg-black/20 px-2.5 py-2 text-sm leading-relaxed text-slate-300"
                 >
                   {f}
                 </li>
@@ -369,12 +369,12 @@ export default function SimulationPanel() {
           {/* Bottlenecks (legacy) */}
           {result.load && result.load.bottlenecks.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Gargalos</p>
+              <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Gargalos</p>
               <ul className="space-y-1">
                 {result.load.bottlenecks.map((b) => (
-                  <li key={`${b.component}-${b.reason}`} className="text-[11px] leading-snug">
+                  <li key={`${b.component}-${b.reason}`} className="text-sm leading-snug">
                     <span className={`font-medium ${severityClass(b.severity)}`}>{b.component}</span>
-                    <span className="text-slate-500"> — {b.reason}</span>
+                    <span className="text-[var(--muted)]"> — {b.reason}</span>
                   </li>
                 ))}
               </ul>
@@ -384,12 +384,12 @@ export default function SimulationPanel() {
           {/* Journey */}
           {result.journey && (
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Jornada do usuário</p>
+              <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Jornada do usuário</p>
               <ul className="space-y-1">
                 {result.journey.steps.map((s) => (
-                  <li key={s.step_id} className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
+                  <li key={s.step_id} className="flex items-center justify-between gap-2 text-sm text-slate-300">
                     <span className="truncate">{s.name}</span>
-                    <span className="shrink-0 font-mono text-slate-500">
+                    <span className="shrink-0 font-mono text-[var(--muted)]">
                       {s.completed}/{s.entered} · {pct(s.success_rate)}
                     </span>
                   </li>
@@ -401,16 +401,16 @@ export default function SimulationPanel() {
           {/* Events */}
           {result.events && result.events.events.some((e) => e.triggered) && (
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Incidentes</p>
-              <ul className="space-y-1.5">
+              <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Incidentes</p>
+              <ul className="space-y-2">
                 {result.events.events
                   .filter((e) => e.triggered)
                   .map((e) => (
-                    <li key={e.event_type} className="text-[11px] leading-snug">
+                    <li key={e.event_type} className="text-sm leading-snug">
                       <span className={`font-medium ${severityClass(e.severity)}`}>{e.event_type}</span>
-                      <span className="text-slate-500"> — {e.impact}</span>
+                      <span className="text-[var(--muted)]"> — {e.impact}</span>
                       {e.cascade.length > 0 && (
-                        <span className="block text-slate-600">cascata: {e.cascade.join(" → ")}</span>
+                        <span className="block text-[var(--muted-fg)]">cascata: {e.cascade.join(" → ")}</span>
                       )}
                     </li>
                   ))}
@@ -421,14 +421,14 @@ export default function SimulationPanel() {
           {/* Validations */}
           {result.validations.length > 0 && (
             <div>
-              <p className="mb-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
                 <CheckCircle2 size={11} />
                 Validações
               </p>
               <ul className="space-y-1">
                 {result.validations.map((v) => (
-                  <li key={v.metric} className="flex justify-between text-[11px]">
-                    <span className="text-slate-400">{v.metric}</span>
+                  <li key={v.metric} className="flex justify-between text-sm">
+                    <span className="text-[var(--muted-fg)]">{v.metric}</span>
                     <span className={v.passed ? "text-emerald-300" : "text-rose-300"}>
                       {v.actual ?? "—"} {v.passed ? "ok" : "fail"}
                     </span>
@@ -444,11 +444,11 @@ export default function SimulationPanel() {
           )}
 
           {graphId && (
-            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cenários salvos</p>
+            <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Cenários salvos</p>
               <div className="mt-2 flex gap-2">
                 <input
-                  className="flex-1 rounded border border-white/10 bg-[#0d1219] px-2 py-1 text-xs text-slate-100"
+                  className="flex-1 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-xs text-slate-100"
                   placeholder="Nome do cenário"
                   value={scenarioName}
                   onChange={(e) => setScenarioName(e.target.value)}
@@ -457,7 +457,7 @@ export default function SimulationPanel() {
                   Salvar
                 </button>
               </div>
-              <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
+              <ul className="mt-2 space-y-1 text-sm text-[var(--muted-fg)]">
                 {scenarios.map((s) => (
                   <li key={s.id} className="flex justify-between gap-2">
                     <span>{s.name}</span>
@@ -495,8 +495,8 @@ function Metric({
   icon?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-white/8 bg-black/25 px-2.5 py-2">
-      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+    <div className="rounded-lg border border-[var(--border)] bg-black/25 px-2.5 py-2">
+      <p className="flex items-center gap-2 text-sm uppercase tracking-wide text-[var(--muted)]">
         {icon}
         {label}
       </p>
@@ -517,18 +517,18 @@ function MiniTimeline({
   const max = Math.max(capacity, ...points.map((p) => p.rps), 1);
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Timeline RPS</p>
-      <div className="flex h-16 items-end gap-px rounded-lg border border-white/8 bg-black/30 px-1 py-1">
+      <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Timeline RPS</p>
+      <div className="flex h-16 items-end gap-px rounded-lg border border-[var(--border)] bg-black/30 px-1 py-1">
         {points.map((p) => (
           <div
             key={p.t_seconds}
             title={`t=${p.t_seconds}s · ${p.rps} RPS`}
-            className={`min-w-0 flex-1 rounded-sm ${p.saturated ? "bg-rose-400/80" : "bg-cyan-400/70"}`}
+            className={`min-w-0 flex-1 rounded-sm ${p.saturated ? "bg-rose-400/80" : "bg-indigo-400/70"}`}
             style={{ height: `${Math.max(4, (p.rps / max) * 100)}%` }}
           />
         ))}
       </div>
-      <p className="mt-1 text-[10px] text-slate-600">linha de capacidade ~{capacity} RPS · vermelho = saturado</p>
+      <p className="mt-1 text-sm text-[var(--muted-fg)]">linha de capacidade ~{capacity} RPS · vermelho = saturado</p>
     </div>
   );
 }

@@ -29,18 +29,19 @@ def get_current_user(
     db: Session = Depends(get_db),
     session_token: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)
 ) -> User:
-    """Get the current authenticated user from session cookie or Authorization header."""
+    """Get the current authenticated user from Bearer header or session cookie."""
     token = None
 
-    # Try session cookie first
-    if session_token:
-        token = session_token
+    # Prefer explicit Authorization header (API clients / tests).
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        candidate = auth_header[7:].strip()
+        if candidate:
+            token = candidate
 
-    # Try Authorization header
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header[7:]
+    # Fall back to HttpOnly session cookie (browser).
+    if not token and session_token:
+        token = session_token
 
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")

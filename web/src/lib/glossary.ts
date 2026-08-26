@@ -16,7 +16,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: "vpc",
     term: "VPC",
-    definition: "Virtual Private Cloud — rede virtual isolada na nuvem com controle de subnets,路由 tables e gateways.",
+    definition: "Virtual Private Cloud — rede virtual isolada na nuvem com controle de subnets, rotas e gateways.",
     category: "network",
     related: ["subnet", "igw", "nat"],
   },

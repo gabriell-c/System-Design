@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.settings import AiSettings
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.schemas.settings import AiSettingsOut, AiSettingsTestResult, AiSettingsUpdate
 from app.services.ai_settings import get_or_create_settings, mask_key, to_runtime
 
@@ -27,12 +29,12 @@ def _out(row: AiSettings) -> AiSettingsOut:
 
 
 @router.get("/ai", response_model=AiSettingsOut)
-def get_ai_settings(db: Session = Depends(get_db)) -> AiSettingsOut:
+def get_ai_settings(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> AiSettingsOut:
     return _out(get_or_create_settings(db))
 
 
 @router.put("/ai", response_model=AiSettingsOut)
-def put_ai_settings(payload: AiSettingsUpdate, db: Session = Depends(get_db)) -> AiSettingsOut:
+def put_ai_settings(payload: AiSettingsUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> AiSettingsOut:
     row = get_or_create_settings(db)
     row.provider = payload.provider
     row.base_url = payload.base_url.rstrip("/")
@@ -46,7 +48,7 @@ def put_ai_settings(payload: AiSettingsUpdate, db: Session = Depends(get_db)) ->
 
 
 @router.post("/ai/test", response_model=AiSettingsTestResult)
-async def test_ai_settings(db: Session = Depends(get_db)) -> AiSettingsTestResult:
+async def test_ai_settings(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> AiSettingsTestResult:
     runtime = to_runtime(get_or_create_settings(db))
     if not runtime.enabled:
         return AiSettingsTestResult(ok=False, detail="IA desabilitada nas configurações.")

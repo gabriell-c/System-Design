@@ -7,7 +7,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.graph import Graph
+from app.models.graph import Graph, Project
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import _nfr_out, _parse_json_list
 
 router = APIRouter(prefix="/api/v1/embed", tags=["embed"])
@@ -23,11 +25,26 @@ class EmbedPayload(BaseModel):
     read_only: bool = True
 
 
+def _assert_embed_allowed(db: Session, graph: Graph) -> None:
+    """Public embeds only for projects marked is_public (or orphan graphs)."""
+    if not graph.project_id:
+        return
+    project = db.get(Project, graph.project_id)
+    if project is None:
+        return
+    if not project.is_public:
+        raise HTTPException(
+            status_code=403,
+            detail="Embed disponível apenas para projetos públicos",
+        )
+
+
 @router.get("/{graph_id}", response_model=EmbedPayload)
 def get_embed(graph_id: str, db: Session = Depends(get_db)) -> EmbedPayload:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
+    _assert_embed_allowed(db, graph)
     nfr = _nfr_out(graph)
     return EmbedPayload(
         graph_id=graph.id,
@@ -41,11 +58,17 @@ def get_embed(graph_id: str, db: Session = Depends(get_db)) -> EmbedPayload:
 
 
 @router.get("/{graph_id}/token")
-def embed_token(graph_id: str, db: Session = Depends(get_db)) -> dict:
-    """Return embed URL snippet (no auth token — public read-only by graph id)."""
+def embed_token(
+    graph_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Return embed URL snippet — requires auth; graph must be on a public project."""
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
+    _assert_embed_allowed(db, graph)
+    _ = current_user
     base = "/embed"
     return {
         "graph_id": graph_id,

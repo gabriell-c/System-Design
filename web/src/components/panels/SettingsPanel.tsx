@@ -61,6 +61,16 @@ export default function SettingsPanel() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("auto/coding");
   const [enabled, setEnabled] = useState(true);
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAutoAnalyze(localStorage.getItem("archia-auto-analyze") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -146,7 +156,7 @@ export default function SettingsPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-8 text-sm text-slate-400">
+      <div className="flex items-center gap-2 px-4 py-8 text-sm text-[var(--muted-fg)]">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando configurações…
       </div>
@@ -161,7 +171,7 @@ export default function SettingsPanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Provedor de IA</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
             Configure URL, chave e modelo usados pelos agentes de análise. A chave nunca é exibida por completo.
           </p>
         </div>
@@ -172,14 +182,14 @@ export default function SettingsPanel() {
         onChange={setEnabled}
         label={
           <>
-            <Sparkles size={14} className="text-cyan-300" />
+            <Sparkles size={14} className="text-indigo-300" />
             Usar IA nas análises (senão só heurística)
           </>
         }
       />
 
       <div>
-        <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        <label className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
           <PlugZap size={12} />
           Provider
         </label>
@@ -189,16 +199,16 @@ export default function SettingsPanel() {
           options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
           onChange={(value) => applyPreset(value as AiProvider)}
         />
-        <p className="mt-1 text-[11px] text-slate-500">{PROVIDERS.find((p) => p.id === provider)?.hint}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{PROVIDERS.find((p) => p.id === provider)?.hint}</p>
       </div>
 
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="ai-base">
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="ai-base">
           Base URL
         </label>
         <input
           id="ai-base"
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 font-mono text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+          className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 font-mono text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="https://api.openai.com/v1"
@@ -207,7 +217,7 @@ export default function SettingsPanel() {
       </div>
 
       <div>
-        <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="ai-key">
+        <label className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="ai-key">
           <KeyRound size={12} />
           API Key
         </label>
@@ -215,7 +225,7 @@ export default function SettingsPanel() {
           <input
             id="ai-key"
             type={showKey ? "text" : "password"}
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 font-mono text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+            className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 font-mono text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder={
@@ -238,16 +248,38 @@ export default function SettingsPanel() {
       </div>
 
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="ai-model">
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="ai-model">
           Model
         </label>
         <input
           id="ai-model"
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 font-mono text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+          className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 font-mono text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
           value={model}
           onChange={(e) => setModel(e.target.value)}
           placeholder="gpt-4o-mini"
           spellCheck={false}
+        />
+      </div>
+
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-3">
+        <Toggle
+          checked={autoAnalyze}
+          onChange={(v) => {
+            setAutoAnalyze(v);
+            try {
+              localStorage.setItem("archia-auto-analyze", v ? "1" : "0");
+            } catch {
+              /* ignore */
+            }
+          }}
+          label={
+            <span className="min-w-0">
+              <span className="block font-medium text-[var(--foreground)]">Análise automática</span>
+              <span className="block text-[12px] leading-relaxed text-[var(--muted)]">
+                Roda a análise em silêncio ~2s após mudanças no canvas (desligado por padrão).
+              </span>
+            </span>
+          }
         />
       </div>
 

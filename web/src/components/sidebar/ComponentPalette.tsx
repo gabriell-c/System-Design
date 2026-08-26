@@ -6,6 +6,9 @@ import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CatalogLibrary from "./CatalogLibrary";
+import SearchFilter from "./SearchFilter";
+import SavedViewsPanel from "./SavedViewsPanel";
+import ViewTabs from "./ViewTabs";
 import { ALL_NODE_KINDS, ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS, type CloudProvider, type NodeKind, type SwimlaneKind, type ZoneKind } from "@/lib/types";
 import { SWIMLANE_META } from "@/lib/swimlanes";
 import { useCatalogPrefs } from "@/hooks/useCatalogPrefs";
@@ -13,6 +16,9 @@ import RecommendationBanner from "@/components/canvas/RecommendationBanner";
 import { ZONE_META } from "@/lib/zones";
 import { PATTERNS_CATALOG } from "@/lib/catalog-patterns";
 import { applyPattern } from "@/lib/pattern-apply";
+import VirtualList from "@/components/ui/VirtualList";
+
+type PaletteTab = "componentes" | "filtros" | "vistas";
 
 const KINDS: NodeKind[] = ALL_NODE_KINDS;
 const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
@@ -50,6 +56,7 @@ const KIND_ICONS: Record<NodeKind, typeof Layout> = {
 };
 
 export default function ComponentPalette() {
+  const [paletteTab, setPaletteTab] = useState<PaletteTab>("componentes");
   const [query, setQuery] = useState("");
   const [providerFilter, setProviderFilter] = useState<CloudProvider | "all">("all");
   const addBlock = useGraphStore((s) => s.addBlock);
@@ -159,86 +166,72 @@ export default function ComponentPalette() {
 
   return (
     <aside
-      className="flex h-full w-full flex-col border-r border-white/8 bg-[#0d1219]"
+      className="flex h-full w-full flex-col border-r border-[var(--border)] bg-[var(--surface-1)]"
       aria-label="Paleta de componentes"
     >
-      <div className="border-b border-white/8 px-3 py-3">
+      <div className="border-b border-[var(--border)] px-3 py-2.5">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-100">Paleta</h2>
-            <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-              Clique para adicionar ou arraste até o canvas.
-            </p>
-          </div>
-          {!isSearching && (
-            <button
-              type="button"
-              className="shrink-0 rounded-md px-1.5 py-1 text-[10px] text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
-              onClick={() => {
-                const allOpen = KINDS.every((k) => !collapsed[k]);
-                const next: Record<string, boolean> = {};
-                for (const k of KINDS) next[k] = allOpen; // toggle: if all open → collapse all, else expand all
-                setCollapsed(next);
-                try { localStorage.setItem("archia-palette-collapsed", JSON.stringify(next)); } catch { /* ignore */ }
-              }}
-              title="Expandir ou recolher todas as seções"
-            >
-              {KINDS.every((k) => !collapsed[k]) ? "Recolher" : "Expandir"}
-            </button>
-          )}
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Paleta</h2>
+          <span className="text-sm text-[var(--muted-fg)]">{CATALOG.length} itens</span>
         </div>
-        <label className="relative mt-3 block">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar React, Lambda, VPC…"
-            className="w-full rounded-lg border border-white/10 bg-[#0a0f16] py-2 pl-8 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-            aria-label="Buscar na paleta"
-          />
-        </label>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {(["all", "aws", "azure", "gcp"] as const).map((p) => (
+        <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] p-0.5" role="tablist" aria-label="Seções da paleta">
+          {(
+            [
+              ["componentes", "Componentes"],
+              ["filtros", "Filtros"],
+              ["vistas", "Vistas"],
+            ] as const
+          ).map(([id, label]) => (
             <button
-              key={p}
+              key={id}
               type="button"
-              onClick={() => setProviderFilter(p)}
-              className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition ${
-                providerFilter === p
-                  ? "bg-cyan-500/20 text-cyan-200"
-                  : "bg-white/5 text-slate-500 hover:text-slate-300"
+              role="tab"
+              aria-selected={paletteTab === id}
+              className={`min-h-6 rounded-md px-2 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                paletteTab === id
+                  ? "bg-[var(--accent-muted)] text-indigo-200"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
+              onClick={() => setPaletteTab(id)}
             >
-              {p === "all" ? "Todos" : p}
+              {label}
             </button>
           ))}
         </div>
+        {paletteTab === "componentes" && (
+          <label className="relative mt-2 block">
+            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-fg)]" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar…"
+              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-0)] py-2 pl-8 pr-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]/50"
+              aria-label="Buscar na paleta"
+            />
+          </label>
+        )}
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-        {/* Library button */}
-        <button
-          type="button"
-          onClick={() => setLibraryOpen(true)}
-          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-500/5 px-3 py-2.5 text-left transition hover:bg-cyan-500/10"
-        >
-          <BookOpen size={14} className="text-cyan-400" />
-          <span className="flex-1">
-            <span className="block text-xs font-medium text-slate-100">Biblioteca completa</span>
-            <span className="block text-[10px] text-slate-500">
-              {hasCustomPrefs ? `${prefs.visibleIds.length} de ${CATALOG.length} selecionados` : `${CATALOG.length} componentes`}
-            </span>
-          </span>
-        </button>
+      {paletteTab === "filtros" && (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <SearchFilter />
+        </div>
+      )}
 
+      {paletteTab === "vistas" && (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ViewTabs />
+          <SavedViewsPanel />
+        </div>
+      )}
+
+      {paletteTab === "componentes" && (
+      <div className="flex-1 overflow-y-auto px-3 py-3">
         {(!q || "zona region vpc az".includes(q)) && (
           <section aria-labelledby="palette-zones">
-            <h3
-              id="palette-zones"
-              className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-violet-300"
-            >
+            <h3 id="palette-zones" className="mb-1.5 flex items-center gap-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]">
               <Layers size={12} />
-              Zonas de arquitetura
+              Zonas
             </h3>
             <ul className="grid grid-cols-2 gap-1.5">
               {ALL_ZONE_KINDS.map((kind) => {
@@ -254,15 +247,15 @@ export default function ComponentPalette() {
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onClick={() => placeZone(kind)}
-                      className="flex w-full cursor-grab flex-col items-start gap-1 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 active:cursor-grabbing"
-                      style={{ borderColor: meta.border, background: meta.bg }}
+                      tabIndex={0}
+                      className="flex min-h-6 min-w-6 w-full cursor-grab flex-col items-start gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
                       title="Zona aninhável (VPC → AZ → Subnet)"
                     >
-                      <span className="flex w-full items-center justify-between">
+                      <div className="flex w-full items-center justify-between">
                         <Icon size={14} style={{ color: meta.accent }} />
-                        <Plus size={12} className="text-slate-500" />
-                      </span>
-                      <span className="text-xs font-semibold text-slate-100">{meta.short}</span>
+                        <Plus size={12} className="text-[var(--muted-fg)]" />
+                      </div>
+                      <span className="text-[12px] font-medium text-[var(--foreground)]">{meta.short}</span>
                     </button>
                   </li>
                 );
@@ -275,10 +268,10 @@ export default function ComponentPalette() {
           <section aria-labelledby="palette-swimlanes">
             <h3
               id="palette-swimlanes"
-              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-300"
+              className="mb-1.5 flex items-center gap-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]"
             >
               <Layout size={12} />
-              Swimlanes (camadas)
+              Camadas
             </h3>
             <ul className="grid grid-cols-2 gap-1.5">
               {ALL_SWIMLANE_KINDS.map((kind) => {
@@ -293,15 +286,15 @@ export default function ComponentPalette() {
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onClick={() => placeSwimlane(kind)}
-                      className="flex w-full cursor-grab flex-col items-start gap-1 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 active:cursor-grabbing"
-                      style={{ borderColor: meta.border, background: meta.bg }}
+                      tabIndex={0}
+                      className="flex min-h-6 min-w-6 w-full cursor-grab flex-col items-start gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
                       title="Faixa horizontal para separar camadas ou fluxos"
                     >
-                      <span className="flex w-full items-center justify-between">
+                      <div className="flex w-full items-center justify-between">
                         <Layout size={14} style={{ color: meta.accent }} />
-                        <Plus size={12} className="text-slate-500" />
-                      </span>
-                      <span className="text-xs font-semibold text-slate-100">{meta.short}</span>
+                        <Plus size={12} className="text-[var(--muted-fg)]" />
+                      </div>
+                      <span className="text-[12px] font-medium text-[var(--foreground)]">{meta.short}</span>
                     </button>
                   </li>
                 );
@@ -312,24 +305,24 @@ export default function ComponentPalette() {
 
         {(!q || "nota cidr tenant sticky".includes(q)) && (
           <section aria-labelledby="palette-annotations">
-            <h3 id="palette-annotations" className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-amber-200">
-              Anotações & multi-tenant
+            <h3 id="palette-annotations" className="mb-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]">
+              Anotações
             </h3>
             <ul className="grid grid-cols-1 gap-1.5">
               <li>
-                <button type="button" className="btn-ghost w-full justify-start text-xs" onClick={() => addNote({ x: 120, y: 120 })}>
+                <button type="button" className="btn-ghost min-h-6 min-w-6 w-full justify-start text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" onClick={() => addNote({ x: 120, y: 120 })}>
                   Sticky note
                 </button>
               </li>
               <li>
-                <button type="button" className="btn-ghost w-full justify-start text-xs" onClick={() => addCidrBlock({ x: 160, y: 160 })}>
+                <button type="button" className="btn-ghost min-h-6 min-w-6 w-full justify-start text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" onClick={() => addCidrBlock({ x: 160, y: 160 })}>
                   CIDR block
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  className="btn-ghost w-full justify-start text-xs"
+                  className="btn-ghost min-h-6 min-w-6 w-full justify-start text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   onClick={() => addTenantBoundary({ x: 200, y: 200 }, { tenantMode: "silo" })}
                 >
                   Tenant boundary
@@ -344,11 +337,11 @@ export default function ComponentPalette() {
           <section aria-labelledby="palette-pinned">
             <h3
               id="palette-pinned"
-              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300"
+              className="mb-1.5 flex items-center gap-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]"
             >
-              ⭐ Fixados
+              <span className="text-amber-400">⭐</span> Fixados
             </h3>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {pinnedItems.map((item) => (
                 <li key={`pin-${item.id}`}>
                   <button
@@ -359,7 +352,8 @@ export default function ComponentPalette() {
                       event.dataTransfer.effectAllowed = "move";
                     }}
                     onClick={() => placeCard(item.id)}
-                    className="flex w-full cursor-grab items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-left transition hover:border-amber-500/30 hover:bg-amber-500/10 active:cursor-grabbing"
+                    tabIndex={0}
+                    className="flex min-h-6 min-w-6 w-full cursor-grab items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-left transition hover:border-amber-500/30 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
                   >
                     <TechIcon
                       catalogId={item.id}
@@ -369,7 +363,7 @@ export default function ComponentPalette() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-slate-100">{item.label}</span>
-                      <span className="block text-xs text-slate-500">{item.description}</span>
+                      <span className="block text-xs text-[var(--muted)]">{item.description}</span>
                     </span>
                   </button>
                 </li>
@@ -382,7 +376,7 @@ export default function ComponentPalette() {
           <section aria-labelledby="palette-blocks">
             <h3
               id="palette-blocks"
-              className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-cyan-300"
+              className="mb-2 flex items-center gap-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-indigo-300"
             >
               <Boxes size={12} />
               Passo 1 · Blocos
@@ -401,13 +395,14 @@ export default function ComponentPalette() {
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onClick={() => placeBlock(kind)}
-                      className="flex w-full cursor-grab flex-col items-start gap-1 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 active:cursor-grabbing"
+                      tabIndex={0}
+                      className="flex min-h-6 min-w-6 w-full cursor-grab flex-col items-start gap-2 rounded-xl border border-dashed px-2.5 py-2.5 text-left transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
                       style={{ borderColor: meta.border, background: meta.bg }}
                       title="Clique para adicionar · arraste para posicionar"
                     >
                       <span className="flex w-full items-center justify-between">
                         <Icon size={14} style={{ color: meta.accent }} />
-                        <Plus size={12} className="text-slate-500" />
+                        <Plus size={12} className="text-[var(--muted)]" />
                       </span>
                       <span className="text-xs font-semibold text-slate-100">{meta.label}</span>
                     </button>
@@ -429,7 +424,7 @@ export default function ComponentPalette() {
                 type="button"
                 id={`palette-${kind}`}
                 onClick={() => toggleSection(kind)}
-                className="mb-2 flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-left text-[11px] font-semibold uppercase tracking-wider transition hover:bg-white/5"
+                className="mb-2 flex min-h-6 min-w-6 w-full items-center gap-1.5 rounded-lg px-1 py-1 text-left text-sm font-semibold uppercase tracking-wider transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 style={{ color: meta.accent }}
               >
                 <ChevronRight
@@ -441,59 +436,68 @@ export default function ComponentPalette() {
                 <span className="flex-1">
                   {meta.label}
                 </span>
-                <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-normal leading-none text-slate-400">
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-sm font-normal leading-none text-[var(--muted-fg)]">
                   {items.length}
                 </span>
               </button>
               {!isCollapsed && (
-                <ul className="space-y-1.5 pl-0.5">
-                  {items.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData("application/system-design", item.id);
-                          event.dataTransfer.effectAllowed = "move";
-                        }}
-                        onClick={() => placeCard(item.id)}
-                        className="flex w-full cursor-grab items-start gap-2 rounded-lg border border-white/8 bg-[#121821] px-3 py-2 text-left transition hover:border-white/20 hover:bg-[#171f2b] active:cursor-grabbing"
-                        title="Clique para adicionar · arraste para dentro do bloco"
-                      >
-                        <TechIcon
-                          catalogId={item.id}
-                          kind={kind}
-                          size={16}
-                          className="mt-0.5 shrink-0"
-                          style={{ color: meta.accent }}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium text-slate-100">{item.label}</span>
-                          <span className="block text-xs text-slate-500">{item.description}</span>
-                        </span>
-                        <Plus size={12} className="mt-1 shrink-0 text-slate-600" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <VirtualList
+                  className="space-y-2 pl-0.5"
+                  items={items}
+                  estimateSize={72}
+                  getKey={(item) => item.id}
+                  renderItem={(item) => (
+                    <button
+                      type="button"
+                      draggable
+                      tabIndex={0}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("application/system-design", item.id);
+                        event.dataTransfer.effectAllowed = "move";
+                      }}
+                      onClick={() => placeCard(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          placeCard(item.id);
+                        }
+                      }}
+                      className="flex min-h-6 min-w-6 w-full cursor-grab items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-left transition hover:border-[var(--border-strong)] hover:bg-[#171f2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
+                      title="Clique para adicionar · arraste para dentro do bloco"
+                    >
+                      <TechIcon
+                        catalogId={item.id}
+                        kind={kind}
+                        size={16}
+                        className="mt-0.5 shrink-0"
+                        style={{ color: meta.accent }}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-slate-100">{item.label}</span>
+                        <span className="block text-xs text-[var(--muted)]">{item.description}</span>
+                      </span>
+                      <Plus size={12} className="mt-1 shrink-0 text-[var(--muted-fg)]" />
+                    </button>
+                  )}
+                />
               )}
             </section>
           );
         })}
 
         {q && filteredByKind.every((s) => s.items.length === 0) && (
-          <p className="px-1 text-xs text-slate-500">Nada encontrado para “{query}”.</p>
+          <p className="px-1 text-xs text-[var(--muted)]">Nada encontrado para “{query}”.</p>
         )}
 
-        <section className="mt-4 border-t border-white/8 pt-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-violet-300">Patterns</p>
-          <ul className="space-y-1.5">
+        <section className="mt-4 border-t border-[var(--border)] pt-3">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-300">Patterns</p>
+          <ul className="space-y-2">
             {PATTERNS_CATALOG.filter((p) => ["pat-saga", "pat-outbox", "pat-cqrs", "pat-event-driven"].includes(p.id)).map(
               (pat) => (
                 <li key={pat.id}>
                   <button
                     type="button"
-                    className="w-full rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-left text-xs text-slate-200 hover:bg-violet-500/20"
+                    className="min-h-6 min-w-6 w-full rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-left text-xs text-slate-200 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     onClick={() => {
                       const pos = { x: 120 + nodes.length * 24, y: 120 + nodes.length * 12 };
                       addPatternNodes(applyPattern(pat.id, pos));
@@ -508,8 +512,9 @@ export default function ComponentPalette() {
           </ul>
         </section>
       </div>
+      )}
       {/* AI Recommendation */}
-      {recommendations.length > 0 && (
+      {recommendations.length > 0 && paletteTab === "componentes" && (
         <RecommendationBanner
           recommendations={recommendations}
           onAccept={(recommendedId) => {

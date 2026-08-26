@@ -11,6 +11,7 @@ from app.schemas.user import UserProfileUpdate, UserResponse
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
 
+@router.get("", response_model=UserResponse)
 @router.get("/", response_model=UserResponse)
 def get_profile(
     current_user: User = Depends(get_current_user),

@@ -67,6 +67,7 @@ class Project(Base):
     is_public: Mapped[bool] = mapped_column(default=False)
     archived: Mapped[bool] = mapped_column(default=False)
     pinned: Mapped[bool] = mapped_column(default=False)
+    project_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="architecture")
     share_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

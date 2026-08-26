@@ -18,23 +18,23 @@ export default function PolyglotMapPanel() {
   }, [graphId]);
 
   if (!graphId) {
-    return <p className="px-4 py-4 text-sm text-slate-400">Salve o diagrama para ver o polyglot map.</p>;
+    return <p className="px-4 py-4 text-sm text-[var(--muted-fg)]">Salve o diagrama para ver o polyglot map.</p>;
   }
   if (error) return <p className="px-4 py-4 text-sm text-rose-300">{error}</p>;
-  if (!data) return <p className="px-4 py-4 text-sm text-slate-400">Carregando matriz…</p>;
+  if (!data) return <p className="px-4 py-4 text-sm text-[var(--muted-fg)]">Carregando matriz…</p>;
 
   return (
     <div className="space-y-3 px-4 py-4">
       <p className="text-sm font-semibold text-slate-100">Polyglot Map</p>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-[var(--muted-fg)]">
         {data.summary.database_count} DB(s) · {data.summary.shared_db_count} compartilhado(s)
       </p>
       <ul className="space-y-2">
         {data.services.map((s) => (
-          <li key={s.service} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs">
+          <li key={s.service} className="rounded-lg border border-[var(--border)] bg-black/20 px-3 py-2 text-xs">
             <p className="font-medium text-slate-100">{s.service}</p>
             {s.databases.map((db) => (
-              <p key={db.database_id} className="text-slate-400">
+              <p key={db.database_id} className="text-[var(--muted-fg)]">
                 → {db.database_label} ({db.engine})
                 {db.pii_sensitivity !== "none" ? ` · PII ${db.pii_sensitivity}` : ""}
               </p>

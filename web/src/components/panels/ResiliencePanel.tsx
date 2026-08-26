@@ -75,19 +75,19 @@ export default function ResiliencePanel() {
         </span>
         <div>
           <p className="text-sm font-semibold text-slate-100">Injeção de falha</p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-[var(--muted-fg)]">
             Selecione um serviço no canvas e simule indisponibilidade — blast radius no diagrama.
           </p>
         </div>
       </div>
 
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="fail-mode">
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="fail-mode">
           Modo de falha
         </label>
         <select
           id="fail-mode"
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+          className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
           value={mode}
           onChange={(e) => setMode(e.target.value as typeof mode)}
         >
@@ -97,7 +97,7 @@ export default function ResiliencePanel() {
         </select>
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--muted)]">
         Alvo:{" "}
         <strong className="text-slate-300">
           {selectedNodeId
@@ -129,7 +129,7 @@ export default function ResiliencePanel() {
       )}
 
       {injection?.ok && (
-        <div className="rounded-lg border border-white/10 bg-black/25 p-3 text-xs text-slate-300">
+        <div className="rounded-lg border border-[var(--border)] bg-black/25 p-3 text-xs text-slate-300">
           <p className="font-medium text-slate-100">{injection.summary}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>{injection.unreachable_node_ids?.length ?? 0} nós indisponíveis</li>
@@ -140,10 +140,10 @@ export default function ResiliencePanel() {
             </li>
           </ul>
           {(injection.fallback_activations?.length ?? 0) > 0 && (
-            <div className="mt-2 border-t border-white/10 pt-2">
+            <div className="mt-2 border-t border-[var(--border)] pt-2">
               <p className="font-medium text-amber-200">Fallbacks ativados</p>
               {injection.fallback_activations?.map((f, i) => (
-                <p key={i} className="text-slate-400">
+                <p key={i} className="text-[var(--muted-fg)]">
                   {f.from} → {f.to}: {f.detail}
                 </p>
               ))}
@@ -156,7 +156,7 @@ export default function ResiliencePanel() {
         <div className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-xs">
           <p className="font-medium text-rose-200">Blast por hop</p>
           {Object.entries(blast.hops).map(([hop, ids]) => (
-            <p key={hop} className="mt-1 text-slate-400">
+            <p key={hop} className="mt-1 text-[var(--muted-fg)]">
               Hop {hop}: {ids.length} nó(s)
             </p>
           ))}

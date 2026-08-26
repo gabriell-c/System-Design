@@ -7,8 +7,9 @@ import { FLOW_KIND_META, normalizeEdgeData } from "@/lib/edges";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CustomSelect from "@/components/ui/Select";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 import type { FailureBehavior, FirewallRule, FlowKind, FlowProtocol, NodeComment, PiiSensitivity, C4Level } from "@/lib/types";
-import { ALL_C4_LEVELS, isArchData, isBlockData, isZoneData } from "@/lib/types";
+import { ALL_C4_LEVELS, isArchData, isBlockData, isFreeData, isZoneData } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 
 const FLOW_KINDS: FlowKind[] = ["sync", "async", "data", "control", "management"];
@@ -42,11 +43,11 @@ export default function PropertiesPanel() {
     return (
       <div className="space-y-4 px-4 py-4">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+          <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-emerald-300">
             <Link2 size={12} />
             Fluxo
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[var(--muted)]">
             {selectedEdge.source} → {selectedEdge.target}
           </p>
         </div>
@@ -64,14 +65,14 @@ export default function PropertiesPanel() {
           onChange={(protocol) => updateEdgeData(selectedEdge.id, { protocol: protocol as FlowProtocol })}
         />
         <div>
-          <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="flow-number">
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="flow-number">
             Número do fluxo
           </label>
           <input
             id="flow-number"
             type="number"
             min={1}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={data.flowNumber ?? ""}
             onChange={(e) => {
               const n = e.target.value === "" ? undefined : Number(e.target.value);
@@ -80,12 +81,12 @@ export default function PropertiesPanel() {
           />
         </div>
         <div>
-          <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="flow-label">
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="flow-label">
             Label
           </label>
           <input
             id="flow-label"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={data.label ?? ""}
             onChange={(e) => updateEdgeData(selectedEdge.id, { label: e.target.value || undefined })}
             placeholder="Ex.: authorize, publish event"
@@ -94,7 +95,7 @@ export default function PropertiesPanel() {
         <label className="flex items-center gap-2 text-sm text-slate-300">
           <input
             type="checkbox"
-            className="rounded border-white/20"
+            className="rounded border-[var(--border-strong)]"
             checked={Boolean(data.isCriticalPath)}
             onChange={(e) => {
               const checked = e.target.checked;
@@ -120,7 +121,7 @@ export default function PropertiesPanel() {
           }
         />
         <div>
-          <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+          <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
             Regras de Firewall / Security Group
           </label>
           <div className="mt-2 space-y-2">
@@ -135,7 +136,7 @@ export default function PropertiesPanel() {
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
                   placeholder="Porta"
-                  className="w-20 rounded border border-white/10 bg-[#0d1219] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+                  className="w-20 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
                 />
                 <select
                   value={rule.protocol}
@@ -144,7 +145,7 @@ export default function PropertiesPanel() {
                     updated[idx] = { ...updated[idx], protocol: e.target.value as FirewallRule["protocol"] };
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
                 >
                   <option value="tcp">TCP</option>
                   <option value="udp">UDP</option>
@@ -157,7 +158,7 @@ export default function PropertiesPanel() {
                     updated[idx] = { ...updated[idx], direction: e.target.value as FirewallRule["direction"] };
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
-                  className="rounded border border-white/10 bg-[#0d1219] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
                 >
                   <option value="inbound">Inbound</option>
                   <option value="outbound">Outbound</option>
@@ -171,7 +172,7 @@ export default function PropertiesPanel() {
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
                   placeholder="Descrição..."
-                  className="flex-1 rounded border border-white/10 bg-[#0d1219] px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-cyan-400/50"
+                  className="flex-1 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
                 />
                 <button
                   type="button"
@@ -191,7 +192,7 @@ export default function PropertiesPanel() {
                 const rules = data.firewallRules ?? [];
                 updateEdgeData(selectedEdge.id, { firewallRules: [...rules, { port: "443", protocol: "tcp", direction: "inbound" }] });
               }}
-              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+              className="text-xs text-[var(--accent)] hover:text-indigo-300 flex items-center gap-2"
             >
               + Adicionar regra
             </button>
@@ -217,12 +218,12 @@ export default function PropertiesPanel() {
 
   if (!node) {
     return (
-      <div className="space-y-3 px-4 py-6 text-sm text-slate-400">
+      <div className="space-y-3 px-4 py-6 text-sm text-[var(--muted-fg)]">
         <p className="font-medium text-slate-200">Nada selecionado</p>
         <p>Clique em uma zona, bloco, card ou fluxo no canvas.</p>
-        <ul className="space-y-2 text-xs text-slate-500">
+        <ul className="space-y-2 text-xs text-[var(--muted)]">
           <li className="flex gap-2">
-            <Link2 size={12} className="mt-0.5 shrink-0 text-cyan-400" />
+            <Link2 size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
             Selecione uma linha para editar tipo/número/protocolo do fluxo.
           </li>
           <li className="flex gap-2">
@@ -240,41 +241,64 @@ export default function PropertiesPanel() {
     return (
       <div className="space-y-4 px-4 py-4">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
+          <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-indigo-300">
             <Layers size={12} />
             Zona · {meta.short}
           </p>
-          <label className="mt-2 block text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="zone-label">
+          <label className="mt-2 block text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="zone-label">
             Nome da zona
           </label>
           <input
             id="zone-label"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={node.data.label}
             onChange={(e) => renameNode(node.id, e.target.value)}
           />
         </div>
         {(node.data.zoneKind === "data_mesh" || node.data.boundedContext != null) && (
           <div>
-            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="bounded-context">
+            <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="bounded-context">
               Bounded context
             </label>
             <input
               id="bounded-context"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
               value={node.data.boundedContext ?? ""}
               onChange={(e) => updateNodeData(node.id, { boundedContext: e.target.value || undefined })}
               placeholder="Ex.: Orders, Billing"
             />
           </div>
         )}
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[var(--muted-fg)]">
           Tipo: <strong className="text-slate-200">{node.data.zoneKind}</strong>
           {node.data.provider ? ` · ${node.data.provider}` : ""}
           {" · "}
           {childCount} filho{childCount === 1 ? "" : "s"}
         </p>
-        <p className="rounded-lg border border-white/8 bg-black/20 p-3 text-xs leading-relaxed text-slate-400">
+        {childCount > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
+              Filhos ({childCount})
+            </p>
+            <ul className="space-y-1">
+              {nodes
+                .filter((n) => n.parentId === node.id)
+                .map((child) => (
+                  <li
+                    key={child.id}
+                    className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]/60" />
+                    <span className="flex-1 truncate text-slate-200">
+                      {isArchData(child.data) ? child.data.label : child.id}
+                    </span>
+                    <span className="text-[var(--muted)]">{child.type}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+        <p className="rounded-lg border border-[var(--border)] bg-black/20 p-3 text-xs leading-relaxed text-[var(--muted-fg)]">
           Aninhe AZs/subnets dentro de VPC, e serviços dentro das zonas. Redimensione pelas alças.
         </p>
         <button
@@ -294,26 +318,49 @@ export default function PropertiesPanel() {
     return (
       <div className="space-y-4 px-4 py-4">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
+          <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-indigo-300">
             <Boxes size={12} />
             Bloco
           </p>
-          <label className="mt-2 block text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="block-label">
+          <label className="mt-2 block text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="block-label">
             Nome do bloco
           </label>
           <input
             id="block-label"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={node.data.label}
             onChange={(e) => renameNode(node.id, e.target.value)}
             placeholder="Ex.: Frontend Web"
           />
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[var(--muted-fg)]">
           Domínio: <strong className="text-slate-200">{node.data.domain}</strong>
           {" · "}
           {childCount} card{childCount === 1 ? "" : "s"} dentro
         </p>
+        {childCount > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
+              Cards dentro ({childCount})
+            </p>
+            <ul className="space-y-1">
+              {nodes
+                .filter((n) => n.parentId === node.id)
+                .map((child) => (
+                  <li
+                    key={child.id}
+                    className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400/60" />
+                    <span className="flex-1 truncate text-slate-200">
+                      {isArchData(child.data) ? child.data.label : child.id}
+                    </span>
+                    <span className="text-[var(--muted)]">{child.type}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
         <button
           type="button"
           className="btn-danger inline-flex w-full items-center justify-center gap-2"
@@ -321,6 +368,39 @@ export default function PropertiesPanel() {
         >
           <Trash2 size={14} />
           Remover bloco (mantém cards)
+        </button>
+      </div>
+    );
+  }
+
+  if (isFreeData(node.data)) {
+    return (
+      <div className="space-y-4 px-4 py-4">
+        <div>
+          <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-amber-300">
+            <Layers size={12} />
+            Forma Livre
+          </p>
+          <label className="mt-2 block text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-label">
+            Rótulo
+          </label>
+          <input
+            id="free-label"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
+            value={node.data.label}
+            onChange={(e) => updateNodeData(node.id, { label: e.target.value.slice(0, 60) || "Novo" })}
+          />
+        </div>
+        <p className="text-xs text-[var(--muted-fg)]">
+          Tipo: <strong className="text-slate-200">{node.data.kind}</strong>
+        </p>
+        <button
+          type="button"
+          className="btn-danger inline-flex w-full items-center justify-center gap-2"
+          onClick={() => deleteSelected()}
+        >
+          <Trash2 size={14} />
+          Remover forma
         </button>
       </div>
     );
@@ -338,24 +418,24 @@ export default function PropertiesPanel() {
   return (
     <div className="space-y-3 px-4 py-4">
       <div>
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-violet-300">
+        <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-violet-300">
           <TechIcon catalogId={node.data.catalogId} kind={node.data.kind} size={12} />
           Card
         </p>
-        <label className="mt-2 block text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="node-label">
+        <label className="mt-2 block text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="node-label">
           Nome
         </label>
         <input
           id="node-label"
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+          className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
           value={archData.label}
           onChange={(e) => renameNode(node.id, e.target.value)}
         />
       </div>
-      {catalog?.description && <p className="text-xs text-slate-500">{catalog.description}</p>}
+      {catalog?.description && <p className="text-xs text-[var(--muted)]">{catalog.description}</p>}
 
       <div>
-        <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="parent-block">
+        <label className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="parent-block">
           <Boxes size={12} />
           Dentro de
         </label>
@@ -378,7 +458,7 @@ export default function PropertiesPanel() {
           }}
         />
         {parent && (isBlockData(parent.data) || isZoneData(parent.data)) && (
-          <p className="mt-1 text-[11px] text-slate-500">Agora dentro de “{parent.data.label}”</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Agora dentro de “{parent.data.label}”</p>
         )}
       </div>
 
@@ -406,13 +486,13 @@ export default function PropertiesPanel() {
       )}
 
       {archData.kind === "backend" && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[var(--muted-fg)]">
           Framework: <strong className="text-slate-200">{cfg.framework}</strong>
         </p>
       )}
       {archData.kind === "database" && (
         <>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--muted-fg)]">
             Engine: <strong className="text-slate-200">{cfg.engine}</strong>
           </p>
           <SelectField
@@ -433,11 +513,11 @@ export default function PropertiesPanel() {
         onChange={(c4Level) => updateNodeData(node.id, { c4Level: c4Level as C4Level })}
       />
 
-      <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Contrato de capacidade</p>
+      <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-2">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Contrato de capacidade</p>
         <input
           type="number"
-          className="w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100"
           placeholder="Max RPS"
           value={archData.capacityContract?.max_rps ?? ""}
           onChange={(e) =>
@@ -451,7 +531,7 @@ export default function PropertiesPanel() {
         />
         <input
           type="number"
-          className="w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100"
           placeholder="P99 latency (ms)"
           value={archData.capacityContract?.p99_latency_ms ?? ""}
           onChange={(e) =>
@@ -465,8 +545,22 @@ export default function PropertiesPanel() {
         />
       </div>
 
+      <div className="space-y-2">
+        <label className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+          Notas / Especificações
+        </label>
+        <p className="text-xs leading-relaxed text-[var(--muted-fg)]">
+          Detalhe o que for específico deste card (tabelas, URLs, auth, formatos, etc.).
+        </p>
+        <RichTextEditor
+          value={archData.notes ?? ""}
+          onChange={(html) => updateNodeData(node.id, { notes: html || undefined })}
+          placeholder="Ex.: Tabelas: users, courses… · Auth: email + senha · URLs: /curso/:id/video/:videoId"
+        />
+      </div>
+
       {(archData.kind === "cloud" || catalog?.provider) && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[var(--muted-fg)]">
           {cfg.provider ?? catalog?.provider} · {cfg.service ?? catalog?.capability}
         </p>
       )}
@@ -498,7 +592,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</label>
+      <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">{label}</label>
       <CustomSelect
         className="mt-1"
         value={value}

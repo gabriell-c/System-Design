@@ -93,6 +93,10 @@ font-family: var(--font-archia-mono), "JetBrains Mono", ui-monospace, Consolas, 
 
 **Regra:** no máximo **4 tamanhos distintos** visíveis na mesma viewport (ex.: page title + section + body + caption).
 
+**Floor de legibilidade (editor):** nunca usar `text-[9px]` ou `text-[10px]` em labels/corpo. Mínimo **11px** (`--text-xs`). Badges podem usar a classe `.panel-badge` (também 11px). Texto secundário usa `--muted` (`#a8b4c8`), não `slate-600` com baixa opacidade.
+
+**Inspetor (painel direito):** abas organizadas em 4 grupos colapsáveis (Design · Análise · Governança · Extra) com busca no topo e tooltips curtos — evita a tab bar infinita de 26 itens.
+
 ### 2.3 Pesos
 
 | Peso | Token | Uso |

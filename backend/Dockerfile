@@ -12,4 +12,8 @@ ENV DATABASE_URL=sqlite:///./data/app.db
 ENV CORS_ORIGINS=http://localhost:3015
 ENV LOG_JSON=true
 EXPOSE 4410
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4410/api/health', timeout=3)"
+
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 4410"]

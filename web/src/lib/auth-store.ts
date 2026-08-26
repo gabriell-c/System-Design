@@ -60,9 +60,10 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const data = await response.json();
+          // Cookie HttpOnly carrega a sessão; não persistir JWT no localStorage (XSS).
           set({
             user: data.user,
-            token: data.access_token,
+            token: null,
             isAuthenticated: true,
           });
           return true;
@@ -154,7 +155,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'archia-auth-storage',
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),

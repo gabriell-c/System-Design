@@ -15,6 +15,7 @@ class ProjectCreate(BaseModel):
     context: str = ""
     nfr_json: str = "{}"
     is_public: bool = False
+    project_kind: str = "architecture"
     access_list: list[ProjectAccessEntry] = Field(default_factory=list)
 
 
@@ -26,6 +27,7 @@ class ProjectUpdate(BaseModel):
     is_public: bool | None = None
     pinned: bool | None = None
     archived: bool | None = None
+    project_kind: str | None = None
     access_list: list[ProjectAccessEntry] | None = None
 
 
@@ -40,6 +42,7 @@ class ProjectOut(BaseModel):
     is_public: bool = False
     archived: bool = False
     pinned: bool = False
+    project_kind: str = "architecture"
     share_token: str | None = None
     created_at: datetime
     updated_at: datetime

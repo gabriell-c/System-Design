@@ -46,7 +46,7 @@ export default function FlowBadgeEdge({
               <FlowBadge number={edgeData.flowNumber!} critical={edgeData.isCriticalPath} />
             )}
             {caption && (
-              <span className="rounded-md border border-white/10 bg-[#0d1219]/95 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200 shadow">
+              <span className="rounded-md border border-[var(--border)] bg-[var(--surface-1)]/95 px-2 py-0.5 text-sm font-semibold text-slate-200 shadow">
                 {caption}
                 {edgeData.isCriticalPath ? " ★" : ""}
               </span>

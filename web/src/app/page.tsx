@@ -3,6 +3,7 @@
 import NewProjectModal from "@/components/dashboard/NewProjectModal";
 import ProjectCard from "@/components/dashboard/ProjectCard";
 import ProjectFilters from "@/components/dashboard/ProjectFilters";
+import FirstProjectWizard from "@/components/onboarding/FirstProjectWizard";
 import { useProjectStore } from "@/lib/project-store";
 import {
   AlertTriangle,
@@ -20,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Stats = {
   total: number;
@@ -43,14 +45,29 @@ export default function DashboardPage() {
   } = useProjectStore();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardDismissed, setWizardDismissed] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const router = useRouter();
 
   const refresh = useCallback(() => void loadProjects(), [loadProjects]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!wizardDismissed && projects.length === 0 && !filters.archived) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWizardOpen(true);
+    } else if (projects.length > 0) {
+      // Hide wizard as soon as the user has at least one project
+      setWizardDismissed(true);
+      try { localStorage.setItem("archia-onboarded", "1"); } catch { /* ignore */ }
+    }
+  }, [isLoading, projects.length, filters.archived, wizardDismissed]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -78,7 +95,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-white/8 bg-[var(--background)]/90 px-6 py-4 backdrop-blur">
+      <header className="shrink-0 border-b border-[var(--border)] bg-[var(--background)]/90 px-6 py-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-muted)] text-[var(--accent)]">
@@ -86,7 +103,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <h1 className="text-base font-semibold tracking-tight text-slate-100">Dashboard</h1>
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--muted)]">
                 <FolderKanban className="h-3 w-3" />
                 Gerencie seus projetos de arquitetura
               </p>
@@ -129,7 +146,7 @@ export default function DashboardPage() {
           <StatCard
             label="Arquivados"
             value={stats.archived}
-            icon={<ArchiveX className="h-4 w-4 text-slate-400" />}
+            icon={<ArchiveX className="h-4 w-4 text-[var(--muted-fg)]" />}
             subIcon={<Archive className="h-3 w-3" />}
             sub={filters.archived ? "visualizando" : "ocultos"}
           />
@@ -138,18 +155,18 @@ export default function DashboardPage() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <div className="relative max-w-xs flex-1 min-w-[180px]">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 placeholder="Buscar projetos…"
-                className="w-full rounded-lg border border-white/10 bg-black/30 py-1.5 pr-3 pl-8 text-sm outline-none placeholder:text-slate-600 focus:border-[var(--accent)]"
+                className="w-full rounded-lg border border-[var(--border)] bg-black/30 py-2 pr-3 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]"
               />
               {searchDraft && (
                 <button
                   type="button"
                   onClick={() => setSearchDraft("")}
-                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5 text-slate-500 hover:text-slate-200"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5 text-[var(--muted)] hover:text-slate-200"
                   aria-label="Limpar busca"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -170,10 +187,10 @@ export default function DashboardPage() {
               setFilters({ archived: !filters.archived });
               void loadProjects({ archived: !filters.archived });
             }}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition ${
               filters.archived
                 ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                : "border-white/10 text-slate-400 hover:border-[var(--accent)]/40 hover:bg-[var(--accent-muted)]"
+                : "border-[var(--border)] text-[var(--muted-fg)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent-muted)]"
             }`}
           >
             {filters.archived ? <FolderKanban className="h-3.5 w-3.5" /> : <ArchiveX className="h-3.5 w-3.5" />}
@@ -183,8 +200,14 @@ export default function DashboardPage() {
 
         <div className="flex-1 overflow-y-auto">
           {isLoading && projects.length === 0 ? (
-            <div className="flex h-40 items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--accent)]/30 border-t-[var(--accent)]" />
+            <div className="grid grid-cols-1 gap-4 p-1 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                  <div className="skeleton mb-3 h-5 w-2/3" />
+                  <div className="skeleton mb-2 h-3 w-full" />
+                  <div className="skeleton h-3 w-4/5" />
+                </div>
+              ))}
             </div>
           ) : shownProjects.length === 0 ? (
             <EmptyState search={searchDraft} archived={!!filters.archived} onCreate={() => setModalOpen(true)} />
@@ -194,7 +217,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(true)}
-                  className="group flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-transparent text-slate-500 transition hover:border-[var(--accent)]/40 hover:bg-[var(--accent-muted)] hover:text-indigo-300"
+                  className="group flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-strong)] bg-transparent text-[var(--muted)] transition hover:border-[var(--accent)]/40 hover:bg-[var(--accent-muted)] hover:text-indigo-300"
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
                     <Plus className="h-5 w-5" />
@@ -226,7 +249,34 @@ export default function DashboardPage() {
           const created = await createProject(data);
           setModalOpen(false);
           void loadProjects();
-          window.location.href = `/project/${created.id}`;
+          router.push(`/project/${created.id}`);
+        }}
+      />
+
+      <FirstProjectWizard
+        open={wizardOpen}
+        onClose={() => {
+          setWizardOpen(false);
+          setWizardDismissed(true);
+          try {
+            localStorage.setItem("archia-onboarded", "1");
+          } catch {
+            /* ignore */
+          }
+        }}
+        onComplete={async (data) => {
+          const created = await createProject({
+            name: data.name,
+            description: data.description,
+            context: data.context,
+          });
+          setWizardDismissed(true);
+          try {
+            localStorage.setItem("archia-onboarded", "1");
+          } catch {
+            /* ignore */
+          }
+          return created.id;
         }}
       />
 
@@ -259,14 +309,14 @@ function StatCard({
   subIcon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-white/8 bg-[var(--surface-2)] p-4">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-500">{label}</span>
+        <span className="text-xs font-medium text-[var(--muted)]">{label}</span>
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">{icon}</span>
       </div>
       <p className="mt-2 text-2xl font-semibold text-slate-100">{value}</p>
       {sub && (
-        <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-600">
+        <p className="mt-0.5 inline-flex items-center gap-2 text-sm text-[var(--muted-fg)]">
           {subIcon}
           {sub}
         </p>
@@ -288,11 +338,11 @@ function EmptyState({
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5">
         {archived ? (
-          <ArchiveX className="h-6 w-6 text-slate-500" />
+          <ArchiveX className="h-6 w-6 text-[var(--muted)]" />
         ) : search ? (
-          <Search className="h-6 w-6 text-slate-500" />
+          <Search className="h-6 w-6 text-[var(--muted)]" />
         ) : (
-          <FolderKanban className="h-6 w-6 text-slate-500" />
+          <FolderKanban className="h-6 w-6 text-[var(--muted)]" />
         )}
       </div>
       <div>
@@ -303,7 +353,7 @@ function EmptyState({
               ? "Nenhum projeto encontrado."
               : "Nenhum projeto ainda."}
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-[var(--muted)]">
           {archived
             ? "Restaurando projetos os torna visíveis novamente."
             : search
@@ -339,18 +389,18 @@ function ConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[var(--surface-2)] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5 elev-4">
         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-300">
           <AlertTriangle className="h-5 w-5" />
         </div>
         <h3 className="text-base font-semibold text-slate-100">{title}</h3>
-        <p className="mt-2 text-sm text-slate-400">{description}</p>
+        <p className="mt-2 text-sm text-[var(--muted-fg)]">{description}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-[var(--muted-fg)] hover:bg-white/5"
           >
             <X className="h-3.5 w-3.5" />
             Cancelar

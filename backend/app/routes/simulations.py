@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
+from app.models.user import User
+from app.rate_limit import rate_limit_simulation
+from app.routes.auth import get_current_user
 from app.schemas.simulation import SimulationPreset, SimulationRequest, SimulationResult
 from app.services.simulation import (
     build_request_from_preset,
@@ -26,12 +29,14 @@ class PresetRunRequest(BaseModel):
 
 
 @router.get("/presets", response_model=list[SimulationPreset])
-def presets() -> list[SimulationPreset]:
+def presets(current_user: User = Depends(get_current_user)) -> list[SimulationPreset]:
     return list_presets()
 
 
 @router.get("/presets/{preset_id}", response_model=SimulationPreset)
-def preset_detail(preset_id: str) -> SimulationPreset:
+def preset_detail(
+    preset_id: str, current_user: User = Depends(get_current_user)
+) -> SimulationPreset:
     preset = get_preset(preset_id)
     if not preset:
         raise HTTPException(status_code=404, detail="Preset não encontrado")
@@ -39,7 +44,12 @@ def preset_detail(preset_id: str) -> SimulationPreset:
 
 
 @router.post("/run", response_model=SimulationResult)
-def run(payload: SimulationRequest) -> SimulationResult | Response:
+def run(
+    payload: SimulationRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> SimulationResult | Response:
+    rate_limit_simulation(request, current_user.email or str(current_user.id))
     if not payload.nodes:
         raise HTTPException(status_code=400, detail="Grafo vazio — adicione nodes antes de simular")
     result = run_simulation(payload)
@@ -53,7 +63,12 @@ def run(payload: SimulationRequest) -> SimulationResult | Response:
 
 
 @router.post("/run-preset", response_model=SimulationResult)
-def run_preset(payload: PresetRunRequest) -> SimulationResult | Response:
+def run_preset(
+    payload: PresetRunRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> SimulationResult | Response:
+    rate_limit_simulation(request, current_user.email or str(current_user.id))
     if not payload.nodes:
         raise HTTPException(status_code=400, detail="Grafo vazio — adicione nodes antes de simular")
     try:

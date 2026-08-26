@@ -37,22 +37,22 @@ export default function NodeGlossaryTooltip({ nodeId, nodeLabel, nodeTech, child
       </div>
       {show && (
         <div
-          className="fixed z-50 w-72 rounded-lg border border-white/20 bg-[#0d1219]/95 p-3 text-xs text-slate-200 shadow-2xl backdrop-blur"
+          className="fixed z-50 w-72 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-1)]/95 p-3 text-xs text-slate-200 elev-4 backdrop-blur"
           style={{ left: Math.min(position.x, window.innerWidth - 300), top: position.y }}
           role="tooltip"
           aria-label={`Glossário: ${term.term}`}
         >
           <div className="flex items-start justify-between">
-            <p className="font-semibold text-cyan-300">{term.term}</p>
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] text-slate-400">
+            <p className="font-semibold text-indigo-300">{term.term}</p>
+            <span className="rounded bg-white/10 px-2 py-0.5 text-sm text-[var(--muted-fg)]">
               {term.category}
             </span>
           </div>
           <p className="mt-2 text-slate-300">{term.definition}</p>
           {term.related && term.related.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-2">
               {term.related.map((r) => (
-                <span key={r} className="rounded bg-violet-500/20 px-1.5 py-0.5 text-[9px] text-violet-200">
+                <span key={r} className="rounded bg-violet-500/20 px-2 py-0.5 text-sm text-violet-200">
                   {r}
                 </span>
               ))}

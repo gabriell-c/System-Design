@@ -6,7 +6,7 @@ interface FlowBadgeProps {
 
 /** Badge circular para numeração contínua de fluxos (P0.2.2). */
 export default function FlowBadge({ number, critical = false, size = "sm" }: FlowBadgeProps) {
-  const dim = size === "md" ? "h-6 w-6 text-[11px]" : "h-5 w-5 text-[10px]";
+  const dim = size === "md" ? "h-6 w-6 text-sm" : "h-5 w-5 text-sm";
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white shadow-md ${dim} ${

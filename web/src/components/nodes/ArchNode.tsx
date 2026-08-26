@@ -40,7 +40,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
   return (
     <NodeGlossaryTooltip nodeId={data.catalogId ?? id} nodeLabel={data.label} nodeTech={data.tech}>
       <article
-        className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/40 ${
+        className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 elev-2 shadow-black/40 ${
           selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
         } ${
           blastDown
@@ -50,7 +50,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
               : data.bottleneck
             ? "animate-pulse border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/30"
             : highlighted
-              ? "border-cyan-400 shadow-cyan-500/20"
+              ? "border-[var(--accent)] shadow-cyan-500/20"
               : ""
         } ${diffStatus === "added" ? "border-emerald-500 ring-2 ring-emerald-500/50" : diffStatus === "removed" ? "border-rose-500 ring-2 ring-rose-500/50" : diffStatus === "changed" ? "border-amber-500 ring-2 ring-amber-500/50" : ""}`}
         style={{
@@ -88,7 +88,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
 
         <div className="flex items-start gap-2">
           <span
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[9px] font-bold uppercase"
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold uppercase"
             style={{
               background: officialIcon ? `${officialIcon.color}22` : meta.bg,
               color: officialIcon?.color ?? meta.accent,
@@ -104,29 +104,29 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
               <p className="truncate text-sm font-semibold text-slate-100">{data.label}</p>
               {data.bottleneck ? (
                 <span
-                  className="rounded-md border border-rose-400/50 bg-rose-500/25 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-100"
+                  className="rounded-md border border-rose-400/50 bg-rose-500/25 px-2 py-0.5 text-sm font-semibold uppercase tracking-wide text-rose-100"
                   title={data.summary || "Gargalo"}
                 >
                   Gargalo
                 </span>
               ) : data.score != null ? (
                 <span
-                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${scoreTone(data.score)}`}
+                  className={`rounded-md border px-2 py-0.5 text-sm font-semibold tabular-nums ${scoreTone(data.score)}`}
                   title="Nota heurística do node"
                 >
                   {data.score.toFixed(1)}
                 </span>
               ) : null}
             </div>
-            <p className="text-[10px] uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
+            <p className="text-sm uppercase tracking-wide" style={{ color: data.bottleneck ? "#fda4af" : meta.accent }}>
               {meta.label}
               {data.kind === "database" && data.piiSensitivity && data.piiSensitivity !== "none" && (
-                <span className="ml-1 rounded bg-rose-500/20 px-1 text-[9px] text-rose-200">
+                <span className="ml-1 rounded bg-rose-500/20 px-1 text-sm text-rose-200">
                   PII {data.piiSensitivity}
                 </span>
               )}
             </p>
-            <p className="mt-1 truncate text-xs text-slate-400">
+            <p className="mt-1 truncate text-xs text-[var(--muted-fg)]">
               {data.bottleneck && data.summary ? data.summary : subtitle}
             </p>
           </div>

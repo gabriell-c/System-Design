@@ -417,15 +417,8 @@ class TestReproducibility:
 # ── Tests: Edge Cases ────────────────────────────────────────────────────────
 
 class TestEdgeCases:
-    def test_empty_nodes_fails(self):
+    def test_empty_nodes_fails(self, client):
         """Testa erro com grafo vazio."""
-
-        # Via HTTP deve retornar 400
-        from starlette.testclient import TestClient
-
-        from app.main import app
-
-        client = TestClient(app)
         resp = client.post("/api/v1/simulations/run", json={"nodes": [], "edges": []})
         assert resp.status_code == 400
 
@@ -477,13 +470,8 @@ class TestEdgeCases:
 # ── Tests: Integration with HTTP ─────────────────────────────────────────────
 
 class TestHttpIntegration:
-    def test_run_simulation_via_http(self):
+    def test_run_simulation_via_http(self, client):
         """Testa endpoint HTTP de simulação."""
-        from starlette.testclient import TestClient
-
-        from app.main import app
-
-        client = TestClient(app)
         resp = client.post(
             "/api/v1/simulations/run",
             json={
@@ -499,13 +487,8 @@ class TestHttpIntegration:
         assert "engineering_audit" in body
         assert body["test_mode"] == "load"
 
-    def test_run_preset_via_http(self):
+    def test_run_preset_via_http(self, client):
         """Testa endpoint HTTP de preset."""
-        from starlette.testclient import TestClient
-
-        from app.main import app
-
-        client = TestClient(app)
         resp = client.post(
             "/api/v1/simulations/run-preset",
             json={

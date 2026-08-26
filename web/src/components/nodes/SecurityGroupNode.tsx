@@ -13,7 +13,7 @@ export default function SecurityGroupNode({ id, data, selected }: NodeProps<Node
 
   return (
     <article
-      className={`min-w-[220px] max-w-[280px] rounded-xl border px-3 py-2.5 shadow-lg ${
+      className={`min-w-[220px] max-w-[280px] rounded-xl border px-3 py-2.5 elev-2 ${
         selected ? "ring-2 ring-pink-400/80" : ""
       } ${inBlast ? "ring-2 ring-rose-500/70" : ""}`}
       style={{
@@ -31,8 +31,8 @@ export default function SecurityGroupNode({ id, data, selected }: NodeProps<Node
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-pink-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-wide text-pink-300/90">Security Group / NSG</p>
-          <ul className="mt-1.5 space-y-0.5 text-[10px] text-slate-400">
+          <p className="text-sm uppercase tracking-wide text-pink-300/90">Security Group / NSG</p>
+          <ul className="mt-1.5 space-y-0.5 text-sm text-[var(--muted-fg)]">
             {rules.length === 0 ? (
               <li>Sem regras — adicione no inspetor</li>
             ) : (

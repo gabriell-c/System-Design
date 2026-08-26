@@ -98,7 +98,7 @@ export function useAutoSave() {
     const intervalMin = user.auto_save_interval_minutes;
     if (!intervalMin || intervalMin <= 0) return;
     const ms = intervalMin * 60 * 1000;
-    timerRef.current = setInterval(() => {
+    timerRef.current = setInterval(async () => {
       const state = useGraphStore.getState();
       if (!state.graphId) return;
 

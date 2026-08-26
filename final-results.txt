@@ -1,0 +1,24 @@
+============================================================
+FINAL TEST RESULTS
+============================================================
+[PASS]   | HEALTH               | HTTP 200
+[PASS]   | REGISTER             | HTTP 200
+[PASS]   | LOGIN                | HTTP 200
+[PASS]   | PROFILE              | HTTP 200
+[PASS]   | PROJECTS_AUTH        | HTTP 200
+[FAIL]   | PROJECTS_NO_AUTH     | HTTP 200
+[PASS]   | CREATE_PROJECT       | HTTP 201
+[PASS]   | LIST_GRAPHS          | HTTP 200
+[PASS]   | CREATE_GRAPH         | HTTP 201
+[PASS]   | UPDATE_GRAPH         | HTTP 200
+[PASS]   | ANALYZE              | HTTP 200
+[PASS]   | GET_GRAPH            | HTTP 200
+[PASS]   | DELETE_GRAPH         | HTTP 204
+[PASS]   | DELETE_PROJECT       | HTTP 204
+[PASS]   | 404_TEST             | HTTP 404
+============================================================
+TOTAL: 15 | PASSED: 14 | FAILED: 1
+============================================================
+
+FAILED:
+  - PROJECTS_NO_AUTH: HTTP 200

@@ -136,7 +136,7 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
     return (
       <button
         type="button"
-        className="fixed bottom-20 right-4 z-40 rounded-full bg-violet-600/80 p-2 text-white shadow-lg hover:bg-violet-500"
+        className="fixed bottom-20 right-4 z-40 rounded-full bg-violet-600/80 p-2 text-white elev-2 hover:bg-violet-500"
         onClick={() => setOpen(true)}
         title="Modo apresentação (Setas/T/Esc)"
         aria-label="Abrir modo apresentação"
@@ -150,14 +150,14 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
     <>
       {/* Controls */}
       <div
-        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-white/20 bg-[#0d1219]/95 px-4 py-3 shadow-2xl backdrop-blur"
+        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-1)]/95 px-4 py-3 elev-4 backdrop-blur"
         role="region"
         aria-label="Controles de apresentação"
       >
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-300 hover:bg-white/10 disabled:opacity-50"
+            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-slate-300 hover:bg-white/10 disabled:opacity-50"
             onClick={handlePrev}
             disabled={step === 0}
             aria-label="Passo anterior"
@@ -168,13 +168,13 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
             <span className="text-xs font-semibold text-violet-300">
               Passo {step + 1} / {steps.length}
             </span>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-sm text-[var(--muted)]">
               {current?.label ?? steps[step]?.id}
             </span>
           </div>
           <button
             type="button"
-            className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-300 hover:bg-white/10 disabled:opacity-50"
+            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-slate-300 hover:bg-white/10 disabled:opacity-50"
             onClick={handleNext}
             disabled={step >= steps.length - 1}
             aria-label="Próximo passo"
@@ -191,7 +191,7 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
           </button>
           <button
             type="button"
-            className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-400 hover:text-slate-200"
+            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted-fg)] hover:text-slate-200"
             onClick={() => setTheme((v) => (v === "dark" ? "light" : "dark"))}
             aria-label="Alternar tema"
             title="Tema claro/escuro (tecla T)"
@@ -200,14 +200,14 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
           </button>
           <button
             type="button"
-            className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-400 hover:text-slate-200"
+            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted-fg)] hover:text-slate-200"
             onClick={() => setOpen(false)}
             aria-label="Fechar modo apresentação"
           >
             <X size={14} />
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-sm text-[var(--muted)]">
           ← → navegar · Espaço auto · T tema · Esc sair
         </p>
       </div>

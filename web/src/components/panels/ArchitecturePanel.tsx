@@ -57,20 +57,20 @@ export default function ArchitecturePanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">Arquitetura real</p>
-        <p className="mt-1 text-xs text-slate-400">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+        <p className="text-sm font-semibold uppercase tracking-wide text-violet-300">Arquitetura real</p>
+        <p className="mt-1 text-xs text-[var(--muted-fg)]">
           {zoneCount} zona{zoneCount === 1 ? "" : "s"} no canvas · estilo declarado e coerência AN/AD/AA/AI
         </p>
       </div>
 
       <section>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500" htmlFor="arch-style">
+        <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="arch-style">
           Estilo arquitetural (AN/AA)
         </label>
         <select
           id="arch-style"
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+          className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
           value={nfr.arch_style ?? ""}
           onChange={(e) =>
             setNfr((prev) => ({
@@ -87,7 +87,7 @@ export default function ArchitecturePanel() {
           ))}
         </select>
         {analysis?.arch_style && (
-          <p className="mt-1.5 text-xs text-slate-400">
+          <p className="mt-1.5 text-xs text-[var(--muted-fg)]">
             Detectado:{" "}
             <strong className="text-slate-200">{STYLE_LABELS[analysis.arch_style] ?? analysis.arch_style}</strong>
             {typeof analysis.style_confidence === "number"
@@ -120,8 +120,8 @@ export default function ArchitecturePanel() {
       />
 
       {analysis?.domain_coherence && (
-        <section className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Coerência de domínios</h3>
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Coerência de domínios</h3>
           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
             {(
               [
@@ -131,26 +131,26 @@ export default function ArchitecturePanel() {
                 ["AI", analysis.domain_coherence.ai],
               ] as const
             ).map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-white/8 bg-black/20 px-2 py-1.5">
-                <span className="text-slate-500">{k}</span>
+              <div key={k} className="rounded-lg border border-[var(--border)] bg-black/20 px-2 py-2">
+                <span className="text-[var(--muted)]">{k}</span>
                 <span className="ml-2 font-semibold tabular-nums text-slate-100">{v.toFixed(1)}</span>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-[var(--muted-fg)]">
             Geral: <strong className="text-slate-200">{analysis.domain_coherence.geral.toFixed(1)}</strong>/10
           </p>
         </section>
       )}
 
       {analysis?.review_scorecard && (
-        <section className="rounded-xl border border-white/10 bg-[#0d1219] p-3">
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
               Review scorecard
             </h3>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              className={`rounded-full px-2 py-0.5 text-sm font-semibold ${
                 analysis.review_scorecard.review_ready
                   ? "bg-emerald-500/20 text-emerald-200"
                   : "bg-amber-500/20 text-amber-100"
@@ -164,10 +164,10 @@ export default function ArchitecturePanel() {
             <strong className="tabular-nums">{analysis.review_scorecard.overall.toFixed(1)}</strong>
             /10
             {!analysis.review_scorecard.review_ready && (
-              <span className="ml-2 text-xs text-slate-500">meta ≥ 8.0</span>
+              <span className="ml-2 text-xs text-[var(--muted)]">meta ≥ 8.0</span>
             )}
           </p>
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-2 space-y-2">
             {(
               [
                 ["Narrativa", analysis.review_scorecard.narrative],
@@ -178,14 +178,14 @@ export default function ArchitecturePanel() {
                 ["Decisão", analysis.review_scorecard.decision_quality],
               ] as const
             ).map(([label, value]) => (
-              <li key={label} className="text-[11px] text-slate-400">
+              <li key={label} className="text-sm text-[var(--muted-fg)]">
                 <div className="mb-0.5 flex justify-between">
                   <span>{label}</span>
                   <span className="tabular-nums text-slate-200">{value.toFixed(1)}</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={`h-full rounded-full ${value >= 8 ? "bg-emerald-400" : value >= 5 ? "bg-cyan-400" : "bg-rose-400"}`}
+                    className={`h-full rounded-full ${value >= 8 ? "bg-emerald-400" : value >= 5 ? "bg-indigo-400" : "bg-rose-400"}`}
                     style={{ width: `${Math.min(100, (value / 10) * 100)}%` }}
                   />
                 </div>
@@ -194,8 +194,8 @@ export default function ArchitecturePanel() {
           </ul>
           {(analysis.review_scorecard.gaps?.length ?? 0) > 0 && (
             <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2">
-              <p className="text-[11px] font-semibold text-amber-200">O que falta para 8.0</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-amber-100/90">
+              <p className="text-sm font-semibold text-amber-200">O que falta para 8.0</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-sm text-amber-100/90">
                 {analysis.review_scorecard.gaps.slice(0, 6).map((g) => (
                   <li key={g}>{g}</li>
                 ))}
@@ -206,7 +206,7 @@ export default function ArchitecturePanel() {
       )}
 
       {analysis?.cohesion_coupling && (
-        <section className="rounded-xl border border-white/10 bg-[#0d1219] p-3 text-xs text-slate-400">
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3 text-xs text-[var(--muted-fg)]">
           Coesão {analysis.cohesion_coupling.cohesion_score.toFixed(1)} · Acoplamento{" "}
           {analysis.cohesion_coupling.coupling_score.toFixed(1)}
         </section>
@@ -214,7 +214,7 @@ export default function ArchitecturePanel() {
 
       {styleFindings.length > 0 && (
         <section>
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
             Riscos de zona / estilo
           </h3>
           <ul className="space-y-2">
@@ -230,12 +230,12 @@ export default function ArchitecturePanel() {
 
       {(analysis?.trade_offs?.length ?? 0) > 0 && (
         <section>
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Trade-offs</h3>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Trade-offs</h3>
           <ul className="space-y-2">
             {analysis!.trade_offs!.map((t, i) => (
-              <li key={i} className="rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-xs text-slate-300">
+              <li key={i} className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-xs text-slate-300">
                 <p className="font-semibold text-slate-100">{t.decisao}</p>
-                <p className="mt-1 text-slate-500">vs {t.alternativa_rejeitada}</p>
+                <p className="mt-1 text-[var(--muted)]">vs {t.alternativa_rejeitada}</p>
                 <p className="mt-1">+ {t.vantagem}</p>
                 <p>− {t.desvantagem}</p>
               </li>
@@ -262,14 +262,14 @@ function ChipEditor({
 }) {
   return (
     <section>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">{title}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {items.map((item) => (
           <button
             key={item}
             type="button"
             onClick={() => onRemove(item)}
-            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] text-slate-200 hover:border-rose-400/40 hover:text-rose-200"
+            className="rounded-full border border-[var(--border)] bg-white/5 px-2.5 py-0.5 text-sm text-slate-200 hover:border-rose-400/40 hover:text-rose-200"
             title="Remover"
           >
             {item} ×
@@ -277,7 +277,7 @@ function ChipEditor({
         ))}
       </div>
       <input
-        className="mt-2 w-full rounded-lg border border-white/10 bg-[#0d1219] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+        className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
         placeholder={placeholder}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

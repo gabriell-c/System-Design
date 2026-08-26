@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.graph import Graph, SimulationScenario, new_uuid
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import _nfr_out, _parse_json_list
 from app.services.capacity import estimate_capacity
 from app.services.lineage import build_lineage
@@ -33,7 +35,7 @@ class SimulationScenarioOut(BaseModel):
 
 
 @router.get("/graphs/{graph_id}/polyglot-map")
-def polyglot_map(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def polyglot_map(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -43,7 +45,7 @@ def polyglot_map(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/lineage")
-def lineage(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def lineage(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -54,7 +56,7 @@ def lineage(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/capacity-estimate")
-def capacity_estimate(graph_id: str, db: Session = Depends(get_db)) -> dict:
+def capacity_estimate(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -64,7 +66,7 @@ def capacity_estimate(graph_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/graphs/{graph_id}/simulation-scenarios", response_model=list[SimulationScenarioOut])
-def list_scenarios(graph_id: str, db: Session = Depends(get_db)) -> list[SimulationScenarioOut]:
+def list_scenarios(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[SimulationScenarioOut]:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Graph not found")
@@ -79,7 +81,7 @@ def list_scenarios(graph_id: str, db: Session = Depends(get_db)) -> list[Simulat
 
 @router.post("/graphs/{graph_id}/simulation-scenarios", response_model=SimulationScenarioOut)
 def create_scenario(
-    graph_id: str, payload: SimulationScenarioCreate, db: Session = Depends(get_db)
+    graph_id: str, payload: SimulationScenarioCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> SimulationScenarioOut:
     graph = db.get(Graph, graph_id)
     if not graph:
@@ -97,7 +99,7 @@ def create_scenario(
 
 
 @router.delete("/graphs/{graph_id}/simulation-scenarios/{scenario_id}")
-def delete_scenario(graph_id: str, scenario_id: str, db: Session = Depends(get_db)) -> dict:
+def delete_scenario(graph_id: str, scenario_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     row = (
         db.query(SimulationScenario)
         .filter(SimulationScenario.id == scenario_id, SimulationScenario.graph_id == graph_id)

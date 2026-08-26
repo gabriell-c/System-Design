@@ -19,7 +19,7 @@ export default function SagaNode({ id, data, selected }: NodeProps<Node<ArchNode
 
   return (
     <article
-      className={`min-w-[220px] max-w-[260px] rounded-xl border px-3 py-2.5 shadow-lg shadow-black/50 ${
+      className={`min-w-[220px] max-w-[260px] rounded-xl border px-3 py-2.5 elev-2 shadow-black/50 ${
         selected ? "ring-2 ring-violet-400/80" : "ring-1 ring-violet-500/40"
       }`}
       style={{
@@ -45,12 +45,12 @@ export default function SagaNode({ id, data, selected }: NodeProps<Node<ArchNode
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-violet-50">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-wide text-violet-300">Saga orchestrator</p>
-          <p className="mt-1 truncate text-xs text-slate-400">{data.tech}</p>
+          <p className="text-sm uppercase tracking-wide text-violet-300">Saga orchestrator</p>
+          <p className="mt-1 truncate text-xs text-[var(--muted-fg)]">{data.tech}</p>
         </div>
         {data.score != null && (
           <span
-            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${scoreTone(data.score)}`}
+            className={`rounded-md border px-2 py-0.5 text-sm font-semibold tabular-nums ${scoreTone(data.score)}`}
           >
             {data.score.toFixed(1)}
           </span>

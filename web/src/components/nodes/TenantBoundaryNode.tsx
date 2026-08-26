@@ -23,9 +23,9 @@ export default function TenantBoundaryNode({ id, data, selected }: NodeProps<Nod
         <Users size={16} className="mt-0.5 text-fuchsia-300" />
         <div>
           <p className="text-sm font-semibold text-fuchsia-100">{data.label}</p>
-          <p className="text-[10px] uppercase tracking-wide text-fuchsia-300/80">Multi-tenant · {mode}</p>
+          <p className="text-sm uppercase tracking-wide text-fuchsia-300/80">Multi-tenant · {mode}</p>
           {data.tenantIds?.length ? (
-            <p className="mt-1 text-[10px] text-slate-400">{data.tenantIds.slice(0, 4).join(", ")}</p>
+            <p className="mt-1 text-sm text-[var(--muted-fg)]">{data.tenantIds.slice(0, 4).join(", ")}</p>
           ) : null}
         </div>
       </div>

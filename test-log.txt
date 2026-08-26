@@ -1,0 +1,5 @@
+REG 400: {"detail":"Username already exists"}
+LOGIN 200: token=SET access_token=SET
+PROFILE 307: 
+PROJECTS 200: count=2
+CREATE PROJ 201: {"id":"e8365052-15aa-4eab-b96d-22c88b593a3a","name":"Test Project","context":"ctx","description":"desc","nfr_json":"{}","is_public":false,"archived":false,"pinned":false,"share_token":null,"created_at

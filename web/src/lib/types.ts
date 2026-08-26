@@ -213,6 +213,8 @@ export type ArchNodeData = {
   naclRules?: NaclRule[];
   /** P2.3.1 — attachments TGW quando catalogId = net-tgw */
   tgwAttachments?: TgwAttachment[];
+  /** Notas / especificações do card (HTML do editor rico). */
+  notes?: string;
 };
 
 export type BlockNodeData = {
@@ -290,7 +292,8 @@ export type CanvasNodeData =
   | SwimlaneNodeData
   | NoteNodeData
   | CidrNodeData
-  | TenantBoundaryData;
+  | TenantBoundaryData
+  | FreeNodeData;
 
 export function isBlockData(data: CanvasNodeData): data is BlockNodeData {
   return data.kind === "block";
@@ -314,6 +317,25 @@ export function isCidrData(data: CanvasNodeData): data is CidrNodeData {
 
 export function isTenantBoundaryData(data: CanvasNodeData): data is TenantBoundaryData {
   return data.kind === "tenant_boundary";
+}
+
+export function isFreeData(data: CanvasNodeData): data is FreeNodeData {
+  return (
+    data.kind === "free-rectangle" ||
+    data.kind === "free-circle" ||
+    data.kind === "free-oval" ||
+    data.kind === "free-diamond" ||
+    data.kind === "free-triangle" ||
+    data.kind === "free-hexagon" ||
+    data.kind === "free-octagon" ||
+    data.kind === "free-arrow-right" ||
+    data.kind === "free-arrow-double" ||
+    data.kind === "free-check" ||
+    data.kind === "free-x" ||
+    data.kind === "free-plus" ||
+    data.kind === "free-text" ||
+    data.kind === "free-edit"
+  );
 }
 
 export function isArchData(data: CanvasNodeData): data is ArchNodeData {
@@ -556,6 +578,47 @@ export type ProjectAccessEntry = {
   role: ProjectAccessRole;
 };
 
+export type ProjectKind = "architecture" | "free";
+
+export type FreeNodeKind =
+  | "free-rectangle"
+  | "free-circle"
+  | "free-oval"
+  | "free-diamond"
+  | "free-triangle"
+  | "free-hexagon"
+  | "free-octagon"
+  | "free-arrow-right"
+  | "free-arrow-double"
+  | "free-check"
+  | "free-x"
+  | "free-plus"
+  | "free-text"
+  | "free-edit";
+
+export const ALL_FREE_NODE_KINDS: FreeNodeKind[] = [
+  "free-rectangle",
+  "free-circle",
+  "free-oval",
+  "free-diamond",
+  "free-triangle",
+  "free-hexagon",
+  "free-octagon",
+  "free-arrow-right",
+  "free-arrow-double",
+  "free-check",
+  "free-x",
+  "free-plus",
+  "free-text",
+  "free-edit",
+];
+
+export type FreeNodeData = {
+  kind: FreeNodeKind;
+  label: string;
+  text?: string;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -566,6 +629,7 @@ export type Project = {
   is_public?: boolean;
   archived?: boolean;
   pinned?: boolean;
+  project_kind?: ProjectKind;
   share_token?: string | null;
   access_list?: ProjectAccessEntry[];
   diagram_count?: number;
@@ -588,6 +652,7 @@ export type ProjectCreateInput = {
   context?: string;
   nfr_json?: string;
   is_public?: boolean;
+  project_kind?: ProjectKind;
   access_list?: ProjectAccessEntry[];
 };
 
