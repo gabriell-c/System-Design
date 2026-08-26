@@ -25,8 +25,9 @@ class TestMutationGuards:
         response = client.get("/api/v1/graphs")
         result = response.json()
         # Mutation: if result is None → test fails ✓
-        assert isinstance(result, list)
-        assert result == []
+        assert isinstance(result, dict)
+        assert "items" in result
+        assert result["items"] == []
 
     def test_created_status_201_not_200(self, client):
         """CATCH MUTATION: changing 201 to 200."""

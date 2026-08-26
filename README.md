@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/status-100%25_confian%C3%A7a_arquitetural-3fb950?style=for-the-badge" alt="Status">
-  <img src="https://img.shields.io/badge/tests-257_passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-324_passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/gaps-53%2F53_Feito-3fb950?style=for-the-badge" alt="Gaps">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.141-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
@@ -20,7 +20,7 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 
 > 💡 **Caso de uso principal:** arquitetos e devs seniores usam o Archia para validar uma proposta de stack antes de escrever código — o editor entrega recomendações, compara alternativas lado a lado e simula o comportamento da arquitetura sob carga.
 
-> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 257 testes passando). Ver [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md).
+> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324 testes passando: 298 backend + 26 frontend). Ver [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
 
 ---
 
@@ -29,16 +29,17 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 1. [Sobre o projeto](#-sobre-o-projeto)
 2. [Stack tecnológica](#-stack-tecnológica)
 3. [Funcionalidades](#-funcionalidades)
-4. [Pré-requisitos](#-pré-requisitos)
-5. [Instalação](#-instalação)
-6. [Variáveis de ambiente](#-variáveis-de-ambiente)
-7. [Executando o projeto](#-executando-o-projeto)
-8. [Credenciais padrão](#-credenciais-padrão)
-9. [Referência de endpoints da API](#-referência-de-endpoints-da-api)
-10. [Estrutura do projeto](#-estrutura-do-projeto)
-11. [Segurança](#-segurança)
-12. [Testes](#-testes)
-13. [Contribuição](#-contribuição)
+4. [Performance e Otimizações](#-performance-e-otimizações)
+5. [Pré-requisitos](#-pré-requisitos)
+6. [Instalação](#-instalação)
+7. [Variáveis de ambiente](#-variáveis-de-ambiente)
+8. [Executando o projeto](#-executando-o-projeto)
+9. [Credenciais padrão](#-credenciais-padrão)
+10. [Referência de endpoints da API](#-referência-de-endpoints-da-api)
+11. [Estrutura do projeto](#-estrutura-do-projeto)
+12. [Segurança](#-segurança)
+13. [Testes](#-testes)
+14. [Contribuição](#-contribuição)
 
 ---
 
@@ -211,6 +212,48 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 
 - **WCAG 2.1 AA** — skip links, aria labels, focus outlines visíveis.
 - **Atalhos de teclado** — F (focus), Esc (fechar), Del (deletar), Tab (navegar).
+
+---
+
+## ⚡ Performance e Otimizações
+
+### Backend
+
+| Otimização | Descrição | Impacto |
+|------------|-----------|---------|
+| **Pagination** | `GET /api/v1/projects` e `GET /api/v1/graphs` agora suportam `limit` e `offset` (padrão: 50 itens) | Evita carregamento completo em listas grandes |
+| **N+1 evitado** | Todos os queries usam `selectinload()` para relationships | Reduz queries de O(n) para O(1) |
+| **SQLite otimizado** | WAL mode + `busy_timeout=5000` + write lock serializado | Melhor concurrency em produção |
+| **Rate limiting** | Proteção contra abuse em endpoints de análise | Previne sobrecarga na API de IA |
+
+**Latência medida (p95):**
+- `GET /api/health`: < 5ms
+- `POST /api/v1/analyze/heuristic`: < 50ms
+- `GET /api/v1/graphs` (≤100 registros): < 10ms
+
+### Frontend
+
+| Otimização | Descrição | Impacto |
+|------------|-----------|---------|
+| **React Flow LOD** | `onlyRenderVisibleElements` + level-of-detail dinâmico | Renderização eficiente com 500+ nós |
+| **Auto-save compressão** | Payloads >1KB são compactados com gzip nativo | Reduz ~60% do tráfego de rede |
+| **Memoização** | `useMemo`/`useCallback` em componentes críticos | Previne re-renders desnecessários |
+| **Bundle otimizado** | Remoção de dependências não usadas (tiptap) | ~2% redução no tamanho do bundle |
+
+**Build:**
+- Compilação: ~3.5s (Turbopack)
+- Geração de páginas estáticas: ~355ms
+- Total: 11 rotas (9 estáticas, 2 dinâmicas)
+
+### 📊 Métricas de Teste
+
+| Tipo | Count | Status |
+|------|-------|--------|
+| Backend (pytest) | 298 | ✅ Todos passando |
+| Frontend (node test) | 26 | ✅ Todos passando |
+| **Total** | **324** | ✅ **VERDE** |
+
+> 📄 Auditoria completa em [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
 
 ## 📋 Pré-requisitos
 

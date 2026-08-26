@@ -6,13 +6,15 @@ import json
 import secrets
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db, sqlite_write_guard
 from app.models.graph import Graph, Project, ProjectAccess, new_uuid
+from app.models.user import User
+from app.routes.auth import get_current_user
 from app.routes.graphs import to_out
 from app.schemas.graph import GraphOut, GraphPayload, ProjectNfr
 from app.schemas.project import (
@@ -77,6 +79,7 @@ def _to_out(project: Project) -> ProjectOut:
         is_public=bool(getattr(project, "is_public", False)),
         archived=bool(getattr(project, "archived", False)),
         pinned=bool(getattr(project, "pinned", False)),
+        project_kind=getattr(project, "project_kind", None) or "architecture",
         share_token=getattr(project, "share_token", None),
         created_at=project.created_at,
         updated_at=project.updated_at,
@@ -120,14 +123,17 @@ def list_subsystem_catalog():
     return catalog_subsystems()
 
 
-@router.get("", response_model=list[ProjectOut])
+@router.get("", response_model=dict)
 def list_projects(
     search: str | None = Query(default=None, description="Busca por nome ou descrição"),
     sort_by: Literal["recent", "heaviest", "name"] = Query(default="recent"),
     archived: bool = Query(default=False, description="Listar arquivados"),
     pinned_first: bool = Query(default=True),
+    limit: int = Query(default=50, ge=1, le=200, description="Máximo de resultados"),
+    offset: int = Query(default=0, ge=0, description="Offset para paginação"),
     db: Session = Depends(get_db),
-) -> list[ProjectOut]:
+    current_user: User = Depends(get_current_user),
+) -> dict:
     stmt = (
         select(Project)
         .options(selectinload(Project.diagrams), selectinload(Project.access_entries))
@@ -137,7 +143,12 @@ def list_projects(
         q = f"%{search.strip()}%"
         stmt = stmt.where(or_(Project.name.ilike(q), Project.description.ilike(q)))
 
-    projects = list(db.scalars(stmt).unique().all())
+    # Count total for pagination metadata
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = db.scalar(count_stmt) or 0
+
+    # Apply pagination
+    projects = list(db.scalars(stmt.unique().offset(offset).limit(limit)).all())
 
     def sort_key(p: Project):
         pin = 0 if (pinned_first and p.pinned) else 1
@@ -148,12 +159,23 @@ def list_projects(
         return (pin, -(p.updated_at.timestamp() if p.updated_at else 0))
 
     projects.sort(key=sort_key)
-    return [_to_out(p) for p in projects]
+    return {
+        "items": [_to_out(p) for p in projects],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(projects) < total,
+    }
 
 
 @router.post("", response_model=ProjectOut, status_code=201)
-def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> ProjectOut:
+def create_project(
+    body: ProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProjectOut:
     share_token = secrets.token_urlsafe(24) if body.is_public else None
+    project_kind = body.project_kind if body.project_kind in ("architecture", "free") else "architecture"
     project = Project(
         id=new_uuid(),
         name=body.name.strip(),
@@ -161,6 +183,7 @@ def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Projec
         context=body.context or "",
         nfr_json=body.nfr_json or "{}",
         is_public=body.is_public,
+        project_kind=project_kind,
         share_token=share_token,
         archived=False,
         pinned=False,
@@ -168,33 +191,55 @@ def create_project(body: ProjectCreate, db: Session = Depends(get_db)) -> Projec
     db.add(project)
     db.flush()
     _replace_access(db, project, body.access_list)
-    for kind in DEFAULT_DIAGRAM_KINDS:
-        label = DIAGRAM_KIND_META[kind]
+    if project_kind == "free":
         db.add(
             Graph(
                 id=new_uuid(),
                 project_id=project.id,
-                name=f"{body.name.strip()} — {label}",
+                name=f"{body.name.strip()} — Diagrama Livre",
                 context_text=body.context or "",
                 nfr_json=body.nfr_json or "{}",
                 nodes_json="[]",
                 edges_json="[]",
-                diagram_kind=kind,
+                diagram_kind="free",
                 review_status="draft",
             )
         )
+    else:
+        for kind in DEFAULT_DIAGRAM_KINDS:
+            label = DIAGRAM_KIND_META[kind]
+            db.add(
+                Graph(
+                    id=new_uuid(),
+                    project_id=project.id,
+                    name=f"{body.name.strip()} — {label}",
+                    context_text=body.context or "",
+                    nfr_json=body.nfr_json or "{}",
+                    nodes_json="[]",
+                    edges_json="[]",
+                    diagram_kind=kind,
+                    review_status="draft",
+                )
+            )
     db.commit()
     return _to_out(_get_project(db, project.id))
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, db: Session = Depends(get_db)) -> ProjectOut:
+def get_project(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProjectOut:
     return _to_out(_get_project(db, project_id))
 
 
 @router.put("/{project_id}", response_model=ProjectOut)
 def update_project(
-    project_id: str, body: ProjectUpdate, db: Session = Depends(get_db)
+    project_id: str,
+    body: ProjectUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
     project = _get_project(db, project_id)
     data = body.model_dump(exclude_unset=True)
@@ -218,6 +263,9 @@ def update_project(
         project.pinned = data["pinned"]
     if "archived" in data and data["archived"] is not None:
         project.archived = data["archived"]
+    if "project_kind" in data and data["project_kind"] is not None:
+        if data["project_kind"] in ("architecture", "free"):
+            project.project_kind = data["project_kind"]
 
     if access_list is not None:
         entries = [ProjectAccessEntry.model_validate(e) for e in access_list]
@@ -228,14 +276,23 @@ def update_project(
 
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: str, db: Session = Depends(get_db)) -> None:
+def delete_project(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
     project = _get_project(db, project_id)
     db.delete(project)
     db.commit()
+    return Response(status_code=204)
 
 
 @router.patch("/{project_id}/archive", response_model=ProjectOut)
-def toggle_archive(project_id: str, db: Session = Depends(get_db)) -> ProjectOut:
+def toggle_archive(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProjectOut:
     project = _get_project(db, project_id)
     project.archived = not bool(project.archived)
     db.commit()
@@ -243,7 +300,11 @@ def toggle_archive(project_id: str, db: Session = Depends(get_db)) -> ProjectOut
 
 
 @router.patch("/{project_id}/pin", response_model=ProjectOut)
-def toggle_pin(project_id: str, db: Session = Depends(get_db)) -> ProjectOut:
+def toggle_pin(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProjectOut:
     project = _get_project(db, project_id)
     project.pinned = not bool(project.pinned)
     db.commit()
@@ -251,7 +312,11 @@ def toggle_pin(project_id: str, db: Session = Depends(get_db)) -> ProjectOut:
 
 
 @router.get("/{project_id}/share-url", response_model=ShareUrlOut)
-def get_share_url(project_id: str, db: Session = Depends(get_db)) -> ShareUrlOut:
+def get_share_url(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ShareUrlOut:
     project = _get_project(db, project_id)
     if not project.is_public:
         raise HTTPException(status_code=400, detail="Project is private; enable is_public first")
@@ -267,13 +332,22 @@ def get_share_url(project_id: str, db: Session = Depends(get_db)) -> ShareUrlOut
 
 
 @router.get("/{project_id}/diagrams", response_model=list[GraphOut])
-def list_diagrams(project_id: str, db: Session = Depends(get_db)):
+def list_diagrams(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     project = _get_project(db, project_id)
     return [to_out(g) for g in project.diagrams]
 
 
 @router.post("/{project_id}/diagrams", response_model=GraphOut, status_code=201)
-def create_diagram(project_id: str, payload: GraphPayload, db: Session = Depends(get_db)):
+def create_diagram(
+    project_id: str,
+    payload: GraphPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     _get_project(db, project_id)
     diagram = Graph(
         id=new_uuid(),
@@ -297,7 +371,12 @@ def create_diagram(project_id: str, payload: GraphPayload, db: Session = Depends
 
 
 @router.post("/{project_id}/subsystems/import", response_model=GraphOut, status_code=201)
-def import_subsystem(project_id: str, payload: SubsystemImportIn, db: Session = Depends(get_db)):
+def import_subsystem(
+    project_id: str,
+    payload: SubsystemImportIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     _get_project(db, project_id)
     try:
         spec = get_subsystem(payload.subsystem_id)

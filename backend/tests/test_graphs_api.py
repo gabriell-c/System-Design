@@ -14,7 +14,10 @@ def test_graph_crud(client):
 
     listed = client.get("/api/v1/graphs")
     assert listed.status_code == 200
-    assert len(listed.json()) == 1
+    data = listed.json()
+    assert "items" in data
+    assert len(data["items"]) == 1
+    assert data["total"] == 1
 
     fetched = client.get(f"/api/v1/graphs/{graph_id}")
     assert fetched.json()["name"] == "MVP"

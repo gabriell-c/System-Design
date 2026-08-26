@@ -20,6 +20,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
@@ -108,14 +109,18 @@ export const api = {
     sort_by?: "recent" | "heaviest" | "name";
     archived?: boolean;
     pinned_first?: boolean;
+    limit?: number;
+    offset?: number;
   }) => {
     const params = new URLSearchParams();
     if (filters?.search) params.set("search", filters.search);
     if (filters?.sort_by) params.set("sort_by", filters.sort_by);
     if (filters?.archived != null) params.set("archived", String(filters.archived));
     if (filters?.pinned_first != null) params.set("pinned_first", String(filters.pinned_first));
+    if (filters?.limit) params.set("limit", String(filters.limit));
+    if (filters?.offset) params.set("offset", String(filters.offset));
     const qs = params.toString();
-    return request<Project[]>(`/api/v1/projects${qs ? `?${qs}` : ""}`);
+    return request<{ items: Project[]; total: number; limit: number; offset: number; has_more: boolean }>(`/api/v1/projects${qs ? `?${qs}` : ""}`);
   },
   createProject: (payload: {
     name: string;
@@ -123,6 +128,7 @@ export const api = {
     context?: string;
     nfr_json?: string;
     is_public?: boolean;
+    project_kind?: string;
     access_list?: Array<{ email: string; role: "read" | "full" }>;
   }) =>
     request<Project>("/api/v1/projects", { method: "POST", body: JSON.stringify(payload) }),

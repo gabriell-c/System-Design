@@ -25,7 +25,8 @@ def test_p0_graph_lifecycle(client):
     # Listagem
     listed = client.get("/api/v1/graphs")
     assert listed.status_code == 200
-    assert any(g["id"] == graph_id for g in listed.json())
+    data = listed.json()
+    assert any(g["id"] == graph_id for g in data["items"])
 
     # Fetch
     fetched = client.get(f"/api/v1/graphs/{graph_id}")

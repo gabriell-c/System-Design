@@ -17,9 +17,11 @@ interface ProjectState {
     description?: string;
     context?: string;
     is_public?: boolean;
+    project_kind?: string;
     access_list?: ProjectAccessEntry[];
   }) => Promise<Project>;
   setActiveProject: (id: string | null) => void;
+  upsertProject: (project: Project) => void;
   deleteProject: (id: string) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project> & { access_list?: ProjectAccessEntry[] }) => Promise<void>;
   archiveProject: (id: string) => Promise<void>;
@@ -53,9 +55,12 @@ export const useProjectStore = create<ProjectState>()(
             sort_by: filters.sort_by,
             archived: filters.archived ?? false,
             pinned_first: filters.pinned_first ?? true,
+            limit: 50,
+            offset: 0,
           });
+          const projects = resp.items ?? resp;
           const withDiagrams = await Promise.all(
-            resp.map(async (p) => {
+            projects.map(async (p) => {
               try {
                 const diagrams = await api.listProjectDiagrams(p.id);
                 return { ...p, diagrams };
@@ -77,6 +82,7 @@ export const useProjectStore = create<ProjectState>()(
           context: input.context ?? '',
           nfr_json: '{}',
           is_public: input.is_public ?? false,
+          project_kind: input.project_kind ?? 'architecture',
           access_list: input.access_list ?? [],
         });
         const diagrams = await api.listProjectDiagrams(resp.id);
@@ -89,6 +95,17 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       setActiveProject: (id) => set({ activeProjectId: id }),
+
+      upsertProject: (project) =>
+        set((state) => {
+          const idx = state.projects.findIndex((p) => p.id === project.id);
+          if (idx >= 0) {
+            const projects = [...state.projects];
+            projects[idx] = { ...projects[idx], ...project };
+            return { projects };
+          }
+          return { projects: [project, ...state.projects] };
+        }),
 
       deleteProject: async (id) => {
         await api.deleteProject(id);

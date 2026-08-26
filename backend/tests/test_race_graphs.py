@@ -55,7 +55,8 @@ def test_parallel_graph_creates_are_consistent(client):
 
     listed = client.get("/api/v1/graphs")
     assert listed.status_code == 200
-    names = {row["name"] for row in listed.json()}
+    data = listed.json()
+    names = {row["name"] for row in data["items"]}
     assert {f"race-{i}" for i in range(n)}.issubset(names)
 
 
