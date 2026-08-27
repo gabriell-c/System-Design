@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -25,11 +25,11 @@ def seed_default_users():
                 password_hash=hash_password("CHANGEPASSWORD"),
                 role="senior",
                 phone="+5511999999999",
-                birth_date=datetime.strptime("1990-01-01", "%Y-%m-%d").replace(tzinfo=timezone.utc),
+                birth_date=datetime.strptime("1990-01-01", "%Y-%m-%d").replace(tzinfo=UTC),
                 auto_save_enabled=True,
                 auto_save_interval_minutes=15,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
 
             db.add(senior_user)

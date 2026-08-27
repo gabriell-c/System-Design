@@ -1,0 +1,10 @@
+  - test_users_integration.py
+  - test_zone_analyze_integration.py
+  - test_zone_structure.py
+
+Migrations Alembic (3):
+  - 0001_initial.py
+  - 0002_project_fields.py
+  - 0003_project_kind.py
+
+## 2. FRONTEND (Next.js/React)

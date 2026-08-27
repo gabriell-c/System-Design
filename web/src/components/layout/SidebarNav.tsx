@@ -39,6 +39,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { useProjectStore } from "@/lib/project-store";
 import { useTheme } from "@/lib/theme-store";
 import NewProjectModal from "../dashboard/NewProjectModal";
+import DiagramGeneratorModal from "./DiagramGeneratorModal";
 
 const COLLAPSED_KEY = "archia-sidebar-collapsed";
 
@@ -81,14 +82,22 @@ export default function SidebarNav() {
   const { projects, createProject } = useProjectStore();
   const [expanded, setExpanded] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [diagramModalOpen, setDiagramModalOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState(() => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  // After the component mounts on the client, read the persisted collapsed state.
+  useEffect(() => {
+    setHydrated(true);
     try {
-      return localStorage.getItem(COLLAPSED_KEY) === "1";
+      const stored = localStorage.getItem(COLLAPSED_KEY);
+      if (stored !== null) {
+        setCollapsed(stored === "1");
+      }
     } catch {
-      return false;
+      // ignore errors – keep default (expanded)
     }
-  });
+  }, []);
 
   const toggle = useCallback(() => {
     setCollapsed((prev) => {
@@ -153,7 +162,7 @@ export default function SidebarNav() {
   return (
     <SidebarContext.Provider value={{ collapsed }}>
       {/* Mobile overlay */}
-      {!collapsed && (
+      {hydrated && !collapsed && (
         <div
           className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm transition lg:hidden"
           onClick={() => setCollapsed(true)}
@@ -161,7 +170,7 @@ export default function SidebarNav() {
         />
       )}
 
-      <aside
+      <aside suppressHydrationWarning
         className={`relative z-30 flex shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-1)] transition-all duration-200 ${
           collapsed ? "w-16" : "w-64"
         } ${collapsed ? "overflow-hidden" : ""}`}
@@ -311,6 +320,14 @@ export default function SidebarNav() {
                 title="Ferramentas"
                 icon={<Wrench className="h-3.5 w-3.5" />}
               >
+                <button
+                  type="button"
+                  onClick={() => setDiagramModalOpen(true)}
+                  className={`${navClass} ${navIdle} w-full text-left`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>Criar Diagrama</span>
+                </button>
                 <span
                   className={`${navClass} ${navIdle} cursor-not-allowed opacity-50`}
                   title="Em desenvolvimento"
@@ -487,6 +504,11 @@ export default function SidebarNav() {
         onClose={() => setModalOpen(false)}
         onSubmit={handleCreate}
       />
+      {diagramModalOpen && (
+        <DiagramGeneratorModal
+          onClose={() => setDiagramModalOpen(false)}
+        />
+      )}
     </SidebarContext.Provider>
   );
 }

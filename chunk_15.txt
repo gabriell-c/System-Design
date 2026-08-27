@@ -1,0 +1,9 @@
+
+Scripts:
+  - dev: next dev -p 3015
+  - build: next build
+  - start: next start -p 3015
+  - lint: eslint .
+  - test: node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts
+  - test:e2e: playwright test
+  - test:e2e:update: playwright test --update-snapshots

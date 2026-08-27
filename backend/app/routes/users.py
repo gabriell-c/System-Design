@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -66,12 +66,12 @@ def update_user(
         user.phone = user_update.phone
 
     if user_update.birth_date is not None:
-        user.birth_date = datetime.strptime(user_update.birth_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        user.birth_date = datetime.strptime(user_update.birth_date, "%Y-%m-%d").replace(tzinfo=UTC)
 
     if user_update.role is not None:
         user.role = user_update.role
 
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(user)
 

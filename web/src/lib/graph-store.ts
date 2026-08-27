@@ -27,7 +27,7 @@ import { buildArchEdge, nextFlowNumber, normalizeEdgeData, styleEdgeFromData } f
 import { findCatalog } from "./catalog";
 import { checkRecommendations, type StackRecommendation } from "./stack-recommend";
 import { saveSavedView } from "./saved-views";
-import { FREE_NODE_DEFAULT_SIZE } from "./free-catalog";
+import { FREE_NODE_DEFAULT_SIZE, findFreeCatalog } from "./free-catalog";
 import { nextFreeLayerOrder, freeLayerOrder, type FreeLayerDirection } from "./free-layer";
 import type {
   AnalysisResult,
@@ -81,6 +81,7 @@ type GraphState = {
   nodes: Node<CanvasNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
+  selectedNodeIds: string[];
   selectedEdgeId: string | null;
   analysis: AnalysisResult | null;
   analyzing: boolean;
@@ -134,6 +135,7 @@ type GraphState = {
   applyTemplate: (template: ProjectTemplate) => void;
   setUserRole: (role: UserRole) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setSelectedNodeIds: (ids: string[]) => void;
   setSelectedEdgeId: (id: string | null) => void;
   clearUiNotice: () => void;
   pushUiNotice: (notice: UiNotice) => void;
@@ -161,7 +163,9 @@ type GraphState = {
   ) => void;
   addNote: (position: { x: number; y: number }, text?: string) => void;
   addFreeNode: (kind: FreeNodeKind, position: { x: number; y: number }, label?: string) => void;
+  generateDiagramFromText: (text: string, name?: string) => { nodeId: string; nodeCount: number; edgeCount: number };
   moveFreeNodeLayer: (nodeId: string, direction: FreeLayerDirection) => void;
+  applyFreeTemplate: (templateId: "simple-flow" | "decision-tree" | "process") => void;
   addCidrBlock: (position: { x: number; y: number }, cidr?: string, label?: string) => void;
   addTenantBoundary: (
     position: { x: number; y: number },
@@ -281,6 +285,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  selectedNodeIds: [],
   selectedEdgeId: null,
   analysis: null,
   analyzing: false,
@@ -403,8 +408,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
   },
   setUserRole: (userRole) => set({ userRole }),
-  setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId, selectedEdgeId: null }),
-  setSelectedEdgeId: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null }),
+  setSelectedNodeId: (selectedNodeId) =>
+    set({
+      selectedNodeId,
+      selectedNodeIds: selectedNodeId ? [selectedNodeId] : [],
+      selectedEdgeId: null,
+    }),
+  setSelectedNodeIds: (selectedNodeIds) =>
+    set({
+      selectedNodeIds,
+      selectedNodeId: selectedNodeIds[0] ?? null,
+      selectedEdgeId: null,
+    }),
+  setSelectedEdgeId: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null, selectedNodeIds: [] }),
   clearUiNotice: () => set({ uiNotice: null }),
   pushUiNotice: (notice) => {
     set({ uiNotice: notice });
@@ -430,6 +446,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       nodes: previous.nodes,
       edges: previous.edges,
       selectedNodeId: previous.selectedNodeId,
+      selectedNodeIds: previous.selectedNodeId ? [previous.selectedNodeId] : [],
       past: past.slice(0, -1),
       future: [current, ...future].slice(0, HISTORY_LIMIT),
       dirty: true,
@@ -451,6 +468,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       nodes: next.nodes,
       edges: next.edges,
       selectedNodeId: next.selectedNodeId,
+      selectedNodeIds: next.selectedNodeId ? [next.selectedNodeId] : [],
       past: [...past, current].slice(-HISTORY_LIMIT),
       future: future.slice(1),
       dirty: true,
@@ -813,6 +831,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const id = nextId("free");
     const size = FREE_NODE_DEFAULT_SIZE[kind];
     const layerOrder = nextFreeLayerOrder(get().nodes);
+    const catalog = findFreeCatalog(kind);
     const defaultLabel =
       label ??
       (kind === "free-text"
@@ -843,6 +862,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
               kind,
               label: defaultLabel,
               layerOrder,
+              ...(catalog?.defaultIcon ? { iconId: catalog.defaultIcon, iconSize: 16 } : {}),
               ...(kind === "free-text" || kind === "free-edit" ? { text: defaultLabel } : {}),
               ...(kind === "free-note" ? { notes: "", backgroundColor: "#fef08a", textColor: "#422006" } : {}),
               ...(kind === "free-link" ? { linkUrl: "https://" } : {}),
@@ -852,6 +872,177 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         dirty: true,
         selectedNodeId: id,
       });
+    });
+  },
+
+  generateDiagramFromText: (text, name) => {
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+      .map((l) => l.replace(/^\d+[\.\)\-]\s*/, "").trim());
+
+    if (lines.length === 0) {
+      get().pushUiNotice({ type: "error", text: "Nenhuma linha encontrada no texto." });
+      return { nodeId: "", nodeCount: 0, edgeCount: 0 };
+    }
+
+    const startX = 200;
+    const startY = 100;
+    const spacingY = 160;
+
+    const newNodes: Node<CanvasNodeData>[] = [];
+    const newEdges: Edge[] = [];
+    let lastNodeId = "";
+    const currentLayerOrder = nextFreeLayerOrder(get().nodes);
+
+    lines.forEach((line, i) => {
+      const nodeId = nextId("free");
+      const node = {
+        id: nodeId,
+        type: "free" as const,
+        position: { x: startX, y: startY + i * spacingY },
+        style: { width: FREE_NODE_DEFAULT_SIZE["free-rectangle"].width, height: FREE_NODE_DEFAULT_SIZE["free-rectangle"].height },
+        data: {
+          kind: "free-rectangle" as FreeNodeKind,
+          label: line,
+          layerOrder: currentLayerOrder + i,
+        },
+      };
+      newNodes.push(node);
+
+      if (i > 0 && lastNodeId) {
+        const edgeId = `e-${lastNodeId}-${nodeId}`;
+        const edgeData = normalizeEdgeData({});
+        const edgeStyle = styleEdgeFromData(edgeData);
+        const edge: Edge = {
+          id: edgeId,
+          source: lastNodeId,
+          target: nodeId,
+          type: "smoothstep" as const,
+          data: edgeData,
+          ...edgeStyle,
+        };
+        newEdges.push(edge);
+      }
+      lastNodeId = nodeId;
+    });
+
+    withHistory(get, set, () => {
+      set({
+        nodes: [...get().nodes, ...newNodes],
+        edges: [...get().edges, ...newEdges],
+        dirty: true,
+        selectedNodeId: newNodes[0]?.id ?? null,
+        uiNotice: { type: "success", text: `Diagrama gerado: ${lines.length} nós, ${lines.length - 1} conexões.` },
+      });
+      scheduleClearNotice(set);
+    });
+
+    return { nodeId: newNodes[0]?.id ?? "", nodeCount: newNodes.length, edgeCount: newEdges.length };
+  },
+
+  applyFreeTemplate: (templateId) => {
+    const templates: Record<string, { nodes: Array<{ kind: FreeNodeKind; label: string; x: number; y: number }>; edges: Array<{ source: string; target: string }> }> = {
+      "simple-flow": {
+        nodes: [
+          { kind: "free-rectangle", label: "Início", x: 200, y: 100 },
+          { kind: "free-rectangle", label: "Processo 1", x: 200, y: 300 },
+          { kind: "free-rectangle", label: "Processo 2", x: 200, y: 500 },
+          { kind: "free-circle", label: "Fim", x: 200, y: 700 },
+        ],
+        edges: [
+          { source: "0", target: "1" },
+          { source: "1", target: "2" },
+          { source: "2", target: "3" },
+        ],
+      },
+      "decision-tree": {
+        nodes: [
+          { kind: "free-circle", label: "Início", x: 200, y: 80 },
+          { kind: "free-diamond", label: "Decisão?", x: 200, y: 250 },
+          { kind: "free-rectangle", label: "Sim → Ação", x: 80, y: 450 },
+          { kind: "free-rectangle", label: "Não → Outro", x: 320, y: 450 },
+          { kind: "free-circle", label: "Fim", x: 200, y: 650 },
+        ],
+        edges: [
+          { source: "0", target: "1" },
+          { source: "1", target: "2" },
+          { source: "1", target: "3" },
+          { source: "2", target: "4" },
+          { source: "3", target: "4" },
+        ],
+      },
+      "process": {
+        nodes: [
+          { kind: "free-oval", label: "Input", x: 200, y: 80 },
+          { kind: "free-hexagon", label: "Processar", x: 200, y: 250 },
+          { kind: "free-rectangle", label: "Validar", x: 200, y: 420 },
+          { kind: "free-check", label: "Aprovado", x: 80, y: 600 },
+          { kind: "free-x", label: "Rejeitado", x: 320, y: 600 },
+        ],
+        edges: [
+          { source: "0", target: "1" },
+          { source: "1", target: "2" },
+          { source: "2", target: "3" },
+          { source: "2", target: "4" },
+        ],
+      },
+    };
+
+    const template = templates[templateId];
+    if (!template) return;
+
+    const newNodes: Node<CanvasNodeData>[] = [];
+    const newEdges: Edge[] = [];
+    const currentLayerOrder = nextFreeLayerOrder(get().nodes);
+
+    template.nodes.forEach((nodeDef, i) => {
+      const nodeId = nextId("free");
+      newNodes.push({
+        id: nodeId,
+        type: "free" as const,
+        position: { x: nodeDef.x, y: nodeDef.y },
+        style: { width: FREE_NODE_DEFAULT_SIZE[nodeDef.kind].width, height: FREE_NODE_DEFAULT_SIZE[nodeDef.kind].height },
+        data: {
+          kind: nodeDef.kind,
+          label: nodeDef.label,
+          layerOrder: currentLayerOrder + i,
+        },
+      });
+    });
+
+    template.edges.forEach((edgeDef, i) => {
+      const sourceNode = template.nodes[parseInt(edgeDef.source)];
+      const targetNode = template.nodes[parseInt(edgeDef.target)];
+      if (!sourceNode || !targetNode) return;
+
+      const sourceId = newNodes[parseInt(edgeDef.source)]?.id;
+      const targetId = newNodes[parseInt(edgeDef.target)]?.id;
+      if (!sourceId || !targetId) return;
+
+      const edgeId = `e-${sourceId}-${targetId}`;
+      const edgeData = normalizeEdgeData({});
+      const edgeStyle = styleEdgeFromData(edgeData);
+      newEdges.push({
+        id: edgeId,
+        source: sourceId,
+        target: targetId,
+        type: "smoothstep" as const,
+        data: edgeData,
+        ...edgeStyle,
+      });
+    });
+
+    withHistory(get, set, () => {
+      set({
+        nodes: [...get().nodes, ...newNodes],
+        edges: [...get().edges, ...newEdges],
+        dirty: true,
+        selectedNodeId: newNodes[0]?.id ?? null,
+        uiNotice: { type: "success", text: `Template "${templateId}" aplicado` },
+      });
+      scheduleClearNotice(set);
     });
   },
 
@@ -1062,30 +1253,25 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       });
       return;
     }
-    const selected = get().selectedNodeId;
-    if (!selected) return;
-    const nodes = get().nodes;
-    const target = nodes.find((n) => n.id === selected);
-    if (!target) return;
+    const ids = get().selectedNodeIds.length
+      ? get().selectedNodeIds
+      : get().selectedNodeId
+        ? [get().selectedNodeId!]
+        : [];
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
 
     withHistory(get, set, () => {
-      if (isContainerNode(target)) {
-        const next = get()
-          .nodes.filter((n) => n.id !== selected)
-          .map((n) => (n.parentId === selected ? detachFromParent(n, get().nodes) : n));
-        set({
-          nodes: next,
-          edges: get().edges.filter((e) => e.source !== selected && e.target !== selected),
-          selectedNodeId: null,
-          dirty: true,
-        });
-        return;
-      }
-
+      let next = get().nodes.filter((n) => !idSet.has(n.id));
+      // Detach children of deleted containers
+      next = next.map((n) =>
+        n.parentId && idSet.has(n.parentId) ? detachFromParent(n, get().nodes) : n,
+      );
       set({
-        nodes: get().nodes.filter((n) => n.id !== selected),
-        edges: get().edges.filter((e) => e.source !== selected && e.target !== selected),
+        nodes: next,
+        edges: get().edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
         selectedNodeId: null,
+        selectedNodeIds: [],
         dirty: true,
       });
     });
@@ -1262,6 +1448,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       dirty: false,
       lastSavedAt: graph.updated_at,
       selectedNodeId: null,
+      selectedNodeIds: [],
       selectedEdgeId: null,
       uiNotice: null,
       past: [],
@@ -1286,6 +1473,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         analysis,
         dirty: true,
         selectedNodeId: null,
+        selectedNodeIds: [],
         uiNotice: null,
       });
     });
@@ -1301,6 +1489,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         nodes: [],
         edges: [],
         selectedNodeId: null,
+        selectedNodeIds: [],
         selectedEdgeId: null,
         analysis: null,
         analyzing: false,

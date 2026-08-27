@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
@@ -98,9 +98,9 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         password_hash=hash_password(user_data.password),
         role="user",  # New users always get "user" role
         phone=user_data.phone,
-        birth_date=datetime.strptime(user_data.birth_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) if user_data.birth_date else None,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        birth_date=datetime.strptime(user_data.birth_date, "%Y-%m-%d").replace(tzinfo=UTC) if user_data.birth_date else None,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
     db.add(new_user)
@@ -139,7 +139,7 @@ def login(login_data: UserLogin, request: Request, response: Response, db: Sessi
         key=SESSION_COOKIE_NAME,
         value=access_token,
         max_age=max_age,
-        expires=datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRY_DAYS) if login_data.remember_me else None,
+        expires=datetime.now(UTC) + timedelta(days=SESSION_EXPIRY_DAYS) if login_data.remember_me else None,
         httponly=True,
         secure=_IS_PRODUCTION,
         samesite="lax"
@@ -149,8 +149,8 @@ def login(login_data: UserLogin, request: Request, response: Response, db: Sessi
     session_record = UserSession(
         user_id=user.id,
         token=access_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRY_DAYS),
-        created_at=datetime.now(timezone.utc)
+        expires_at=datetime.now(UTC) + timedelta(days=SESSION_EXPIRY_DAYS),
+        created_at=datetime.now(UTC)
     )
     db.add(session_record)
     db.commit()
@@ -226,8 +226,8 @@ def recover_password(recovery_data: PasswordRecoveryRequest, request: Request, d
     session_record = UserSession(
         user_id=user.id,
         token=reset_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        created_at=datetime.now(timezone.utc)
+        expires_at=datetime.now(UTC) + timedelta(hours=24),
+        created_at=datetime.now(UTC)
     )
     db.add(session_record)
     db.commit()
@@ -265,7 +265,7 @@ def reset_password(reset_data: PasswordReset, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     user.password_hash = hash_password(reset_data.new_password)
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = datetime.now(UTC)
 
     # Invalidate ALL sessions for this user (security: old tokens become useless)
     db.query(UserSession).filter(UserSession.user_id == user_id).delete()

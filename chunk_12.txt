@@ -1,0 +1,10 @@
+
+Framework: Next.js 15 (App Router)
+Language: TypeScript
+Package Manager: pnpm
+UI: React 19 + Tailwind CSS
+Rich Text: TipTap
+
+Dependencies:
+  - @tanstack/react-virtual: ^3.14.10
+  - @xyflow/react: ^12.11.2

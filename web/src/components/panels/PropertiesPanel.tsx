@@ -4,13 +4,33 @@ import { Boxes, ChevronDown, ChevronUp, Layers, Link2, Trash2 } from "lucide-rea
 import { RENDER_MODES, STATE_LIBS, UI_LIBS, findCatalog } from "@/lib/catalog";
 import { canNestIntoContainer, isBlockNode, isContainerNode } from "@/lib/blocks";
 import { FLOW_KIND_META, normalizeEdgeData } from "@/lib/edges";
-import { freeLayerOrder } from "@/lib/free-layer";
+import { freeLayerOrder } from "@/lib/sort-utils";
 import { findFreeCatalog } from "@/lib/free-catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CustomSelect from "@/components/ui/Select";
 import RichTextEditor from "@/components/ui/RichTextEditor";
-import type { FailureBehavior, FirewallRule, FlowKind, FlowProtocol, NodeComment, PiiSensitivity, C4Level } from "@/lib/types";
+import NodeColorPicker from "@/components/ui/NodeColorPicker";
+import NodeShadowPicker from "@/components/ui/NodeShadowPicker";
+import NodeIconPicker from "@/components/ui/NodeIconPicker";
+import NodeGradientPicker from "@/components/ui/NodeGradientPicker";
+import NodeFillPatternPicker from "@/components/ui/NodeFillPatternPicker";
+import NodeAnnotations from "@/components/panels/NodeAnnotations";
+import type {
+  FailureBehavior,
+  FirewallRule,
+  FlowKind,
+  FlowProtocol,
+  FreeBorderStyle,
+  FreeFillPattern,
+  FreeFontStyle,
+  FreeFontWeight,
+  FreeHoverEffect,
+  FreeTextAlign,
+  FreeVerticalAlign,
+  PiiSensitivity,
+  C4Level,
+} from "@/lib/types";
 import { ALL_C4_LEVELS, isArchData, isBlockData, isFreeData, isZoneData } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 
@@ -378,11 +398,12 @@ export default function PropertiesPanel() {
   }
 
   if (isFreeData(node.data)) {
+    const free = node.data;
     const childCount = nodes.filter((n) => n.parentId === node.id).length;
-    const layer = freeLayerOrder(node.data, node.id);
-    const catalog = findFreeCatalog(node.data.kind);
-    const isMedia = ["free-image", "free-video", "free-audio"].includes(node.data.kind);
-    const isLink = node.data.kind === "free-link";
+    const layer = freeLayerOrder(free, node.id);
+    const catalog = findFreeCatalog(free.kind);
+    const isMedia = ["free-image", "free-video", "free-audio"].includes(free.kind);
+    const isLink = free.kind === "free-link";
 
     return (
       <div className="space-y-4 px-4 py-4">
@@ -397,7 +418,7 @@ export default function PropertiesPanel() {
           <input
             id="free-label"
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-            value={node.data.label}
+            value={free.label}
             onChange={(e) => updateNodeData(node.id, { label: e.target.value.slice(0, 60) || "Novo" })}
           />
         </div>
@@ -410,7 +431,7 @@ export default function PropertiesPanel() {
             id="free-notes"
             rows={3}
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-            value={node.data.notes ?? ""}
+            value={free.notes ?? ""}
             onChange={(e) => updateNodeData(node.id, { notes: e.target.value || undefined })}
             placeholder="Anotações sobre este elemento…"
           />
@@ -425,7 +446,7 @@ export default function PropertiesPanel() {
               id="free-url"
               type="url"
               className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-              value={isLink ? (node.data.linkUrl ?? "") : (node.data.mediaUrl ?? "")}
+              value={isLink ? (free.linkUrl ?? "") : (free.mediaUrl ?? "")}
               onChange={(e) =>
                 updateNodeData(node.id, isLink ? { linkUrl: e.target.value } : { mediaUrl: e.target.value })
               }
@@ -437,19 +458,19 @@ export default function PropertiesPanel() {
         <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Aparência</p>
           <div className="grid grid-cols-2 gap-2">
-            <ColorField
+            <NodeColorPicker
               label="Fundo"
-              value={node.data.backgroundColor ?? "#1e293b"}
+              value={free.backgroundColor ?? "#1e293b"}
               onChange={(v) => updateNodeData(node.id, { backgroundColor: v })}
             />
-            <ColorField
+            <NodeColorPicker
               label="Texto"
-              value={node.data.textColor ?? "#f1f5f9"}
+              value={free.textColor ?? "#f1f5f9"}
               onChange={(v) => updateNodeData(node.id, { textColor: v })}
             />
-            <ColorField
+            <NodeColorPicker
               label="Borda"
-              value={node.data.borderColor ?? "#334155"}
+              value={free.borderColor ?? "#334155"}
               onChange={(v) => updateNodeData(node.id, { borderColor: v })}
             />
             <div>
@@ -458,21 +479,228 @@ export default function PropertiesPanel() {
                 type="number"
                 min={0}
                 max={999}
-                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100"
-                value={node.data.borderRadius ?? 8}
+                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                value={free.borderRadius ?? 8}
                 onChange={(e) =>
                   updateNodeData(node.id, { borderRadius: Number(e.target.value) || 0 })
                 }
               />
             </div>
           </div>
+
+          <div>
+            <p className="text-xs text-[var(--muted-fg)] mb-1.5">Borda</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Espessura</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={4}
+                  step={1}
+                  className="mt-1 w-full"
+                  value={free.borderWidth ?? 2}
+                  onChange={(e) =>
+                    updateNodeData(node.id, { borderWidth: Number(e.target.value) })
+                  }
+                />
+                <p className="text-[10px] text-[var(--muted)] text-right">{free.borderWidth ?? 2}px</p>
+              </div>
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Estilo</label>
+                <div className="mt-1 flex gap-1">
+                  {(["solid", "dashed", "dotted"] as FreeBorderStyle[]).map((style) => (
+                    <button
+                      key={style}
+                      type="button"
+                      aria-pressed={(free.borderStyle ?? "solid") === style}
+                      className={`flex-1 rounded border py-1 text-[10px] ${
+                        (free.borderStyle ?? "solid") === style
+                          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "border-[var(--border)] text-[var(--muted-fg)]"
+                      }`}
+                      onClick={() => updateNodeData(node.id, { borderStyle: style })}
+                    >
+                      {style === "solid" ? "—" : style === "dashed" ? "- -" : "···"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-[var(--muted-fg)] mb-1.5">Tipografia</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Tamanho</label>
+                <input
+                  type="range"
+                  min={12}
+                  max={32}
+                  step={1}
+                  className="mt-1 w-full"
+                  value={free.fontSize ?? 14}
+                  onChange={(e) =>
+                    updateNodeData(node.id, { fontSize: Number(e.target.value) })
+                  }
+                />
+                <p className="text-[10px] text-[var(--muted)] text-right">{free.fontSize ?? 14}px</p>
+              </div>
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Peso</label>
+                <div className="mt-1 flex gap-1">
+                  {(["normal", "medium", "bold"] as FreeFontWeight[]).map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      aria-pressed={(free.fontWeight ?? "medium") === w}
+                      className={`flex-1 rounded border py-1 text-[10px] ${
+                        (free.fontWeight ?? "medium") === w
+                          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "border-[var(--border)] text-[var(--muted-fg)]"
+                      }`}
+                      onClick={() => updateNodeData(node.id, { fontWeight: w })}
+                    >
+                      {w === "normal" ? "N" : w === "medium" ? "M" : "B"}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 flex gap-1">
+                  {(["normal", "italic"] as FreeFontStyle[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      aria-pressed={(free.fontStyle ?? "normal") === s}
+                      className={`flex-1 rounded border py-1 text-[10px] ${
+                        (free.fontStyle ?? "normal") === s
+                          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "border-[var(--border)] text-[var(--muted-fg)]"
+                      } ${s === "italic" ? "italic" : ""}`}
+                      onClick={() => updateNodeData(node.id, { fontStyle: s })}
+                    >
+                      {s === "normal" ? "Romano" : "Itálico"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-[var(--muted-fg)] mb-1.5">Alinhamento</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Horizontal</label>
+                <div className="mt-1 flex gap-1">
+                  {(["left", "center", "right"] as FreeTextAlign[]).map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      aria-pressed={(free.textAlign ?? "center") === a}
+                      className={`flex-1 rounded border py-1 text-[10px] ${
+                        (free.textAlign ?? "center") === a
+                          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "border-[var(--border)] text-[var(--muted-fg)]"
+                      }`}
+                      onClick={() => updateNodeData(node.id, { textAlign: a })}
+                    >
+                      {a === "left" ? "Esq" : a === "center" ? "Centro" : "Dir"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-[var(--muted)]">Vertical</label>
+                <div className="mt-1 flex gap-1">
+                  {(["top", "center", "bottom"] as FreeVerticalAlign[]).map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      aria-pressed={(free.verticalAlign ?? "center") === a}
+                      className={`flex-1 rounded border py-1 text-[10px] ${
+                        (free.verticalAlign ?? "center") === a
+                          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "border-[var(--border)] text-[var(--muted-fg)]"
+                      }`}
+                      onClick={() => updateNodeData(node.id, { verticalAlign: a })}
+                    >
+                      {a === "top" ? "Topo" : a === "center" ? "Meio" : "Base"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <NodeShadowPicker
+            value={free.shadow ?? "none"}
+            onChange={(v) => updateNodeData(node.id, { shadow: v })}
+          />
+
+          <NodeIconPicker
+            iconId={free.iconId}
+            iconSize={free.iconSize ?? 16}
+            color={free.textColor}
+            onIconChange={(iconId) => updateNodeData(node.id, { iconId })}
+            onSizeChange={(iconSize) => updateNodeData(node.id, { iconSize })}
+          />
+
+          <NodeGradientPicker
+            value={free.backgroundGradient}
+            onChange={(backgroundGradient) => updateNodeData(node.id, { backgroundGradient })}
+          />
+
+          <NodeFillPatternPicker
+            value={(free.fillPattern ?? "none") as FreeFillPattern}
+            onChange={(fillPattern) => updateNodeData(node.id, { fillPattern })}
+          />
+
+          <div>
+            <p className="text-xs text-[var(--muted-fg)] mb-1.5">Efeito no hover</p>
+            <div className="grid grid-cols-4 gap-1">
+              {(["none", "glow", "scale", "shadow"] as FreeHoverEffect[]).map((effect) => (
+                <button
+                  key={effect}
+                  type="button"
+                  aria-pressed={(free.hoverEffect ?? "none") === effect}
+                  className={`rounded border py-1.5 text-[10px] capitalize ${
+                    (free.hoverEffect ?? "none") === effect
+                      ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                      : "border-[var(--border)] text-[var(--muted-fg)]"
+                  }`}
+                  onClick={() => updateNodeData(node.id, { hoverEffect: effect })}
+                >
+                  {effect === "none" ? "Nenhum" : effect}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-[var(--muted-fg)]">
+              Opacidade · {Math.round((free.opacity ?? 1) * 100)}%
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              className="mt-1 w-full"
+              value={Math.round((free.opacity ?? 1) * 100)}
+              onChange={(e) =>
+                updateNodeData(node.id, { opacity: Number(e.target.value) / 100 })
+              }
+            />
+          </div>
+
           {!isLink && (
             <div>
               <label className="text-xs text-[var(--muted-fg)]">Link opcional</label>
               <input
                 type="url"
                 className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100"
-                value={node.data.linkUrl ?? ""}
+                value={free.linkUrl ?? ""}
                 onChange={(e) => updateNodeData(node.id, { linkUrl: e.target.value || undefined })}
                 placeholder="https://…"
               />
@@ -537,10 +765,12 @@ export default function PropertiesPanel() {
         )}
 
         <p className="text-xs text-[var(--muted-fg)]">
-          Tipo: <strong className="text-slate-200">{node.data.kind}</strong>
+          Tipo: <strong className="text-slate-200">{free.kind}</strong>
           {" · "}
           Segure <kbd className="rounded bg-white/10 px-1">Shift</kbd> ao redimensionar para manter proporção
         </p>
+
+        <NodeAnnotations nodeId={node.id} />
 
         <button
           type="button"
@@ -747,36 +977,6 @@ function SelectField({
         options={options.map((o) => ({ value: o, label: optionLabel ? optionLabel(o) : o }))}
         onChange={onChange}
       />
-    </div>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <label className="text-xs text-[var(--muted-fg)]">{label}</label>
-      <div className="mt-1 flex items-center gap-2">
-        <input
-          type="color"
-          value={value.startsWith("#") ? value : "#1e293b"}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-7 w-8 cursor-pointer rounded border border-[var(--border)] bg-transparent"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-xs text-slate-100"
-        />
-      </div>
     </div>
   );
 }

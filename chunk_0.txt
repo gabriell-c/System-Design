@@ -1,0 +1,10 @@
+======================================================================
+ANALISE COMPLETA DA ESTRUTURA DO PROJETO OmniRoute System Design
+======================================================================
+
+## 1. BACKEND (Python/FastAPI)
+
+Framework: FastAPI 0.141.1
+ORM: SQLAlchemy 2.0.51
+Async DB Drivers: asyncpg (PostgreSQL), aiosqlite (SQLite)
+Auth: PyJWT 2.13.0, python-jose, passlib[bcrypt]

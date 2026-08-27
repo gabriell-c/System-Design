@@ -1,0 +1,10 @@
+Linting: Ruff (Python), ESLint (JS/TS)
+Type Checking: TypeScript
+Formatting: Auto-formatted (Ruff/ESLint)
+
+## 6. DATABASE
+
+Principal: PostgreSQL 16
+Migrações: Alembic
+
+## 7. CI/CD

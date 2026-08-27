@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  ArrowLeftRight,
   Check,
   Circle,
   Diamond,
@@ -17,7 +18,6 @@ import {
   Type,
   Video,
   X,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { FreeNodeKind } from "./types";
@@ -28,6 +28,8 @@ export type FreeCatalogItem = {
   label: string;
   icon: LucideIcon;
   description: string;
+  /** Default Lucide icon id embedded in the node (see free-icons). */
+  defaultIcon?: string;
 };
 
 export const FREE_CATALOG: FreeCatalogItem[] = [
@@ -37,6 +39,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Retângulo",
     icon: Square,
     description: "Bloco genérico",
+    defaultIcon: "box",
   },
   {
     id: "free-circle",
@@ -44,6 +47,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Círculo",
     icon: Circle,
     description: "Início / fim",
+    defaultIcon: "activity",
   },
   {
     id: "free-oval",
@@ -51,6 +55,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Oval",
     icon: Hourglass,
     description: "Processo",
+    defaultIcon: "layers",
   },
   {
     id: "free-diamond",
@@ -58,6 +63,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Losango",
     icon: Diamond,
     description: "Decisão",
+    defaultIcon: "zap",
   },
   {
     id: "free-triangle",
@@ -65,6 +71,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Triângulo",
     icon: Triangle,
     description: "Direção",
+    defaultIcon: "map",
   },
   {
     id: "free-hexagon",
@@ -72,6 +79,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Hexágono",
     icon: Hexagon,
     description: "Operação",
+    defaultIcon: "cpu",
   },
   {
     id: "free-octagon",
@@ -79,6 +87,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Octógono",
     icon: Octagon,
     description: "Stop / condição",
+    defaultIcon: "shield",
   },
   {
     id: "free-arrow-right",
@@ -86,13 +95,15 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Seta →",
     icon: ArrowRight,
     description: "Fluxo direto",
+    defaultIcon: "truck",
   },
   {
     id: "free-arrow-double",
     kind: "free-arrow-double",
-    label: "Seta ↔",
-    icon: Zap,
-    description: "Fluxo双向",
+    label: "Seta dupla",
+    icon: ArrowLeftRight,
+    description: "Fluxo bidirecional",
+    defaultIcon: "wifi",
   },
   {
     id: "free-check",
@@ -100,6 +111,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Check",
     icon: Check,
     description: "Aprovação",
+    defaultIcon: "star",
   },
   {
     id: "free-x",
@@ -107,6 +119,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "X",
     icon: X,
     description: "Rejeição",
+    defaultIcon: "bell",
   },
   {
     id: "free-plus",
@@ -114,6 +127,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "+",
     icon: Plus,
     description: "Adicionar",
+    defaultIcon: "package",
   },
   {
     id: "free-text",
@@ -121,6 +135,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Texto",
     icon: Type,
     description: "Anotação livre",
+    defaultIcon: "file",
   },
   {
     id: "free-edit",
@@ -128,6 +143,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Editar",
     icon: Pen,
     description: "Anotação editável",
+    defaultIcon: "code",
   },
   {
     id: "free-image",
@@ -135,6 +151,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Imagem",
     icon: Image,
     description: "URL ou upload de imagem",
+    defaultIcon: "folder",
   },
   {
     id: "free-video",
@@ -142,6 +159,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Vídeo",
     icon: Video,
     description: "Embed de vídeo",
+    defaultIcon: "smartphone",
   },
   {
     id: "free-audio",
@@ -149,6 +167,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Áudio",
     icon: Music,
     description: "Player de áudio",
+    defaultIcon: "activity",
   },
   {
     id: "free-note",
@@ -156,6 +175,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Nota",
     icon: StickyNote,
     description: "Post-it com anotações",
+    defaultIcon: "file",
   },
   {
     id: "free-link",
@@ -163,6 +183,7 @@ export const FREE_CATALOG: FreeCatalogItem[] = [
     label: "Link",
     icon: Link2,
     description: "Atalho para URL",
+    defaultIcon: "globe",
   },
 ];
 

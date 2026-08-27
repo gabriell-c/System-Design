@@ -16,6 +16,7 @@ import {
   Route,
   Save,
   Sparkles,
+  Share2,
   Trash2,
   Undo2,
   Upload,
@@ -63,6 +64,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const reset = useGraphStore((s) => s.reset);
   const deleteSelected = useGraphStore((s) => s.deleteSelected);
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
+  const selectedNodeIds = useGraphStore((s) => s.selectedNodeIds);
   const undo = useGraphStore((s) => s.undo);
   const redo = useGraphStore((s) => s.redo);
   const past = useGraphStore((s) => s.past);
@@ -171,7 +173,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   return (
     <>
       {dialog}
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-1)] px-3">
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-1)]/95 px-3 backdrop-blur">
         <nav className="mr-1 hidden shrink-0 items-center gap-1.5 text-sm sm:flex" aria-label="Breadcrumb">
           <Link href="/" className="font-semibold tracking-tight text-[var(--foreground)]" title="Voltar aos projetos">
             Archia
@@ -426,6 +428,28 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
                   }}
                 />
                 <MenuItem
+                  icon={<Share2 size={14} />}
+                  label="Link somente leitura"
+                  disabled={!graphId}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    void (async () => {
+                      if (!graphId) return;
+                      try {
+                        const share = await api.createGraphShare(graphId);
+                        const url = `${window.location.origin}${share.share_url}`;
+                        await navigator.clipboard.writeText(url);
+                        pushUiNotice({ type: "success", text: "Link de compartilhamento copiado." });
+                      } catch (err) {
+                        pushUiNotice({
+                          type: "error",
+                          text: err instanceof Error ? err.message : "Falha ao gerar link",
+                        });
+                      }
+                    })();
+                  }}
+                />
+                <MenuItem
                   icon={<Upload size={14} />}
                   label="Importar JSON"
                   onClick={() => {
@@ -436,7 +460,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
                 <MenuItem
                   icon={<Trash2 size={14} />}
                   label="Remover seleção"
-                  disabled={!selectedNodeId}
+                  disabled={!selectedNodeId && selectedNodeIds.length === 0}
                   onClick={() => {
                     setMoreOpen(false);
                     void handleDelete();

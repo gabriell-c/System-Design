@@ -1,0 +1,1 @@
+  - test: node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts

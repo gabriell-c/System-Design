@@ -113,3 +113,26 @@ export function boardFrameSize(diagramWidth: number, diagramHeight: number): {
     diagramOffsetY: BOARD_PADDING,
   };
 }
+
+export type BoardExportOptions = {
+  margin?: number;
+  width?: number;
+  height?: number;
+  pixelRatio?: number;
+  boardReady?: boolean;
+  meta?: BoardExportMeta;
+};
+
+/** Normalize export options for board-ready PNG/PDF (T10). */
+export function resolveBoardExportOptions(options?: BoardExportOptions): Required<
+  Pick<BoardExportOptions, "margin" | "width" | "height" | "pixelRatio" | "boardReady">
+> & { meta: BoardExportMeta } {
+  return {
+    margin: options?.margin ?? 0.15,
+    width: options?.width ?? 1600,
+    height: options?.height ?? 900,
+    pixelRatio: options?.pixelRatio ?? 2,
+    boardReady: options?.boardReady ?? true,
+    meta: options?.meta ?? { title: "Arquitetura" },
+  };
+}

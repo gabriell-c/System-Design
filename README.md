@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://img.shields.io/badge/status-100%25_confian%C3%A7a_arquitetural-3fb950?style=for-the-badge" alt="Status">
   <img src="https://img.shields.io/badge/tests-324_passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/gaps-53%2F53_Feito-3fb950?style=for-the-badge" alt="Gaps">
@@ -20,7 +20,7 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 
 > 💡 **Caso de uso principal:** arquitetos e devs seniores usam o Archia para validar uma proposta de stack antes de escrever código — o editor entrega recomendações, compara alternativas lado a lado e simula o comportamento da arquitetura sob carga.
 
-> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324 testes passando: 298 backend + 26 frontend). Ver [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
+> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324+ testes passando: 298 backend + 26+ frontend). Canvas livre com personalização completa (borda, opacidade, tipografia, alinhamento, sombra, ícone, gradiente, padrão, hover) implementado. Ver [`docs/features/diagrama-livre-ux.md`](docs/features/diagrama-livre-ux.md), [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
 
 ---
 
@@ -29,6 +29,7 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 1. [Sobre o projeto](#-sobre-o-projeto)
 2. [Stack tecnológica](#-stack-tecnológica)
 3. [Funcionalidades](#-funcionalidades)
+   3.1. [Canvas livre (FreeDiagram)](#-canvas-livre-freediagram)
 4. [Performance e Otimizações](#-performance-e-otimizações)
 5. [Pré-requisitos](#-pré-requisitos)
 6. [Instalação](#-instalação)
@@ -102,6 +103,21 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 - **Auto-save** configurável por usuário (desligado, 5, 15, 30 ou 60 minutos).
 - **Modo tela cheia** para foco total no diagrama.
 - Templates prontos para começar rápido (`templates.ts`): MVP barato, SaaS B2B, Marketplace, API interna, Landing page, App mobile, Microserviços.
+
+### 🎭 Canvas livre (FreeDiagram)
+
+- **Formas livres** — retângulo, círculo, oval, losango, triângulo, hexágono, octógono, setas, check/X/+, texto, edição, imagem, vídeo, áudio, nota e link.
+- **Personalização completa** de cada nó: cor de fundo/texto/borda, espessura e estilo de borda (sólido/tracejado/pontilhado), opacidade, sombra, alinhamento horizontal/vertical, tamanho/peso/estilo de fonte, ícone Lucide embutido, gradiente de fundo (4 direções) e padrão de preenchimento (listras/pontos/xadrez).
+- **Efeitos de hover** — glow, escala ou sombra ao passar o mouse.
+- **Z-order** — ajuste de camada (frente/trás/acima/abaixo) + empilhamento automático por ordem de inserção.
+- **Media embed** — imagem (URL), vídeo (URL), áudio (URL) e link (URL clicável) como nós.
+- **Notes/RichText** — anotações editáveis com RichTextEditor no nó de nota.
+- **Ícone padrão por forma** — cada tipo de forma já nasce com um ícone Lucide sugerido via catálogo (\defaultIcon\).
+- **Modo livre** identifica-se no topo com badge \Livre\ e simplifica o painel lateral.
+- **FitView** acionado automaticamente após importar/template.
+- **Drag & drop** de arquivos \ .json\ para importar snapshots.
+
+> 📖 Docs: [\docs/features/diagrama-livre-ux.md\](docs/features/diagrama-livre-ux.md)
 
 ### 🗂️ Paleta de componentes e catálogo
 
@@ -236,6 +252,8 @@ O Archia nasce do problema recorrente em equipes de engenharia: **avaliar se uma
 | Otimização | Descrição | Impacto |
 |------------|-----------|---------|
 | **React Flow LOD** | `onlyRenderVisibleElements` + level-of-detail dinâmico | Renderização eficiente com 500+ nós |
+|| **Callbacks memoizados** | `useCallback` em todos os handlers do ReactFlow | Evita loop infinito de re-renders |
+|| **FitView guard** | `fitViewTriggeredRef` previne múltiplos fitView no load | Estabilidade no carregamento inicial |
 | **Auto-save compressão** | Payloads >1KB são compactados com gzip nativo | Reduz ~60% do tráfego de rede |
 | **Memoização** | `useMemo`/`useCallback` em componentes críticos | Previne re-renders desnecessários |
 | **Bundle otimizado** | Remoção de dependências não usadas (tiptap) | ~2% redução no tamanho do bundle |

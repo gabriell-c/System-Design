@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -90,12 +90,12 @@ def create_item(payload: CatalogItemCreate, db: Session = Depends(get_db), user=
         "pricing_tier": payload.pricing_tier or "standard",
         "sla_pct": payload.sla_pct or 99.9,
         "rps_guidance": payload.rps_guidance or "",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
     items.append(item)
     catalog.nodes_json = json.dumps(items, ensure_ascii=False)
-    catalog.updated_at = datetime.now(timezone.utc)
+    catalog.updated_at = datetime.now(UTC)
     db.commit()
     return item
 
@@ -118,14 +118,14 @@ def update_item(item_id: str, payload: CatalogItemCreate, db: Session = Depends(
                 "pricing_tier": payload.pricing_tier or "standard",
                 "sla_pct": payload.sla_pct or 99.9,
                 "rps_guidance": payload.rps_guidance or "",
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(UTC).isoformat(),
             })
             break
     else:
         raise HTTPException(status_code=404, detail="Item not found")
 
     catalog.nodes_json = json.dumps(items, ensure_ascii=False)
-    catalog.updated_at = datetime.now(timezone.utc)
+    catalog.updated_at = datetime.now(UTC)
     db.commit()
     return items[i]
 
@@ -143,6 +143,6 @@ def delete_item(item_id: str, db: Session = Depends(get_db), user=Depends(get_cu
         raise HTTPException(status_code=404, detail="Item not found")
 
     catalog.nodes_json = json.dumps(items, ensure_ascii=False)
-    catalog.updated_at = datetime.now(timezone.utc)
+    catalog.updated_at = datetime.now(UTC)
     db.commit()
     return {"ok": True}

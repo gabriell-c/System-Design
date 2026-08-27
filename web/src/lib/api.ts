@@ -147,6 +147,33 @@ export const api = {
     request<{ share_url: string; share_token: string; is_public: boolean }>(
       `/api/v1/projects/${id}/share-url`,
     ),
+  createGraphShare: (graphId: string) =>
+    request<{ share_token: string; share_url: string; read_only: boolean }>(
+      `/api/v1/share/graphs/${graphId}`,
+      { method: "POST" },
+    ),
+  revokeGraphShare: (graphId: string) =>
+    request<void>(`/api/v1/share/graphs/${graphId}`, { method: "DELETE" }),
+  getSharedGraph: (token: string) =>
+    request<{
+      id: string;
+      name: string;
+      context: string;
+      nodes: unknown[];
+      edges: unknown[];
+      read_only: boolean;
+    }>(`/api/v1/share/${token}`),
+  listAnnotations: (graphId: string, nodeId?: string) =>
+    request<
+      Array<{ id: string; graph_id: string; node_id: string | null; text: string; author: string; created_at: string }>
+    >(`/api/v1/graphs/${graphId}/annotations${nodeId ? `?node_id=${encodeURIComponent(nodeId)}` : ""}`),
+  createAnnotation: (graphId: string, payload: { node_id: string; text: string }) =>
+    request<{ id: string; graph_id: string; node_id: string | null; text: string; author: string; created_at: string }>(
+      `/api/v1/graphs/${graphId}/annotations`,
+      { method: "POST", body: JSON.stringify(payload) },
+    ),
+  deleteAnnotation: (graphId: string, annotationId: string) =>
+    request<void>(`/api/v1/graphs/${graphId}/annotations/${annotationId}`, { method: "DELETE" }),
   listProjectDiagrams: (id: string) => request<GraphRecord[]>(`/api/v1/projects/${id}/diagrams`),
   createProjectDiagram: (projectId: string, payload: Partial<GraphRecord>) =>
     request<GraphRecord>(`/api/v1/projects/${projectId}/diagrams`, {

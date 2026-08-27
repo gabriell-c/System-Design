@@ -1,0 +1,181 @@
+=== ANÁLISE COMPLETA DO PROJETO OmniRoute System Design ===
+
+## 1. BACKEND (Python/FastAPI)
+Framework: FastAPI 0.141.1
+ORM: SQLAlchemy 2.0.51
+Async DB: asyncpg (PostgreSQL) + aiosqlite
+Auth: PyJWT 2.13.0, python-jose, passlib[bcrypt]
+Tasks: Celery
+Cache: Redis
+Cloud: boto3 (AWS)
+API Client: httpx
+
+Rotas HTTP (20):
+  - acl.py
+  - audit.py
+  - auth.py
+  - boundary.py
+  - comments.py
+  - diagrams.py
+  - embed.py
+  - governance.py
+  - graphs.py
+  - health.py
+  - network.py
+  - p1.py
+  - private_catalog.py
+  - profile.py
+  - projects.py
+  - resilience.py
+  - settings.py
+  - simulations.py
+  - users.py
+  - __init__.py
+
+Services (31):
+  - ai_settings.py
+  - architecture_heuristics.py
+  - atam_analysis.py
+  - audit.py
+  - benchmark.py
+  - blast_radius.py
+  - capacity.py
+  - circuit_breaker.py
+  - comments.py
+  - cost_model.py
+  - deployment.py
+  - diagram_consistency.py
+  - diagram_text_to_mermaid.py
+  - diff.py
+  - failure_injection.py
+  - governance.py
+  - heuristic.py
+  - iac_generator.py
+  - knowledge.py
+  - lineage.py
+  - live_doc.py
+  - network_policy.py
+  - omniroute.py
+  - p1_analysis.py
+  - policy.py
+  - polyglot_map.py
+  - simulation.py
+  - slo.py
+  - subsystems.py
+  - threat_analysis.py
+  - well_architected.py
+
+Models:
+  - graph.py
+  - session.py
+  - settings.py
+  - user.py
+  - __init__.py
+
+Tests (33):
+  - conftest.py
+  - test_ai_settings.py
+  - test_api_versioning.py
+  - test_auth_integration.py
+  - test_auth_security.py
+  - test_bottlenecks.py
+  - test_e2e_analysis.py
+  - test_error_cases.py
+  - test_governance.py
+  - test_graphs_api.py
+  - test_heuristic.py
+  - test_local_first.py
+  - test_mutation_guards.py
+  - test_network_policy.py
+  - test_nfr_kickoff.py
+  - test_p0_p1_p2_integration.py
+  - test_p1.py
+  - test_p2_scale.py
+  - test_perf_smoke.py
+  - test_placeholder.py
+  - test_profile_integration.py
+  - test_property_fuzz.py
+  - test_race_graphs.py
+  - test_resilience.py
+  - test_review_scorecard.py
+  - test_schemas_validation.py
+  - test_security.py
+  - test_simulations.py
+  - test_simulation_realistic.py
+  - test_tools_journey.py
+  - test_users_integration.py
+  - test_zone_analyze_integration.py
+  - test_zone_structure.py
+
+Migrations Alembic (3):
+  - 0001_initial.py
+  - 0002_project_fields.py
+  - 0003_project_kind.py
+
+## 2. FRONTEND (Next.js/React)
+Framework: Next.js 15 (App Router)
+Language: TypeScript
+Package manager: pnpm
+Dependencies (10):
+  - @tanstack/react-virtual
+  - @xyflow/react
+  - html-to-image
+  - lucide-react
+  - next
+  - react
+  - react-dom
+  - react-icons
+  - swiper
+  - zustand
+
+DevDependencies (10):
+  - @axe-core/playwright
+  - @playwright/test
+  - @tailwindcss/postcss
+  - @types/node
+  - @types/react
+  - @types/react-dom
+  - eslint
+  - eslint-config-next
+  - tailwindcss
+  - typescript
+
+Scripts:
+  - dev: next dev -p 3015
+  - build: next build
+  - start: next start -p 3015
+  - lint: eslint .
+  - test: node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts
+  - test:e2e: playwright test
+  - test:e2e:update: playwright test --update-snapshots
+
+## 3. INFRAESTRUTURA
+Docker Compose: Sim (PostgreSQL 16, Backend, Frontend)
+Portas: Backend 4410, Frontend 3015, DB 5434
+
+## 4. TESTES
+Backend: pytest (asyncio_mode=auto)
+Frontend: Playwright (e2e)
+
+## 5. TOOLS
+Linting: Ruff (Python), ESLint (JS)
+Type checking: TypeScript
+
+## 6. DATABASE
+Principal: PostgreSQL 16
+Migrações: Alembic
+
+## 7. ARQUITETURA
+Backend: FastAPI + SQLAlchemy + Celery + Redis
+Frontend: Next.js 15 App Router + React 19 + TypeScript + Tailwind
+
+## 8. E2E TESTS
+Playwright tests (3):
+  - expanded-coverage.spec.ts
+  - journey.spec.ts
+  - journey.spec.ts-snapshots\editor-shell-chromium-win32.png
+
+## 9. CI/CD
+GitHub Actions: Sim (.github/workflows/ci.yml)
+
+=== FIM DA ANÁLISE ===

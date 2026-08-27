@@ -23,6 +23,7 @@ export type CaptureCanvasOptions = {
   height?: number;
   backgroundColor?: string;
   padding?: number;
+  pixelRatio?: number;
   /** Inclui title block + legenda no artefato exportado (board-ready). */
   boardReady?: boolean;
   meta?: BoardExportMeta;
@@ -103,7 +104,13 @@ export async function captureCanvasPng(
 
   document.body.appendChild(wrapper);
   try {
-    return await toPng(wrapper, { backgroundColor, width: totalWidth, height: totalHeight, pixelRatio: 2 });
+    const pixelRatio = options?.pixelRatio ?? 2;
+    return await toPng(wrapper, {
+      backgroundColor,
+      width: totalWidth,
+      height: totalHeight,
+      pixelRatio,
+    });
   } finally {
     document.body.removeChild(wrapper);
   }
@@ -112,11 +119,22 @@ export async function captureCanvasPng(
 export async function exportArchitecturePng(
   filename: string,
   nodes: Node<CanvasNodeData>[],
-  options?: { boardReady?: boolean; meta?: BoardExportMeta },
+  options?: {
+    boardReady?: boolean;
+    meta?: BoardExportMeta;
+    width?: number;
+    height?: number;
+    padding?: number;
+    pixelRatio?: number;
+  },
 ): Promise<void> {
   const dataUrl = await captureCanvasPng(nodes, {
     boardReady: options?.boardReady ?? true,
     meta: options?.meta,
+    width: options?.width,
+    height: options?.height,
+    padding: options?.padding,
+    pixelRatio: options?.pixelRatio,
   });
   downloadDataUrl(filename, dataUrl);
 }

@@ -32,6 +32,7 @@ class Graph(Base):
     diagram_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
     parent_graph_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     c4_parent_node_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    share_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

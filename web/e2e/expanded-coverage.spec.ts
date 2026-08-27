@@ -8,7 +8,7 @@ test.describe('Projects Management', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://127.0.0.1:3021/login');
     await page.fill('input[type="text"]', 'SENIOR');
-    await page.fill('input[type="password"]', 'SeniorPass1!');
+    await page.fill('input[type="password"]', 'CHANGEPASSWORD');
     await page.click('button:has-text("Sign in")');
     await page.waitForURL(/\/projects|\/editor/);
   });
@@ -21,11 +21,11 @@ test.describe('Projects Management', () => {
     const createBtn = page.locator('button:has-text("New Project"), button:has-text("Create")').first();
     if (await createBtn.isVisible()) {
       await createBtn.click();
-      
+
       // Fill form
       await page.fill('input[placeholder*="name"], input[placeholder*="Project"]', 'E2E Test Project');
       await page.click('button:has-text("Create"), button:has-text("Save")');
-      
+
       // Verify creation
       await expect(page.locator('text=E2E Test Project')).toBeVisible({ timeout: 5000 });
     }
@@ -68,7 +68,7 @@ test.describe('Settings & Admin', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://127.0.0.1:3021/login');
     await page.fill('input[type="text"]', 'SENIOR');
-    await page.fill('input[type="password"]', 'SeniorPass1!');
+    await page.fill('input[type="password"]', 'CHANGEPASSWORD');
     await page.click('button:has-text("Sign in")');
     await page.waitForURL(/\/projects|\/editor/);
   });
@@ -117,7 +117,7 @@ test.describe('Editor Page Extended', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://127.0.0.1:3021/login');
     await page.fill('input[type="text"]', 'SENIOR');
-    await page.fill('input[type="password"]', 'SeniorPass1!');
+    await page.fill('input[type="password"]', 'CHANGEPASSWORD');
     await page.click('button:has-text("Sign in")');
     await page.waitForURL(/\/projects|\/editor/);
   });

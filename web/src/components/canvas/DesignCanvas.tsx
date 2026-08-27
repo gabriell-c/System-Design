@@ -7,12 +7,13 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   type EdgeTypes,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Boxes, Keyboard, MousePointerClick, Share2, Unlink2 } from "lucide-react";
+import { Keyboard, Maximize, Minus, Plus, Trash2, Unlink2, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
@@ -33,9 +34,13 @@ import FlowBadgeEdge from "@/components/edges/FlowBadgeEdge";
 import ZoneNode from "@/components/nodes/ZoneNode";
 import DiagramLegend from "@/components/canvas/DiagramLegend";
 import TitleBlock from "@/components/canvas/TitleBlock";
+import CanvasBreadcrumbs from "@/components/canvas/CanvasBreadcrumbs";
+import ModeBadge from "@/components/canvas/ModeBadge";
+import Toolbar from "@/components/ui/Toolbar";
 import { findContainerAtPoint, isContainerNode } from "@/lib/blocks";
 import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
+import { ensureHistoryPersistence } from "@/lib/history-store";
 import { computeSnap, type GuideLine } from "@/lib/snap";
 import type { CanvasNodeData, NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
 import { ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS } from "@/lib/types";
@@ -44,10 +49,9 @@ import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
 import CanvasComments from "@/components/canvas/CanvasComments";
 import LineageView from "@/components/canvas/LineageView";
 import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
-import { sortFreeNodesByLayer, freeLayerOrder } from "@/lib/free-layer";
+import { freeLayerFingerprint, sortFreeNodesByLayer, freeLayerOrder } from "@/lib/sort-utils";
 import { useProjectStore } from "@/lib/project-store";
 import { isFreeData } from "@/lib/types";
-
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
   block: BlockNode,
@@ -88,11 +92,14 @@ function CanvasInner() {
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
   const addSwimlane = useGraphStore((s) => s.addSwimlane);
-  const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
+  const setSelectedNodeIds = useGraphStore((s) => s.setSelectedNodeIds);
+  const selectedNodeIds = useGraphStore((s) => s.selectedNodeIds);
   const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
   const resolveNestingAfterDrag = useGraphStore((s) => s.resolveNestingAfterDrag);
   const checkpointDrag = useGraphStore((s) => s.checkpointDrag);
   const deleteSelected = useGraphStore((s) => s.deleteSelected);
+  const addFreeNode = useGraphStore((s) => s.addFreeNode);
+  const applyFreeTemplate = useGraphStore((s) => s.applyFreeTemplate);
   const disconnectEdge = useGraphStore((s) => s.disconnectEdge);
   const undo = useGraphStore((s) => s.undo);
   const redo = useGraphStore((s) => s.redo);
@@ -106,16 +113,21 @@ function CanvasInner() {
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
   const isFreeMode = projects.find((p) => p.id === activeProjectId)?.project_kind === "free";
-  const { screenToFlowPosition, setNodes, fitView } = useReactFlow();
+  const { screenToFlowPosition, setNodes, fitView, zoomIn, zoomOut } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
   const snapRef = useRef({ active: false, originalPositions: new Map<string, { x: number; y: number }>() });
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [miniMapSize, setMiniMapSize] = useState(140);
+
+  useEffect(() => {
+    ensureHistoryPersistence();
+  }, []);
 
   // P2.1.1 + P2.1.3 — LOD: ajustar configurações conforme a escala
   const _lod = useMemo(() => lodConfig(nodes.length), [nodes.length]);
 
-  // P2.1.3 — zoom semântico: badge mostra nível de zoom atual
+  const layerFp = useMemo(() => freeLayerFingerprint(nodes), [nodes]);
 
   // Cards que só “parecem” dentro do bloco (sem parentId) passam a andar junto
   useEffect(() => {
@@ -129,6 +141,46 @@ function CanvasInner() {
 
       const mod = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
+
+      // Atalhos para formas no free mode
+      if (isFreeMode && !mod) {
+        if (key === "r") {
+          event.preventDefault();
+          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+          addFreeNode("free-rectangle", pos);
+          return;
+        }
+        if (key === "c") {
+          event.preventDefault();
+          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+          addFreeNode("free-circle", pos);
+          return;
+        }
+        if (key === "d") {
+          event.preventDefault();
+          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+          addFreeNode("free-diamond", pos);
+          return;
+        }
+        if (key === "t") {
+          event.preventDefault();
+          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+          addFreeNode("free-text", pos);
+          return;
+        }
+        if (key === "n") {
+          event.preventDefault();
+          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+          addFreeNode("free-note", pos);
+          return;
+        }
+      }
+
+      if (mod && key === "0") {
+        event.preventDefault();
+        void fitView({ padding: 0.2, duration: 300 });
+        return;
+      }
 
       if (mod && key === "z" && !event.shiftKey) {
         event.preventDefault();
@@ -148,7 +200,7 @@ function CanvasInner() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteSelected, redo, undo]);
+  }, [deleteSelected, redo, undo, isFreeMode, screenToFlowPosition, addFreeNode, fitView]);
 
   const orderedNodes = useMemo(() => {
     if (isFreeMode) {
@@ -181,7 +233,7 @@ function CanvasInner() {
       return 0;
     });
     return [...containers, ...sortedRest];
-  }, [nodes, isFreeMode]);
+  }, [nodes, isFreeMode, layerFp]);
 
   const displayEdges = useMemo(() => {
     if (!blastHighlightEdgeIds.length) return edges;
@@ -204,13 +256,18 @@ function CanvasInner() {
 
   // After applying a template (or loading nodes into an empty canvas), frame the graph.
   const prevNodeCountRef = useRef(0);
+  const fitViewTriggeredRef = useRef(false);
   useEffect(() => {
     const prev = prevNodeCountRef.current;
     const next = displayNodes.length;
     prevNodeCountRef.current = next;
-    if (next === 0 || next <= prev) return;
+    if (next === 0 || next <= prev) {
+      fitViewTriggeredRef.current = false;
+      return;
+    }
     // Jump from empty → populated (template / import) or large grow
-    if (prev === 0 || next - prev >= 3) {
+    if ((prev === 0 || next - prev >= 3) && !fitViewTriggeredRef.current) {
+      fitViewTriggeredRef.current = true;
       const t = window.setTimeout(() => {
         void fitView({ padding: 0.2, duration: 400 });
       }, 50);
@@ -333,7 +390,69 @@ function CanvasInner() {
   }, []);
 
   return (
-    <div className="relative h-full w-full" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
+    <div className="relative flex h-full w-full flex-col" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
+      <Toolbar
+        trailing={
+          <div className="flex items-center gap-2 pr-1">
+            <ModeBadge isFreeMode={isFreeMode} />
+          </div>
+        }
+      >
+        <button
+          type="button"
+          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          onClick={() => void zoomIn({ duration: 200 })}
+          aria-label="Aumentar zoom"
+          title="Zoom +"
+        >
+          <Plus size={14} aria-hidden />
+          <span className="hidden md:inline">Zoom +</span>
+        </button>
+        <button
+          type="button"
+          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          onClick={() => void zoomOut({ duration: 200 })}
+          aria-label="Diminuir zoom"
+          title="Zoom −"
+        >
+          <Minus size={14} aria-hidden />
+          <span className="hidden md:inline">Zoom −</span>
+        </button>
+        <button
+          type="button"
+          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          onClick={() => void fitView({ padding: 0.2, duration: 300 })}
+          aria-label="Ajustar à tela"
+          title="Fit view (Ctrl+0)"
+          data-testid="fit-view-btn"
+        >
+          <Maximize size={14} aria-hidden />
+          <span className="hidden md:inline">Encaixar</span>
+        </button>
+        <span className="mx-1 hidden h-5 w-px bg-[var(--border-strong)] sm:block" aria-hidden />
+        <button
+          type="button"
+          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          onClick={() => deleteSelected()}
+          disabled={selectedNodeIds.length === 0}
+          aria-label={
+            selectedNodeIds.length > 1
+              ? `Remover ${selectedNodeIds.length} itens selecionados`
+              : "Remover seleção"
+          }
+          title="Delete"
+        >
+          <Trash2 size={14} aria-hidden />
+          <span className="hidden md:inline">
+            {selectedNodeIds.length > 1 ? `Apagar (${selectedNodeIds.length})` : "Apagar"}
+          </span>
+        </button>
+        <span className="ml-auto text-xs tabular-nums text-[var(--muted-fg)]" aria-live="polite">
+          {Math.round(zoomLevel * 100)}%
+        </span>
+      </Toolbar>
+
+      <div className="relative min-h-0 flex-1">
       {nodes.length === 0 && showOnboarding && !isFreeMode && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
           <div className="pointer-events-auto max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-1)]/95 p-6 elev-4 backdrop-blur text-center">
@@ -351,7 +470,7 @@ function CanvasInner() {
                 <button
                   key={item.kind}
                   type="button"
-                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--foreground)]"
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   onClick={() => item.isZone ? startWithZone(item.kind as ZoneKind) : startWith(item.kind as NodeKind)}
                 >
                   {item.label}
@@ -365,7 +484,9 @@ function CanvasInner() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute left-3 right-3 top-3 z-20 flex justify-center">
+      <CanvasBreadcrumbs />
+
+      <div className="pointer-events-none absolute left-3 right-3 top-12 z-20 flex justify-center">
         <div className="pointer-events-auto max-w-xl w-full">
           <DrillDownNavigator diagramKind={diagramKind} parentGraphId={parentGraphId} />
         </div>
@@ -385,11 +506,12 @@ function CanvasInner() {
         <div className="pointer-events-auto">
           <button
             type="button"
-            className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur"
+            className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             onClick={() => setHintsOpen((v) => !v)}
             aria-expanded={hintsOpen}
+            aria-label="Mostrar atalhos de teclado"
           >
-            <Keyboard size={12} />
+            <Keyboard size={12} aria-hidden />
             Atalhos
           </button>
           {hintsOpen && (
@@ -465,27 +587,31 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onSelectionChange={({ nodes: selected, edges: selectedEdges }) => {
+        onSelectionChange={useCallback(({ nodes: selected, edges: selectedEdges }) => {
           if (selectedEdges?.[0]) {
             setSelectedEdgeId(selectedEdges[0].id);
             return;
           }
-          setSelectedNodeId(selected[0]?.id ?? null);
-        }}
-        onEdgeClick={(_e, edge) => setSelectedEdgeId(edge.id)}
+          const ids = (selected ?? []).map((n) => n.id);
+          setSelectedNodeIds(ids);
+        }, [setSelectedEdgeId, setSelectedNodeIds])}
+        onEdgeClick={useCallback((_: unknown, edge: { id: string }) => setSelectedEdgeId(edge.id), [setSelectedEdgeId])}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodeDragStart={(event, node) => {
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        multiSelectionKeyCode="Shift"
+        panOnDrag={[1, 2]}
+        onNodeDragStart={useCallback((event: unknown, node: { id: string }) => {
           checkpointDrag();
-          // Store original positions of all nodes for snap
           snapRef.current.active = true;
           snapRef.current.originalPositions = new Map(
             useGraphStore.getState().nodes.map((n) => [n.id, { ...n.position }]),
           );
-        }}
-        onNodeDrag={(event, draggedNode) => {
+        }, [checkpointDrag])}
+        onNodeDrag={useCallback((event: unknown, draggedNode: { id: string; position: { x: number; y: number } }) => {
           if (!snapRef.current.active || !draggedNode) return;
-          if (!_lod.snapEnabled || isFreeMode) {
+          if (!_lod.snapEnabled) {
             setGuidelines([]);
             return;
           }
@@ -495,9 +621,7 @@ function CanvasInner() {
             return;
           }
           const result = computeSnap(draggedNode.id, draggedNode.position, allNodes);
-
           if (result.guidelines.length > 0) {
-            // Snap: override the dragged node position
             setNodes((nds) =>
               nds.map((n) => {
                 if (n.id !== draggedNode.id) return n;
@@ -506,18 +630,17 @@ function CanvasInner() {
             );
           }
           setGuidelines(result.guidelines);
-        }}
-        onNodeDragStop={(_event, node) => {
+        }, [_lod, setNodes, setGuidelines])}
+        onNodeDragStop={useCallback((_event: unknown, node: { id: string } | null) => {
           snapRef.current.active = false;
           setGuidelines([]);
           if (node) resolveNestingAfterDrag(node.id);
-        }}
-        onEdgeDoubleClick={(_event, edge) => {
+        }, [resolveNestingAfterDrag, setGuidelines])}
+        onEdgeDoubleClick={useCallback((_event: unknown, edge: { id: string }) => {
           disconnectEdge(edge.id);
-        }}
+        }, [disconnectEdge])}
         fitView
         fitViewOptions={{ padding: 0.2 }}
-        deleteKeyCode={null}
         connectionLineStyle={{ stroke: "var(--accent)", strokeWidth: 2 }}
         defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
         onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length, isFreeMode)}
@@ -532,15 +655,36 @@ function CanvasInner() {
       >
         {!sequenceMode && (
           <>
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
-            <Controls className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-2)] !shadow-none" />
-            <MiniMap
-              className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
-              maskColor="rgba(2,6,23,0.75)"
-              nodeColor={(node) =>
-                node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : "#475569"
-              }
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(30,41,59,0.5)" />
+            <Controls
+              className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-2)] !shadow-none"
+              showInteractive={false}
+              aria-label="Controles de zoom do React Flow"
             />
+            <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
+              <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
+                MiniMap
+                <input
+                  type="range"
+                  min={100}
+                  max={240}
+                  value={miniMapSize}
+                  onChange={(e) => setMiniMapSize(Number(e.target.value))}
+                  aria-label="Tamanho do minimapa"
+                  className="w-16"
+                />
+              </label>
+              <MiniMap
+                style={{ width: miniMapSize, height: miniMapSize }}
+                className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
+                maskColor="rgba(2,6,23,0.75)"
+                pannable
+                zoomable
+                nodeColor={(node) =>
+                  node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : node.type === "free" ? "#6366f1" : "#475569"
+                }
+              />
+            </div>
             {/* Title Block */}
             <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
               <TitleBlock
@@ -555,6 +699,38 @@ function CanvasInner() {
             <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
               <DiagramLegend variant="overlay" />
             </div>
+            {/* Templates button for free mode */}
+            {isFreeMode && nodes.length === 0 && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyFreeTemplate("simple-flow")}
+                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  aria-label="Aplicar template fluxo simples"
+                >
+                  <Zap className="h-3 w-3" aria-hidden />
+                  Fluxo simples
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFreeTemplate("decision-tree")}
+                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  aria-label="Aplicar template árvore de decisão"
+                >
+                  <Zap className="h-3 w-3" aria-hidden />
+                  Árvore decisão
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFreeTemplate("process")}
+                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  aria-label="Aplicar template processo"
+                >
+                  <Zap className="h-3 w-3" aria-hidden />
+                  Processo
+                </button>
+              </div>
+            )}
           </>
         )}
       </ReactFlow>
@@ -565,6 +741,7 @@ function CanvasInner() {
           <BlastRadiusOverlay />
         </>
       )}
+      </div>
     </div>
   );
 }

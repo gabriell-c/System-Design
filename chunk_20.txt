@@ -1,0 +1,9 @@
+## 4. TESTES
+
+Backend: pytest (asyncio_mode=auto)
+Frontend: Playwright (e2e) - 3 tests
+  - expanded-coverage.spec.ts
+  - journey.spec.ts
+  - journey.spec.ts-snapshots\editor-shell-chromium-win32.png
+
+## 5. TOOLS

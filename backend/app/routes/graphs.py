@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
@@ -177,7 +177,7 @@ def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_
         graph.parent_graph_id = payload.parent_graph_id
     if payload.c4_parent_node_id is not None:
         graph.c4_parent_node_id = payload.c4_parent_node_id
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     with sqlite_write_guard():
         _snapshot(db, graph)
         db.commit()
@@ -225,7 +225,7 @@ def restore_version(graph_id: str, version_id: str, db: Session = Depends(get_db
     graph.name = version.name
     graph.nodes_json = version.nodes_json
     graph.edges_json = version.edges_json
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     with sqlite_write_guard():
         _snapshot(db, graph)
         db.commit()
@@ -264,7 +264,7 @@ def review_graph(graph_id: str, payload: ReviewRequest, db: Session = Depends(ge
         graph.review_status = payload.status
         graph.review_comment = payload.comment
         graph.reviewer_role = "other"
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(graph)
     return to_out(graph)
@@ -294,7 +294,7 @@ async def analyze_live(
             if payload.nfr is not None:
                 graph.nfr_json = payload.nfr.model_dump_json()
             graph.review_status = "analyzed" if graph.review_status == "draft" else graph.review_status
-            graph.updated_at = datetime.now(timezone.utc)
+            graph.updated_at = datetime.now(UTC)
             db.commit()
     return result
 
@@ -319,7 +319,7 @@ async def analyze_saved(
     )
     graph.analysis_json = result.model_dump_json()
     graph.review_status = "analyzed" if graph.review_status == "draft" else graph.review_status
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     db.commit()
     return result
 

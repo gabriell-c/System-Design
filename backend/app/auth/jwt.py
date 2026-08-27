@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from pydantic import BaseModel
@@ -30,7 +30,7 @@ def create_access_token(
 
     payload = {
         "sub": str(user_id),
-        "exp": datetime.now(timezone.utc) + expires_delta,
+        "exp": datetime.now(UTC) + expires_delta,
         "type": "access",
         "jti": str(uuid.uuid4()),
         "remember_me": remember_me
@@ -58,6 +58,6 @@ def get_token_expiry(token: str) -> datetime | None:
         if isinstance(exp, datetime):
             return exp
         if isinstance(exp, (int, float)):
-            return datetime.fromtimestamp(exp, tz=timezone.utc)
+            return datetime.fromtimestamp(exp, tz=UTC)
         return datetime.fromisoformat(exp)
     return None

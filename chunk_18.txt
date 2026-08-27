@@ -1,0 +1,10 @@
+  - components\canvas\FlowBadge.tsx
+  - components\canvas\LineageView.tsx
+  - components\canvas\NodeGlossaryTooltip.tsx
+  - components\canvas\RecommendationBanner.tsx
+  - components\canvas\SequenceDiagramView.tsx
+  - components\canvas\TitleBlock.tsx
+  - components\client\SWRegister.tsx
+  - components\client\ThemeInit.tsx
+  - components\compare\CompareView.tsx
+  - components\dashboard\AccessSettings.tsx

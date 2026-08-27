@@ -1,0 +1,1 @@
+Auth: PyJWT 2.13.0, python-jose, passlib[bcrypt]

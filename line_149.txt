@@ -1,0 +1,1 @@
+  - test:e2e:update: playwright test --update-snapshots

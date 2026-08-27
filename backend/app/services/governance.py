@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -78,7 +78,7 @@ def persist_adrs_markdown(project_id: str, adrs: list[dict[str, Any]], base_dir:
     target = root / project_id
     target.mkdir(parents=True, exist_ok=True)
     written: list[str] = []
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(UTC).strftime("%Y-%m-%d")
 
     for adr in adrs:
         adr_id = str(adr.get("id") or "ADR-000")

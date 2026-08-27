@@ -1,0 +1,10 @@
+  - app\login\page.tsx
+  - app\profile\page.tsx
+  - app\project\[id]\page.tsx
+  - app\recover\page.tsx
+  - app\register\page.tsx
+  - components\canvas\BlastRadiusOverlay.tsx
+  - components\canvas\CanvasComments.tsx
+  - components\canvas\DesignCanvas.tsx
+  - components\canvas\DiagramLegend.tsx
+  - components\canvas\DrillDownNavigator.tsx

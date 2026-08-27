@@ -1,0 +1,10 @@
+
+GitHub Actions: Sim (.github/workflows/ci.yml)
+
+## 8. ARQUITETURA GERAL
+
+Backend: FastAPI + SQLAlchemy + Celery + Redis
+Frontend: Next.js 15 App Router + React 19 + TypeScript + Tailwind
+
+======================================================================
+FIM DA ANALISE

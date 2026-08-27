@@ -5,8 +5,19 @@ import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } fr
 import { ExternalLink } from "lucide-react";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
+import { cssDirection } from "@/components/ui/NodeGradientPicker";
+import { fillPatternCss } from "@/components/ui/NodeFillPatternPicker";
+import { resolveFreeIcon } from "@/lib/free-icons";
 import { useGraphStore } from "@/lib/graph-store";
-import type { FreeNodeData, FreeNodeKind } from "@/lib/types";
+import type {
+  FreeFillPattern,
+  FreeHoverEffect,
+  FreeNodeData,
+  FreeNodeKind,
+  FreeShadow,
+  FreeTextAlign,
+  FreeVerticalAlign,
+} from "@/lib/types";
 
 const SHAPE_STYLES: Record<
   FreeNodeKind,
@@ -75,7 +86,7 @@ const SHAPE_STYLES: Record<
   },
   "free-note": {
     className: "border border-amber-400/40 shadow-sm px-2 py-2",
-    style: { backgroundColor: "#fef08a" },
+    style: { backgroundColor: "var(--warning-bg, #fef08a)" },
   },
   "free-link": {
     className: "border-2 border-[var(--accent)]/40 bg-[var(--accent-muted)]/20 px-3 py-2",
@@ -85,13 +96,56 @@ const SHAPE_STYLES: Record<
 const MEDIA_KINDS = new Set<FreeNodeKind>(["free-image", "free-video", "free-audio"]);
 const TEXT_KINDS = new Set<FreeNodeKind>(["free-text", "free-edit", "free-note"]);
 
+const SHADOW_CLASS: Record<FreeShadow, string> = {
+  none: "",
+  sm: "shadow-sm",
+  md: "shadow-md",
+  lg: "shadow-lg",
+  xl: "shadow-xl",
+};
+
+const TEXT_ALIGN_CLASS: Record<FreeTextAlign, string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
+
+const V_ALIGN_CLASS: Record<FreeVerticalAlign, string> = {
+  top: "items-start",
+  center: "items-center",
+  bottom: "items-end",
+};
+
+const H_ALIGN_CLASS: Record<FreeTextAlign, string> = {
+  left: "justify-start",
+  center: "justify-center",
+  right: "justify-end",
+};
+
+const HOVER_CLASS: Record<FreeHoverEffect, string> = {
+  none: "",
+  glow: "free-node-hover-glow",
+  scale: "free-node-hover-scale",
+  shadow: "free-node-hover-shadow",
+};
+
+const BORDER_STYLE_CLASS: Record<string, string> = {
+  solid: "border-solid",
+  dashed: "border-dashed",
+  dotted: "border-dotted",
+};
+
+const FONT_WEIGHT: Record<string, number | string> = {
+  normal: 400,
+  medium: 500,
+  bold: 700,
+};
+
 function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const shape = SHAPE_STYLES[data.kind];
   const isText = TEXT_KINDS.has(data.kind);
   const isMedia = MEDIA_KINDS.has(data.kind);
-  const isDiamond = data.kind === "free-diamond";
-  const isTriangle = data.kind === "free-triangle";
   const isLink = data.kind === "free-link";
   const isNote = data.kind === "free-note";
 
@@ -122,14 +176,48 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
     }
   }, [id]);
 
+  const textAlign: FreeTextAlign = data.textAlign ?? "center";
+  const verticalAlign: FreeVerticalAlign = data.verticalAlign ?? "center";
+  const shadow: FreeShadow = data.shadow ?? (data.kind === "free-note" ? "sm" : "none");
+  const hoverEffect: FreeHoverEffect = data.hoverEffect ?? "none";
+  const fillPattern: FreeFillPattern = data.fillPattern ?? "none";
+  const Icon = resolveFreeIcon(data.iconId);
+  const iconSize = data.iconSize ?? 16;
+
+  const patternBg = fillPatternCss(fillPattern);
+  const gradient = data.backgroundGradient;
+
   const customStyle: CSSProperties = {
     ...shape.style,
     contain: "layout style paint",
-    backgroundColor: data.backgroundColor ?? shape.style?.backgroundColor,
+    backgroundColor: gradient
+      ? undefined
+      : (data.backgroundColor ?? shape.style?.backgroundColor),
+    backgroundImage: gradient
+      ? `linear-gradient(${cssDirection(gradient.direction)}, ${gradient.from}, ${gradient.to})${
+          patternBg ? `, ${patternBg}` : ""
+        }`
+      : patternBg,
+    backgroundSize: patternBg && !gradient ? "8px 8px" : undefined,
     color: data.textColor,
     borderColor: data.borderColor ?? undefined,
     borderRadius: data.borderRadius != null ? `${data.borderRadius}px` : undefined,
+    borderWidth: data.borderWidth != null ? `${data.borderWidth}px` : undefined,
+    opacity: data.opacity != null ? data.opacity : undefined,
   };
+
+  const fontStyle: CSSProperties = {
+    color: data.textColor ?? "var(--foreground)",
+    fontSize: data.fontSize != null ? `${data.fontSize}px` : undefined,
+    fontWeight: data.fontWeight ? FONT_WEIGHT[data.fontWeight] : undefined,
+    fontStyle: data.fontStyle === "italic" ? "italic" : undefined,
+    textAlign,
+  };
+
+  function renderIcon() {
+    if (!Icon) return null;
+    return <Icon size={iconSize} className="shrink-0" style={{ color: data.textColor }} aria-hidden />;
+  }
 
   function renderContent() {
     if (data.kind === "free-image" && data.mediaUrl) {
@@ -173,59 +261,65 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:underline"
+          style={fontStyle}
           onClick={(e) => {
             if (!href || href === "https://") e.preventDefault();
           }}
         >
-          <ExternalLink size={14} />
+          {Icon ? renderIcon() : <ExternalLink size={14} />}
           {data.label || "Link"}
         </a>
       );
     }
     if (isText) {
       return (
-        <>{isNote ? (
-          <RichTextEditor
-            className="h-full w-full border-none bg-transparent"
-            value={data.notes ?? data.text ?? ""}
-            onChange={(html) => {
-              updateNodeData(id, {
-                notes: html,
-                label: html.replace(/<[^>]+>/g, "").slice(0, 40) || "Nota",
-              });
-            }}
-            placeholder="Escreva uma nota…"
-          />
-        ) : (
-          <textarea
-            className="h-full w-full resize-none bg-transparent text-sm focus:outline-none"
-            style={{ color: data.textColor ?? "var(--foreground)" }}
-            value={data.text ?? data.label}
-            onChange={(e) => {
-              const val = e.target.value;
-              updateNodeData(id, {
-                text: val,
-                label: val.slice(0, 60) || "Texto",
-              });
-            }}
-            placeholder="Digite aqui…"
-          />
-        )}</>
+        <>
+          {isNote ? (
+            <RichTextEditor
+              className="h-full w-full border-none bg-transparent"
+              value={data.notes ?? data.text ?? ""}
+              onChange={(html) => {
+                updateNodeData(id, {
+                  notes: html,
+                  label: html.replace(/<[^>]+>/g, "").slice(0, 40) || "Nota",
+                });
+              }}
+              placeholder="Escreva uma nota…"
+            />
+          ) : (
+            <div className="flex h-full w-full gap-1.5 items-start">
+              {renderIcon()}
+              <textarea
+                className="h-full w-full resize-none bg-transparent focus:outline-none max-h-48 overflow-y-auto"
+                style={{ ...fontStyle, fontSize: data.fontSize != null ? `${data.fontSize}px` : "0.875rem" }}
+                value={data.text ?? data.label}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateNodeData(id, {
+                    text: val,
+                    label: val.slice(0, 60) || "Texto",
+                  });
+                }}
+                placeholder="Digite aqui…"
+              />
+            </div>
+          )}
+        </>
       );
     }
     return (
-      <span
-        className={`text-sm font-medium ${isDiamond || isTriangle ? "[transform:rotate(-45deg)]" : ""}`}
-        style={{ color: data.textColor ?? "var(--foreground)" }}
-      >
+      <span className="flex items-center gap-1.5 font-medium" style={{ ...fontStyle, fontSize: data.fontSize != null ? `${data.fontSize}px` : "0.875rem" }}>
+        {renderIcon()}
         {data.label}
       </span>
     );
   }
 
+  const borderStyleClass = data.borderStyle ? BORDER_STYLE_CLASS[data.borderStyle] : "";
+
   return (
     <div
-      className={`relative h-full w-full ${selected ? "ring-2 ring-[var(--accent)]/70" : ""}`}
+      className={`relative h-full w-full ${selected ? "ring-2 ring-[var(--accent)]/70" : ""} ${HOVER_CLASS[hoverEffect]}`}
       aria-label={data.label}
       style={{ contain: "layout style" }}
     >
@@ -235,12 +329,12 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
         isVisible={selected}
         keepAspectRatio={shiftHeld}
         lineClassName="!border-[var(--accent)]/40"
-        handleClassName="!h-2 !w-2 !rounded-sm !border-indigo-300 !bg-slate-950"
+        handleClassName="!h-3 !w-3 !rounded-sm !border-indigo-300 !bg-indigo-500"
         onResizeStart={onResizeStart}
       />
 
       <div
-        className={`flex h-full w-full items-center justify-center border-[var(--border)] px-3 py-2 text-center ${shape.className}`}
+        className={`flex h-full w-full border-[var(--border)] px-3 py-2 transition-[box-shadow,transform] duration-150 ${shape.className} ${SHADOW_CLASS[shadow]} ${TEXT_ALIGN_CLASS[textAlign]} ${V_ALIGN_CLASS[verticalAlign]} ${H_ALIGN_CLASS[textAlign]} ${borderStyleClass}`}
         style={customStyle}
       >
         {renderContent()}
@@ -248,10 +342,10 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
 
       {!isText && !isMedia && !isLink && (
         <>
-          <AnchorHandle tone="block" nodeId={id} handleId="f-left" type="target" position={Position.Left} style={{ top: "50%" }} />
-          <AnchorHandle tone="block" nodeId={id} handleId="f-right" type="source" position={Position.Right} style={{ top: "50%" }} />
-          <AnchorHandle tone="block" nodeId={id} handleId="f-top" type="target" position={Position.Top} style={{ left: "50%" }} />
-          <AnchorHandle tone="block" nodeId={id} handleId="f-bottom" type="source" position={Position.Bottom} style={{ left: "50%" }} />
+          <AnchorHandle tone="block" nodeId={id} handleId="f-left" type="target" position={Position.Left} style={{ top: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />
+          <AnchorHandle tone="block" nodeId={id} handleId="f-right" type="source" position={Position.Right} style={{ top: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />
+          <AnchorHandle tone="block" nodeId={id} handleId="f-top" type="target" position={Position.Top} style={{ left: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />
+          <AnchorHandle tone="block" nodeId={id} handleId="f-bottom" type="source" position={Position.Bottom} style={{ left: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />
         </>
       )}
     </div>

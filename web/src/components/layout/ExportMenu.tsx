@@ -25,6 +25,7 @@ import { prepareCleanExport } from "@/lib/export-quality";
 import { downloadSvg, renderSvg } from "@/lib/export-svg";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
+import ExportOptionsModal from "@/components/layout/ExportOptionsModal";
 
 type Props = {
   onDone?: () => void;
@@ -33,6 +34,7 @@ type Props = {
 export default function ExportMenu({ onDone }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<"png" | "pdf" | null>(null);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const name = useGraphStore((s) => s.name);
@@ -146,15 +148,17 @@ export default function ExportMenu({ onDone }: Props) {
   }
 
   return (
+    <>
     <div className="relative" ref={ref}>
       <button
         type="button"
-        className="btn-ghost inline-flex items-center gap-1.5"
+        className="btn-ghost inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         aria-expanded={open}
         aria-haspopup="menu"
         disabled={busy != null}
         onClick={() => setOpen((v) => !v)}
         title="Exportar arquitetura (JSON, PNG, Markdown, PDF)"
+        aria-label="Exportar"
       >
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
         <span className="hidden md:inline">Exportar</span>
@@ -167,6 +171,15 @@ export default function ExportMenu({ onDone }: Props) {
           <p className="px-3 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
             Baixar arquitetura
           </p>
+          <ExportItem
+            icon={<FileImage size={14} />}
+            label="Opções avançadas…"
+            hint="Margem, resolução, formato"
+            onClick={() => {
+              setOpen(false);
+              setOptionsOpen(true);
+            }}
+          />
           <ExportItem
             icon={<FileJson size={14} />}
             label="JSON"
@@ -248,6 +261,8 @@ export default function ExportMenu({ onDone }: Props) {
         </div>
       )}
     </div>
+    <ExportOptionsModal open={optionsOpen} onClose={() => setOptionsOpen(false)} />
+    </>
   );
 }
 

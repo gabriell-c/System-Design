@@ -1,6 +1,6 @@
 ﻿"""Security tests: auth bypass, invalid tokens, role escalation, JWT validation."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt as pyjwt
 
@@ -25,7 +25,7 @@ def _register_and_login(client, username="alice", email="alice@test.com"):
 
 
 def _exp(hours: int = 1) -> datetime:
-    return datetime.now(timezone.utc) + timedelta(hours=hours)
+    return datetime.now(UTC) + timedelta(hours=hours)
 
 
 class TestAuthBypass:

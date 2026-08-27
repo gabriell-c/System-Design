@@ -56,6 +56,7 @@ import ConsistencyPanel from "./ConsistencyPanel";
 import GovernancePanel from "./GovernancePanel";
 import SloPanel from "./SloPanel";
 import WikiPanel from "./WikiPanel";
+import LayerHierarchyPanel from "./LayerHierarchyPanel";
 import Tooltip from "@/components/ui/Tooltip";
 import PanelEmpty from "@/components/ui/PanelEmpty";
 
@@ -79,6 +80,7 @@ const PRIMARY: TabItem[] = [
 const FREE_TABS: TabItem[] = [
   { id: "context", label: "Contexto", icon: FileText, hint: "Descrição do diagrama" },
   { id: "props", label: "Props", icon: Wrench, hint: "Propriedades do elemento" },
+  { id: "layers", label: "Camadas", icon: Layers, hint: "Hierarquia visual" },
   { id: "history", label: "Histórico", icon: History, hint: "Undo / versões" },
   { id: "settings", label: "Ajustes", icon: Settings2, hint: "Preferências do canvas" },
 ];
@@ -277,6 +279,7 @@ export default function Inspector({ hideAnalysis = false }: { hideAnalysis?: boo
         {tab === "review" && <ReviewPanel />}
         {tab === "history" && <HistoryPanel />}
         {tab === "settings" && (isFreeMode ? <FreeCanvasSettings /> : <SettingsPanel />)}
+        {tab === "layers" && <LayerHierarchyPanel />}
       </div>
     </aside>
   );

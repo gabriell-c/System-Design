@@ -334,7 +334,12 @@ export function isFreeData(data: CanvasNodeData): data is FreeNodeData {
     data.kind === "free-x" ||
     data.kind === "free-plus" ||
     data.kind === "free-text" ||
-    data.kind === "free-edit"
+    data.kind === "free-edit" ||
+    data.kind === "free-image" ||
+    data.kind === "free-video" ||
+    data.kind === "free-audio" ||
+    data.kind === "free-note" ||
+    data.kind === "free-link"
   );
 }
 
@@ -623,6 +628,21 @@ export const ALL_FREE_NODE_KINDS: FreeNodeKind[] = [
   "free-link",
 ];
 
+export type FreeBorderStyle = "solid" | "dashed" | "dotted";
+export type FreeFontWeight = "normal" | "medium" | "bold";
+export type FreeFontStyle = "normal" | "italic";
+export type FreeTextAlign = "left" | "center" | "right";
+export type FreeVerticalAlign = "top" | "center" | "bottom";
+export type FreeShadow = "none" | "sm" | "md" | "lg" | "xl";
+export type FreeFillPattern = "none" | "stripes" | "dots" | "checker";
+export type FreeHoverEffect = "none" | "glow" | "scale" | "shadow";
+
+export type FreeBackgroundGradient = {
+  from: string;
+  to: string;
+  direction: "to-right" | "to-bottom" | "to-br" | "to-bl";
+};
+
 export type FreeNodeData = {
   kind: FreeNodeKind;
   label: string;
@@ -634,6 +654,20 @@ export type FreeNodeData = {
   textColor?: string;
   borderColor?: string;
   borderRadius?: number;
+  borderWidth?: number;
+  borderStyle?: FreeBorderStyle;
+  opacity?: number;
+  fontSize?: number;
+  fontWeight?: FreeFontWeight;
+  fontStyle?: FreeFontStyle;
+  textAlign?: FreeTextAlign;
+  verticalAlign?: FreeVerticalAlign;
+  shadow?: FreeShadow;
+  iconId?: string;
+  iconSize?: number;
+  backgroundGradient?: FreeBackgroundGradient;
+  fillPattern?: FreeFillPattern;
+  hoverEffect?: FreeHoverEffect;
   linkUrl?: string;
   mediaUrl?: string;
 };

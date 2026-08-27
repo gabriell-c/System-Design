@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+// import Script from "next/script"; // removed – not needed
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-store";
+import ThemeInitializer from "@/components/client/ThemeInit";
+import SWRegister from "@/components/client/SWRegister";
 import AppShell from "@/components/layout/AppShell";
 import { I18nProvider } from "@/i18n";
 import ptBR from "@/i18n/pt-BR.json";
@@ -42,16 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="description" content="Desenhe arquiteturas e receba avaliação de um arquiteto virtual." />
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('archia-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.classList.add('archia-'+t);}catch(e){document.documentElement.classList.add('archia-dark');}})();`,
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}`,
-          }}
-        />
+        <ThemeInitializer />
+        <SWRegister />
       </head>
       <body className="h-full min-h-0 font-sans" suppressHydrationWarning>
         <I18nProvider translations={ptBR}>

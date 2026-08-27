@@ -1,0 +1,10 @@
+Tasks/Workers: Celery
+Cache: Redis
+Cloud: boto3 (AWS S3, SES, etc.)
+HTTP Client: httpx 0.28.1
+Logging: python-json-logger
+Config: pydantic-settings
+
+Rotas HTTP (20):
+  - __init__.py
+  - acl.py

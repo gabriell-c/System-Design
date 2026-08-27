@@ -1,0 +1,10 @@
+Web Source Files (175):
+  - app\globals.css
+  - app\layout.tsx
+  - app\not-found.tsx
+  - app\page.tsx
+  - app\admin\users\page.tsx
+  - app\compare\page.tsx
+  - app\embed\page.tsx
+  - app\graphs\page.tsx
+  - app\graphs\[id]\page.tsx

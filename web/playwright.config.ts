@@ -24,7 +24,7 @@ export default defineConfig({
       command: "py -3.12 -m uvicorn app.main:app --host 127.0.0.1 --port 8021",
       cwd: "../backend",
       url: `http://127.0.0.1:${API_PORT}/api/health`,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120_000,
       env: {
         ...process.env,
@@ -36,7 +36,7 @@ export default defineConfig({
     {
       command: `pnpm exec next start -p ${WEB_PORT} -H 127.0.0.1`,
       url: `http://127.0.0.1:${WEB_PORT}`,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120_000,
       env: {
         ...process.env,

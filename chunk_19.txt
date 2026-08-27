@@ -1,0 +1,9 @@
+  - components\dashboard\NewProjectModal.tsx
+  ... e mais 145 arquivos
+
+## 3. INFRAESTRUTURA
+
+Docker Compose: Sim
+  - PostgreSQL 16 (porta 5434)
+  - Backend FastAPI (porta 4410)
+  - Frontend Next.js (porta 3015)

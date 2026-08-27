@@ -27,8 +27,10 @@ from app.routes.acl import router as acl_router
 from app.routes.audit import router as audit_router
 from app.routes.auth import router as auth_router
 from app.routes.boundary import router as boundary_router
+from app.routes.annotation import router as annotation_router
 from app.routes.comments import router as comments_router
 from app.routes.embed import router as embed_router
+from app.routes.share import router as share_router
 from app.routes.governance import router as governance_router
 from app.routes.graphs import router as graphs_router
 from app.routes.health import router as health_router
@@ -94,6 +96,10 @@ def _ensure_sqlite_columns() -> None:
             c["name"] for c in inspector.get_columns("graphs")
         }:
             conn.execute(text("ALTER TABLE graphs ADD COLUMN nfr_json TEXT NOT NULL DEFAULT '{}'"))
+        if "graphs" in existing and "share_token" not in {
+            c["name"] for c in inspector.get_columns("graphs")
+        }:
+            conn.execute(text("ALTER TABLE graphs ADD COLUMN share_token VARCHAR(64) NULL"))
         if "comments" not in existing:
             conn.execute(text("""
                 CREATE TABLE comments (
@@ -201,9 +207,11 @@ app.include_router(boundary_router)
 app.include_router(governance_router)
 app.include_router(graphs_router)
 app.include_router(comments_router)
+app.include_router(annotation_router)
 app.include_router(audit_router)
 app.include_router(p1_router)
 app.include_router(embed_router)
+app.include_router(share_router)
 app.include_router(private_catalog_router)
 app.include_router(projects_router)
 app.include_router(settings_router)
