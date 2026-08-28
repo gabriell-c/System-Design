@@ -77,9 +77,10 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
 export default function SidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setAvatarUrl } = useAuthStore();
+  const avatarUrl = user?.avatar_url ?? null;
   const { theme, toggleTheme } = useTheme();
-  const { projects, createProject } = useProjectStore();
+  const { projects, createProject, loadProjects } = useProjectStore();
   const [expanded, setExpanded] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
@@ -97,7 +98,9 @@ export default function SidebarNav() {
     } catch {
       // ignore errors – keep default (expanded)
     }
-  }, []);
+    // Load projects when sidebar mounts
+    void loadProjects();
+  }, [loadProjects]);
 
   const toggle = useCallback(() => {
     setCollapsed((prev) => {
@@ -347,9 +350,13 @@ export default function SidebarNav() {
 
             {/* Footer */}
             <div className="border-t border-[var(--border)] px-3 py-3">
-              <div className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--muted-fg)]">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-bold text-slate-200">
-                  {initials}
+              <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--muted-fg)] transition hover:bg-(--surface-3) hover:text-(--foreground)">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-700">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-slate-200">{initials}</span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-slate-200">
@@ -359,6 +366,8 @@ export default function SidebarNav() {
                     {user?.email}
                   </p>
                 </div>
+              </Link>
+              <div className="flex items-center gap-1 mt-1">
                 <button
                   type="button"
                   onClick={toggleTheme}
@@ -478,9 +487,18 @@ export default function SidebarNav() {
                   </button>
                 </Tooltip>
 
-                <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-xs font-bold text-slate-200">
-                  {initials}
-                </div>
+                <Tooltip text="Meu perfil">
+                  <Link
+                    href="/profile"
+                    className="mt-1 flex h-7 w-7 items-center justify-center rounded-full overflow-hidden bg-slate-700 transition hover:bg-[var(--accent-muted)] hover:text-indigo-200"
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-200">{initials}</span>
+                    )}
+                  </Link>
+                </Tooltip>
               </div>
             </div>
           </>

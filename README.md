@@ -20,7 +20,7 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 
 > 💡 **Caso de uso principal:** arquitetos e devs seniores usam o Archia para validar uma proposta de stack antes de escrever código — o editor entrega recomendações, compara alternativas lado a lado e simula o comportamento da arquitetura sob carga.
 
-> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324+ testes passando: 298 backend + 26+ frontend). Canvas livre com personalização completa (borda, opacidade, tipografia, alinhamento, sombra, ícone, gradiente, padrão, hover) implementado. Ver [`docs/features/diagrama-livre-ux.md`](docs/features/diagrama-livre-ux.md), [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
+> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324+ testes passando: 298 backend + 26+ frontend). Canvas livre com personalização completa (borda, opacidade, tipografia, alinhamento, sombra, ícone, gradiente, padrão, hover) implementado. **UI/UX:** selects customizados, máscaras de telefone/valores, crop de avatar com preview 1:1, RichTextEditor nas notas, sincronização de avatar em tempo real. Ver [`docs/features/diagrama-livre-ux.md`](docs/features/diagrama-livre-ux.md), [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
 
 ---
 
@@ -678,6 +678,8 @@ cd web && npm run lint            # Frontend (ESLint)
 
 4. **Abra um Pull Request** descrevendo o que foi feito e como testar.
 
+5. **Commitar mudanças no README** se houver mudanças significativas na documentação.
+
 ### Boas práticas
 
 - Nunca commitar direto na `main` — sempre via branch + PR.
@@ -685,6 +687,8 @@ cd web && npm run lint            # Frontend (ESLint)
 - Ao adicionar variável de ambiente nova, atualizar os `.env.example` e esta documentação.
 - Manter a cobertura de testes das 3 camadas: unitário, integração e e2e.
 - Documentar features novas em `docs/`.
+- Usar CustomSelect ao invés de `<select>` nativo para consistência visual.
+- Aplicar máscaras de input (telefone, currency) quando apropriado.
 
 ---
 

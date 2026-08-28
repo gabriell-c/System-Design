@@ -8,6 +8,7 @@ import { ZONE_META } from "@/lib/zones";
 import { useGraphStore } from "@/lib/graph-store";
 import { EMPTY_CANVAS_FILTER } from "@/lib/canvas-filter";
 import { CATALOG } from "@/lib/catalog";
+import CustomSelect from "@/components/ui/Select";
 
 const PROVIDERS: (CloudProvider | "all")[] = ["all", "aws", "azure", "gcp", "generic"];
 
@@ -66,84 +67,64 @@ export default function SearchFilter() {
       </div>
       <p className="text-[12px] font-medium text-[var(--muted)]">Filtros</p>
       <div className="grid grid-cols-2 gap-1.5">
-        <select
+        <CustomSelect
           aria-label="Domínio"
-          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
           value={canvasFilter.kind}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, kind: e.target.value as NodeKind | "all" })}
-        >
-          <option value="all">Domínio</option>
-          {ALL_NODE_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {KIND_META[k].label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
+          options={["all", ...ALL_NODE_KINDS].map((k) => ({
+            value: k,
+            label: k === "all" ? "Domínio" : KIND_META[k as NodeKind]?.label ?? k,
+          }))}
+          onChange={(v) => setCanvasFilter({ ...canvasFilter, kind: v as NodeKind | "all" })}
+        />
+        <CustomSelect
           value={canvasFilter.zoneKind}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, zoneKind: e.target.value as ZoneKind | "all" })}
-        >
-          <option value="all">Zona</option>
-          {ALL_ZONE_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {ZONE_META[k].short}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
+          options={["all", ...ALL_ZONE_KINDS].map((k) => ({
+            value: k,
+            label: k === "all" ? "Zona" : ZONE_META[k as ZoneKind]?.short ?? k,
+          }))}
+          onChange={(v) => setCanvasFilter({ ...canvasFilter, zoneKind: v as ZoneKind | "all" })}
+        />
+        <CustomSelect
           value={canvasFilter.provider}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, provider: e.target.value as CloudProvider | "all" })}
-        >
-          {PROVIDERS.map((p) => (
-            <option key={p} value={p}>
-              {p === "all" ? "Provider" : p.toUpperCase()}
-            </option>
-          ))}
-        </select>
+          options={PROVIDERS.map((p) => ({
+            value: p,
+            label: p === "all" ? "Provider" : p.toUpperCase(),
+          }))}
+          onChange={(v) => setCanvasFilter({ ...canvasFilter, provider: v as CloudProvider | "all" })}
+        />
         <input
           className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           placeholder="Squad / team"
           value={canvasFilter.ownerTeam}
           onChange={(e) => setCanvasFilter({ ...canvasFilter, ownerTeam: e.target.value })}
         />
-        <select
-          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
+        <CustomSelect
           value={canvasFilter.catalogId}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, catalogId: e.target.value })}
-        >
-          <option value="">Catalogo (ID)</option>
-          {SERVICE_CATALOG.map((id) => (
-            <option key={id} value={id}>
-              {id}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
+          options={[
+            { value: "", label: "Catalogo (ID)" },
+            ...SERVICE_CATALOG.map((id) => ({ value: id, label: id })),
+          ]}
+          onChange={(v) => setCanvasFilter({ ...canvasFilter, catalogId: v })}
+        />
+        <CustomSelect
           value={canvasFilter.piiSensitivity}
-          onChange={(e) =>
-            setCanvasFilter({ ...canvasFilter, piiSensitivity: e.target.value as PiiSensitivity | "all" })
+          options={PII_OPTIONS.map((p) => ({
+            value: p,
+            label: p === "all" ? "PII" : `PII: ${p}`,
+          }))}
+          onChange={(v) =>
+            setCanvasFilter({ ...canvasFilter, piiSensitivity: v as PiiSensitivity | "all" })
           }
-        >
-          {PII_OPTIONS.map((p) => (
-            <option key={p} value={p}>
-              {p === "all" ? "PII" : `PII: ${p}`}
-            </option>
-          ))}
-        </select>
-        <select
-          className="col-span-2 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1 text-sm text-slate-200"
+        />
+        <CustomSelect
+          className="col-span-2"
           value={canvasFilter.c4Level}
-          onChange={(e) => setCanvasFilter({ ...canvasFilter, c4Level: e.target.value as C4Level | "all" })}
-        >
-          {C4_OPTIONS.map((level) => (
-            <option key={level} value={level}>
-              {C4_LABELS[level]}
-            </option>
-          ))}
-        </select>
+          options={C4_OPTIONS.map((level) => ({
+            value: level,
+            label: C4_LABELS[level],
+          }))}
+          onChange={(v) => setCanvasFilter({ ...canvasFilter, c4Level: v as C4Level | "all" })}
+        />
       </div>
 
       {showSave && (

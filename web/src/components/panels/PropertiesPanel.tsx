@@ -162,31 +162,33 @@ export default function PropertiesPanel() {
                   placeholder="Porta"
                   className="w-20 rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
                 />
-                <select
+                <CustomSelect
                   value={rule.protocol}
-                  onChange={(e) => {
+                  options={[
+                    { value: "tcp", label: "TCP" },
+                    { value: "udp", label: "UDP" },
+                    { value: "all", label: "ALL" },
+                  ]}
+                  onChange={(v) => {
                     const updated = [...(data.firewallRules ?? [])];
-                    updated[idx] = { ...updated[idx], protocol: e.target.value as FirewallRule["protocol"] };
+                    updated[idx] = { ...updated[idx], protocol: v as FirewallRule["protocol"] };
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
-                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-                >
-                  <option value="tcp">TCP</option>
-                  <option value="udp">UDP</option>
-                  <option value="all">ALL</option>
-                </select>
-                <select
+                  className="w-20"
+                />
+                <CustomSelect
                   value={rule.direction}
-                  onChange={(e) => {
+                  options={[
+                    { value: "inbound", label: "Inbound" },
+                    { value: "outbound", label: "Outbound" },
+                  ]}
+                  onChange={(v) => {
                     const updated = [...(data.firewallRules ?? [])];
-                    updated[idx] = { ...updated[idx], direction: e.target.value as FirewallRule["direction"] };
+                    updated[idx] = { ...updated[idx], direction: v as FirewallRule["direction"] };
                     updateEdgeData(selectedEdge.id, { firewallRules: updated });
                   }}
-                  className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-                >
-                  <option value="inbound">Inbound</option>
-                  <option value="outbound">Outbound</option>
-                </select>
+                  className="w-24"
+                />
                 <input
                   type="text"
                   value={rule.description ?? ""}
@@ -427,13 +429,12 @@ export default function PropertiesPanel() {
           <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-notes">
             Notas
           </label>
-          <textarea
+          <RichTextEditor
             id="free-notes"
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
             value={free.notes ?? ""}
-            onChange={(e) => updateNodeData(node.id, { notes: e.target.value || undefined })}
+            onChange={(html) => updateNodeData(node.id, { notes: html || undefined })}
             placeholder="Anotações sobre este elemento…"
+            className="mt-1"
           />
         </div>
 

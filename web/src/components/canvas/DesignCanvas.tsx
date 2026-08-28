@@ -659,7 +659,7 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        selectable={!isLocked}
+        selectable={!isLocked ? "true" : "false"}
         connectable={!isLocked}
         zoomOnScroll={!isLocked}
         panOnDrag={!isLocked ? [1, 2] : false}

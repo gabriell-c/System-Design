@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { maskPhone } from "@/lib/masks";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useTranslation } from "@/i18n";
@@ -157,9 +158,12 @@ export default function RegisterPage() {
               <input
                 type="tel"
                 value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "");
+                  update("phone", maskPhone(raw));
+                }}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                placeholder="+55 11 99999-9999"
+                placeholder="+55 (11) 9 9999-9999"
               />
             </div>
 

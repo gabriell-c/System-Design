@@ -8,6 +8,7 @@ export type AuthUser = {
   role: string;
   phone?: string;
   birth_date?: string;
+  avatar_url?: string;
   auto_save_enabled: boolean;
   auto_save_interval_minutes: number;
   created_at: string;
@@ -31,6 +32,7 @@ interface AuthState {
   }) => Promise<boolean>;
   fetchProfile: () => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<boolean>;
+  setAvatarUrl: (url: string | null) => void;
   setUser: (user: AuthUser | null) => void;
   setToken: (token: string | null) => void;
 }
@@ -151,6 +153,20 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user }),
       setToken: (token) => set({ token }),
+      setAvatarUrl: (url) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, avatar_url: url } : null,
+        }));
+        try {
+          if (url) {
+            localStorage.setItem('archia-user-avatar', url);
+          } else {
+            localStorage.removeItem('archia-user-avatar');
+          }
+        } catch {
+          // ignore
+        }
+      },
     }),
     {
       name: 'archia-auth-storage',

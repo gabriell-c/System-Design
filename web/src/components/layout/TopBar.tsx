@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   CloudOff,
@@ -12,7 +11,6 @@ import {
   LayoutGrid,
   Lock,
   LockOpen,
-  LogOut,
   Maximize2,
   Redo2,
   Route,
@@ -22,7 +20,6 @@ import {
   Trash2,
   Undo2,
   Upload,
-  UserRound,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ExportMenu from "@/components/layout/ExportMenu";
@@ -47,7 +44,6 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const fileRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const router = useRouter();
   const { confirm, dialog } = useConfirmDialog();
 
   const name = useGraphStore((s) => s.name);
@@ -86,7 +82,6 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const setIsLocked = useGraphStore((s) => s.setIsLocked);
 
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -306,67 +301,32 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
               </button>
             </Tooltip>
           )}
-          <ExportMenu />
-          <Tooltip content="Salvar projeto agora">
-            <button
-              type="button"
-              className="btn-ghost inline-flex items-center gap-1.5"
-              onClick={() => void save()}
-              aria-label="Salvar projeto"
-            >
-              <Save size={15} />
-              <span className="hidden md:inline">Salvar projeto</span>
-            </button>
-          </Tooltip>
-          <Tooltip content={nodes.length === 0 ? "Adicione blocos antes" : "Analisar arquitetura"}>
-            {!hideAnalysis && (
-              <button
-                type="button"
-                className="btn-primary inline-flex items-center gap-1.5"
-                onClick={onAnalyze}
-                disabled={analyzing || nodes.length === 0}
-              >
-                <Sparkles size={15} />
-                {analyzing ? "Analisando…" : "Analisar arquitetura"}
-              </button>
-            )}
-          </Tooltip>
-
           <div className="ml-2 flex items-center gap-1.5">
-            <Tooltip content="Meu perfil">
-              <Link
-                href="/profile"
-                className="hidden items-center gap-2 rounded-lg px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:bg-white/5 hover:text-[var(--foreground)] md:inline-flex"
-              >
-                <UserRound className="h-3.5 w-3.5" />
-                {user?.username ?? "User"}
-              </Link>
-            </Tooltip>
-            {user?.role === "senior" && (
-              <Link
-                href="/admin/users"
-                className="hidden text-xs text-violet-300 transition-colors hover:text-violet-200 md:inline"
-              >
-                Admin
-              </Link>
-            )}
-            <Tooltip content="Sair da conta">
+            <ExportMenu />
+            <Tooltip content="Salvar projeto agora">
               <button
                 type="button"
-                className="btn-ghost inline-flex items-center gap-2 px-2 text-xs text-[var(--muted)] hover:text-rose-300"
-                onClick={() => {
-                  logout();
-                  router.push("/login");
-                }}
-                aria-label="Sair da conta"
+                className="btn-ghost inline-flex items-center gap-1.5"
+                onClick={() => void save()}
+                aria-label="Salvar projeto"
               >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline">Sair da conta</span>
+                <Save size={15} />
+                <span className="hidden md:inline">Salvar projeto</span>
               </button>
             </Tooltip>
-          </div>
-
-          <div className="relative" ref={moreRef}>
+            <Tooltip content={nodes.length === 0 ? "Adicione blocos antes" : "Analisar arquitetura"}>
+              {!hideAnalysis && (
+                <button
+                  type="button"
+                  className="btn-primary inline-flex items-center gap-1.5"
+                  onClick={onAnalyze}
+                  disabled={analyzing || nodes.length === 0}
+                >
+                  <Sparkles size={15} />
+                  {analyzing ? "Analisando…" : "Analisar arquitetura"}
+                </button>
+              )}
+            </Tooltip>
             <button
               type="button"
               className="btn-ghost inline-flex items-center gap-1.5"

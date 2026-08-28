@@ -53,19 +53,40 @@ export default function DashboardPage() {
 
   const refresh = useCallback(() => void loadProjects(), [loadProjects]);
 
+  // Check localStorage on mount to prevent wizard from showing if already onboarded
+  useEffect(() => {
+    try {
+      const onboarded = localStorage.getItem("archia-onboarded");
+      if (onboarded === "1") {
+        setWizardDismissed(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   useEffect(() => {
     if (isLoading) return;
-    if (!wizardDismissed && projects.length === 0 && !filters.archived) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Only show wizard if: not dismissed, no projects, not in archived view, and not already onboarded
+    if (
+      !wizardDismissed &&
+      projects.length === 0 &&
+      !filters.archived &&
+      !localStorage.getItem("archia-onboarded")
+    ) {
       setWizardOpen(true);
-    } else if (projects.length > 0) {
+    } else if (projects.length > 0 && !wizardDismissed) {
       // Hide wizard as soon as the user has at least one project
       setWizardDismissed(true);
-      try { localStorage.setItem("archia-onboarded", "1"); } catch { /* ignore */ }
+      try {
+        localStorage.setItem("archia-onboarded", "1");
+      } catch {
+        /* ignore */
+      }
     }
   }, [isLoading, projects.length, filters.archived, wizardDismissed]);
 

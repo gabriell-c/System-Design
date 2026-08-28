@@ -6,6 +6,7 @@ const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px"];
 const COLORS = ["#f1f5f9", "#94a3b8", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"];
 
 type Props = {
+  id?: string;
   value?: string;
   onChange: (html: string) => void;
   placeholder?: string;
@@ -17,9 +18,10 @@ function applyFormat(command: string, value?: string) {
 }
 
 export default function RichTextEditor({
+  id,
   value = "",
   onChange,
-  placeholder = "输入内容...",
+  placeholder = "Digite seu texto...",
   className = "",
 }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -50,7 +52,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("bold"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="粗体"
+          title="Negrito"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
@@ -61,7 +63,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("italic"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="斜体"
+          title="Itálico"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="19" y1="4" x2="10" y2="4"></line>
@@ -73,7 +75,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("underline"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="下划线"
+          title="Sublinhado"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 3v7a6 6 0 0 0 12 0V3"></path>
@@ -84,7 +86,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("strikeThrough"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="删除线"
+          title="Tachado"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M16 4H9a3 3 0 0 0-2.83 4"></path>
@@ -96,9 +98,9 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("insertCode"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)] font-mono text-xs"
-          title="代码"
+          title="Código"
         >
-          &lt;/&gt;
+          <span className="font-mono">&lt;/&gt;</span>
         </button>
 
         <div className="w-px h-5 bg-[var(--border)] mx-1" />
@@ -107,7 +109,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="无序列表"
+          title="Lista não ordenada"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -122,7 +124,7 @@ export default function RichTextEditor({
           type="button"
           onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList"); }}
           className="h-7 w-7 flex items-center justify-center rounded text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
-          title="有序列表"
+          title="Lista ordenada"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="10" y1="6" x2="21" y2="6"></line>
@@ -142,7 +144,7 @@ export default function RichTextEditor({
           onChange={(e) => { e.preventDefault(); applyFormat("fontSize", e.target.value); }}
           defaultValue=""
         >
-          <option value="" disabled>字号</option>
+          <option value="" disabled>Tamanho</option>
           {FONT_SIZES.map((size) => (
             <option key={size} value={size}>{size}</option>
           ))}
@@ -170,6 +172,7 @@ export default function RichTextEditor({
 
       {/* Editor */}
       <div
+        id={id}
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning

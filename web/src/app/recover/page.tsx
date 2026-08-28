@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, KeyRound, Phone, CheckCircle } from "lucide-react";
+import { maskPhone } from "@/lib/masks";
 import { useTranslation } from "@/i18n";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
@@ -74,7 +75,10 @@ export default function RecoverPage() {
                 <input type="text" value={form.username} onChange={(e) => update("username", e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:ring-2 focus:ring-indigo-500" required /></div>
               <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("recover.phone_number")}</label>
-                <input type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+55 11 99999-9999"
+                <input type="tel" value={form.phone} onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "");
+                  update("phone", maskPhone(raw));
+                }} placeholder="+55 (11) 9 9999-9999"
                   className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500" required /></div>
               <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("recover.birth_date")}</label>
                 <input type="date" value={form.birth_date} onChange={(e) => update("birth_date", e.target.value)}
