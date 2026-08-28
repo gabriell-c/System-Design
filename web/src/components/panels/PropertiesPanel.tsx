@@ -692,6 +692,21 @@ export default function PropertiesPanel() {
                 updateNodeData(node.id, { opacity: Number(e.target.value) / 100 })
               }
             />
+            {/* Rotation */}
+            <label className="mt-2 text-xs text-[var(--muted-fg)]">
+              Rotação (graus) {free.rotation ?? 0}°
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              step={5}
+              className="mt-1 w-full"
+              value={free.rotation ?? 0}
+              onChange={(e) =>
+                updateNodeData(node.id, { rotation: Number(e.target.value) })
+              }
+            />
           </div>
 
           {!isLink && (

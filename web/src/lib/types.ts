@@ -668,6 +668,7 @@ export type FreeNodeData = {
   backgroundGradient?: FreeBackgroundGradient;
   fillPattern?: FreeFillPattern;
   hoverEffect?: FreeHoverEffect;
+  rotation?: number;
   linkUrl?: string;
   mediaUrl?: string;
 };

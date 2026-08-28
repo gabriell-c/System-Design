@@ -206,6 +206,12 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
     opacity: data.opacity != null ? data.opacity : undefined,
   };
 
+  // Apply rotation if set (combined with any existing transform)
+  if (data.rotation && data.rotation !== 0) {
+    const existing = customStyle.transform ?? "";
+    customStyle.transform = `${existing} rotate(${data.rotation}deg)`.trim();
+  }
+
   const fontStyle: CSSProperties = {
     color: data.textColor ?? "var(--foreground)",
     fontSize: data.fontSize != null ? `${data.fontSize}px` : undefined,
