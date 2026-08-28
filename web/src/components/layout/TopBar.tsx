@@ -289,6 +289,7 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
               <span className="hidden md:inline">{isLocked ? "Bloqueado" : "Desbloquear"}</span>
             </button>
           </Tooltip>
+        </div>
 
         <div className="ml-auto flex items-center gap-1.5">
           {onToggleFocus && (
