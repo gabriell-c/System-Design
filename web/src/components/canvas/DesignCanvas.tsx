@@ -537,7 +537,7 @@ function CanvasInner() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-3 left-3 z-10">
+      <div className="pointer-events-none absolute top-3 left-3 z-10">
         <div className="pointer-events-auto">
           <button
             type="button"
@@ -572,13 +572,6 @@ function CanvasInner() {
             </ul>
           )}
         </div>
-      </div>
-
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
-        <DiagramLegend variant="floating" />
-        <span className="text-sm tabular-nums text-[var(--muted-fg)]">
-          {nodes.length} nós · {zoomLevel < 0.3 ? "zoom-out" : zoomLevel < 0.8 ? "subsystem" : zoomLevel < 1.3 ? "service" : "resource"}
-        </span>
       </div>
 
       {/* Alignment guidelines */}
@@ -703,12 +696,7 @@ function CanvasInner() {
         {!sequenceMode && (
           <>
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(30,41,59,0.5)" />
-            <Controls
-              className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-2)] !shadow-none"
-              showInteractive={false}
-              aria-label="Controles de zoom do React Flow"
-            />
-            <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
+            <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
               <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
                 MiniMap
                 <input
@@ -732,8 +720,8 @@ function CanvasInner() {
                 }
               />
             </div>
-            {/* Title Block */}
-            <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
+            {/* Title Block — top left */}
+            <div className="absolute top-3 left-3 z-30 pointer-events-none">
               <TitleBlock
                 title={name || "Arquitetura"}
                 author="Arquiteto"
@@ -742,8 +730,8 @@ function CanvasInner() {
                 variant="overlay"
               />
             </div>
-            {/* Legend */}
-            <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
+            {/* Legend — top right, above minimap */}
+            <div className="absolute top-12 right-3 z-30 pointer-events-none">
               <DiagramLegend variant="overlay" />
             </div>
             {/* Templates button for free mode */}
