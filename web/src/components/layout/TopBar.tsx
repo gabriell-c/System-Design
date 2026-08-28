@@ -10,6 +10,8 @@ import {
   FolderOpen,
   GitCompareArrows,
   LayoutGrid,
+  Lock,
+  LockOpen,
   LogOut,
   Maximize2,
   Redo2,
@@ -80,6 +82,8 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const highlightCriticalPath = useGraphStore((s) => s.highlightCriticalPath);
   const setSequenceMode = useGraphStore((s) => s.setSequenceMode);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
+  const isLocked = useGraphStore((s) => s.isLocked);
+  const setIsLocked = useGraphStore((s) => s.setIsLocked);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -271,6 +275,20 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
             </button>
           </Tooltip>
         </div>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <Tooltip content={isLocked ? "Desbloquear canvas" : "Bloquear canvas"}>
+            <button
+              type="button"
+              className="btn-ghost inline-flex items-center gap-1.5"
+              aria-pressed={isLocked}
+              aria-label={isLocked ? "Desbloquear" : "Bloquear"}
+              onClick={() => setIsLocked(!isLocked)}
+            >
+              {isLocked ? <Lock size={15} /> : <LockOpen size={15} />}
+              <span className="hidden md:inline">{isLocked ? "Bloqueado" : "Desbloquear"}</span>
+            </button>
+          </Tooltip>
 
         <div className="ml-auto flex items-center gap-1.5">
           {onToggleFocus && (

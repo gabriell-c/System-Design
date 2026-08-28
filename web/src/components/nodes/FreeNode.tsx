@@ -143,6 +143,7 @@ const FONT_WEIGHT: Record<string, number | string> = {
 
 function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
+  const isLocked = useGraphStore((s) => s.isLocked);
   const shape = SHAPE_STYLES[data.kind];
   const isText = TEXT_KINDS.has(data.kind);
   const isMedia = MEDIA_KINDS.has(data.kind);
@@ -332,7 +333,7 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
       <NodeResizer
         minWidth={48}
         minHeight={32}
-        isVisible={selected}
+        isVisible={selected && !isLocked}
         keepAspectRatio={shiftHeld}
         lineClassName="!border-[var(--accent)]/40"
         handleClassName="!h-3 !w-3 !rounded-sm !border-indigo-300 !bg-indigo-500"
@@ -346,7 +347,7 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
         {renderContent()}
       </div>
 
-      {!isText && !isMedia && !isLink && (
+      {!isText && !isMedia && !isLink && !isLocked && (
         <>
           <AnchorHandle tone="block" nodeId={id} handleId="f-left" type="target" position={Position.Left} style={{ top: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />
           <AnchorHandle tone="block" nodeId={id} handleId="f-right" type="source" position={Position.Right} style={{ top: "50%" }} className={selected ? "" : "opacity-40 hover:opacity-100"} />

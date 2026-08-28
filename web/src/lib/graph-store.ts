@@ -108,6 +108,7 @@ type GraphState = {
   parentGraphId: string | null;
   c4ParentNodeId: string | null;
   sequenceMode: boolean;
+  isLocked: boolean;
   _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
   _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
@@ -312,6 +313,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   parentGraphId: null,
   c4ParentNodeId: null,
   sequenceMode: false,
+  isLocked: false,
   _pendingNodesChanges: null,
   _pendingTimeout: null,
 
@@ -1186,7 +1188,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
 
   setSequenceMode: (on) => set({ sequenceMode: on }),
-
+  setIsLocked: (locked) => set({ isLocked: locked }),
   renameNode: (id, label) => {
     const trimmed = label.trim() || "Sem nome";
     withHistory(get, set, () => {

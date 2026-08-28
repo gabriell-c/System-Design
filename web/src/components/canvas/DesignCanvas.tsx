@@ -110,6 +110,8 @@ function CanvasInner() {
   const diagramKind = useGraphStore((s) => s.diagramKind);
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
+  const isLocked = useGraphStore((s) => s.isLocked);
+  const setIsLocked = useGraphStore((s) => s.setIsLocked);
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
@@ -618,6 +620,11 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        selectable={!isLocked}
+        connectable={!isLocked}
+        zoomOnScroll={!isLocked}
+        panOnDrag={!isLocked ? [1, 2] : false}
+        zoomOnPinch={!isLocked}
         onSelectionChange={useCallback(({ nodes: selected, edges: selectedEdges }) => {
           if (selectedEdges?.[0]) {
             setSelectedEdgeId(selectedEdges[0].id);

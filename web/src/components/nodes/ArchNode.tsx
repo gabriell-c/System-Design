@@ -29,6 +29,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
   const blastDegradedNode = blastDegraded.includes(id);
   const diffStatus = diffHighlights.find((h) => h.nodeId === id)?.status;
   const diffColor = diffStatus === "added" ? "#22c55e" : diffStatus === "removed" ? "#ef4444" : diffStatus === "changed" ? "#eab308" : null;
+  const isLocked = useGraphStore((s) => s.isLocked);
   const opacity = nodeOpacityForView(data, architectureView);
   const meta = KIND_META[data.kind];
   const subtitle =
@@ -77,14 +78,18 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
         aria-label={`${data.label} - ${meta.label}${data.c4Level ? ` (C4: ${data.c4Level})` : ""}${data.piiSensitivity && data.piiSensitivity !== "none" ? ` - PII: ${data.piiSensitivity}` : ""}`}
         tabIndex={0}
       >
-        <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
-        <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />
-        <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />
-        <AnchorHandle nodeId={id} handleId="right-in" type="target" position={Position.Right} style={{ top: "65%" }} />
-        <AnchorHandle nodeId={id} handleId="top-in" type="target" position={Position.Top} style={{ left: "40%" }} />
-        <AnchorHandle nodeId={id} handleId="top-out" type="source" position={Position.Top} style={{ left: "65%" }} />
-        <AnchorHandle nodeId={id} handleId="bottom-out" type="source" position={Position.Bottom} style={{ left: "40%" }} />
-        <AnchorHandle nodeId={id} handleId="bottom-in" type="target" position={Position.Bottom} style={{ left: "65%" }} />
+      {isLocked ? null : (
+        <>
+          <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
+          <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />
+          <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />
+          <AnchorHandle nodeId={id} handleId="right-in" type="target" position={Position.Right} style={{ top: "65%" }} />
+          <AnchorHandle nodeId={id} handleId="top-in" type="target" position={Position.Top} style={{ left: "40%" }} />
+          <AnchorHandle nodeId={id} handleId="top-out" type="source" position={Position.Top} style={{ left: "65%" }} />
+          <AnchorHandle nodeId={id} handleId="bottom-out" type="source" position={Position.Bottom} style={{ left: "40%" }} />
+          <AnchorHandle nodeId={id} handleId="bottom-in" type="target" position={Position.Bottom} style={{ left: "65%" }} />
+        </>
+      )}
 
         <div className="flex items-start gap-2">
           <span
