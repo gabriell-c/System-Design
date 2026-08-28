@@ -110,6 +110,7 @@ function CanvasInner() {
   const diagramKind = useGraphStore((s) => s.diagramKind);
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
+  const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
   const isFreeMode = projects.find((p) => p.id === activeProjectId)?.project_kind === "free";
@@ -201,6 +202,36 @@ function CanvasInner() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [deleteSelected, redo, undo, isFreeMode, screenToFlowPosition, addFreeNode, fitView]);
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      if (!selectedNodeIds.length) return;
+      const nodeId = selectedNodeIds[0];
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node || node.data.kind !== "free-image") return;
+
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          event.preventDefault();
+          const blob = item.getAsFile();
+          if (!blob) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            updateNodeData(nodeId, { mediaUrl: dataUrl });
+          };
+          reader.readAsDataURL(blob);
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [selectedNodeIds, nodes, updateNodeData, isFreeMode]);
 
   const orderedNodes = useMemo(() => {
     if (isFreeMode) {
