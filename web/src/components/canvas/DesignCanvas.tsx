@@ -585,37 +585,30 @@ function CanvasInner() {
         </div>
       </div>
 
-      {/* Bottom right — Legend + MiniMap stacked flexibly */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
-        {/* Legend — above minimap */}
-        <div className="pointer-events-none">
-          <DiagramLegend variant="overlay" />
-        </div>
-        {/* MiniMap container */}
-        <div className="flex flex-col items-end gap-1">
-          <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
-            MiniMap
-            <input
-              type="range"
-              min={100}
-              max={240}
-              value={miniMapSize}
-              onChange={(e) => setMiniMapSize(Number(e.target.value))}
-              aria-label="Tamanho do minimapa"
-              className="w-16"
-            />
-          </label>
-          <MiniMap
-            style={{ width: miniMapSize, height: miniMapSize }}
-            className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
-            maskColor="rgba(2,6,23,0.75)"
-            pannable
-            zoomable
-            nodeColor={(node) =>
-              node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : node.type === "free" ? "#6366f1" : "#475569"
-            }
+      {/* Bottom right — MiniMap only */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
+        <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
+          MiniMap
+          <input
+            type="range"
+            min={100}
+            max={240}
+            value={miniMapSize}
+            onChange={(e) => setMiniMapSize(Number(e.target.value))}
+            aria-label="Tamanho do minimapa"
+            className="w-16"
           />
-        </div>
+        </label>
+        <MiniMap
+          style={{ width: miniMapSize, height: miniMapSize }}
+          className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
+          maskColor="rgba(2,6,23,0.75)"
+          pannable
+          zoomable
+          nodeColor={(node) =>
+            node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : node.type === "free" ? "#6366f1" : "#475569"
+          }
+        />
       </div>
 
       {/* Alignment guidelines */}
