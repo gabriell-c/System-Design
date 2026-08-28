@@ -537,8 +537,9 @@ function CanvasInner() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-20 left-3 z-10">
-        <div className="pointer-events-auto">
+      <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-3">
+        {/* Atalhos — left */}
+        <div className="pointer-events-auto shrink-0">
           <button
             type="button"
             className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -571,6 +572,49 @@ function CanvasInner() {
               <li>Itens alinham automaticamente ao arrastar</li>
             </ul>
           )}
+        </div>
+        {/* Title Block — above shortcuts */}
+        <div className="pointer-events-none mt-2">
+          <TitleBlock
+            title={name || "Arquitetura"}
+            author="Arquiteto"
+            version="1.0"
+            nfr={nfr}
+            variant="overlay"
+          />
+        </div>
+      </div>
+
+      {/* Bottom right — Legend + MiniMap stacked flexibly */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
+        {/* Legend — above minimap */}
+        <div className="pointer-events-none">
+          <DiagramLegend variant="overlay" />
+        </div>
+        {/* MiniMap container */}
+        <div className="flex flex-col items-end gap-1">
+          <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
+            MiniMap
+            <input
+              type="range"
+              min={100}
+              max={240}
+              value={miniMapSize}
+              onChange={(e) => setMiniMapSize(Number(e.target.value))}
+              aria-label="Tamanho do minimapa"
+              className="w-16"
+            />
+          </label>
+          <MiniMap
+            style={{ width: miniMapSize, height: miniMapSize }}
+            className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
+            maskColor="rgba(2,6,23,0.75)"
+            pannable
+            zoomable
+            nodeColor={(node) =>
+              node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : node.type === "free" ? "#6366f1" : "#475569"
+            }
+          />
         </div>
       </div>
 
@@ -696,44 +740,6 @@ function CanvasInner() {
         {!sequenceMode && (
           <>
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(30,41,59,0.5)" />
-            <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
-              <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
-                MiniMap
-                <input
-                  type="range"
-                  min={100}
-                  max={240}
-                  value={miniMapSize}
-                  onChange={(e) => setMiniMapSize(Number(e.target.value))}
-                  aria-label="Tamanho do minimapa"
-                  className="w-16"
-                />
-              </label>
-              <MiniMap
-                style={{ width: miniMapSize, height: miniMapSize }}
-                className="!overflow-hidden !rounded-lg !border !border-[var(--border)] !bg-[var(--surface-1)]"
-                maskColor="rgba(2,6,23,0.75)"
-                pannable
-                zoomable
-                nodeColor={(node) =>
-                  node.type === "zone" ? "#312e81" : node.type === "block" ? "#334155" : node.type === "free" ? "#6366f1" : "#475569"
-                }
-              />
-            </div>
-            {/* Title Block — bottom left */}
-            <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
-              <TitleBlock
-                title={name || "Arquitetura"}
-                author="Arquiteto"
-                version="1.0"
-                nfr={nfr}
-                variant="overlay"
-              />
-            </div>
-            {/* Legend — bottom right, above minimap */}
-            <div className="absolute bottom-20 right-3 z-30 pointer-events-none">
-              <DiagramLegend variant="overlay" />
-            </div>
             {/* Templates button for free mode */}
             {isFreeMode && nodes.length === 0 && (
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
