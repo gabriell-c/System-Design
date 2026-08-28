@@ -906,6 +906,17 @@ export default function PropertiesPanel() {
         onChange={(c4Level) => updateNodeData(node.id, { c4Level: c4Level as C4Level })}
       />
 
+      <div>
+        <label className="text-xs text-[var(--muted-fg)]">Link externo</label>
+        <input
+          type="url"
+          className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-1)] px-2 py-1.5 text-xs text-slate-100"
+          value={archData.linkUrl ?? ""}
+          onChange={(e) => updateNodeData(node.id, { linkUrl: e.target.value || undefined })}
+          placeholder="https://…"
+        />
+      </div>
+
       <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Contrato de capacidade</p>
         <input

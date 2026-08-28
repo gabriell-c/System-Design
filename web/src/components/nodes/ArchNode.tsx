@@ -9,6 +9,7 @@ import { TechIcon } from "@/lib/tech-icons";
 import { getOfficialIcon, useOfficialIconMode } from "@/lib/catalog-icons";
 import type { ArchNodeData } from "@/lib/types";
 import NodeGlossaryTooltip from "@/components/canvas/NodeGlossaryTooltip";
+import LinkButton from "@/components/nodes/LinkButton";
 
 function scoreTone(score?: number | null): string {
   if (score == null) return "bg-slate-700 text-slate-300";
@@ -41,7 +42,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
   return (
     <NodeGlossaryTooltip nodeId={data.catalogId ?? id} nodeLabel={data.label} nodeTech={data.tech}>
       <article
-        className={`min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 elev-2 shadow-black/40 ${
+        className={`relative min-w-[210px] max-w-[240px] rounded-xl border px-3 py-2.5 elev-2 shadow-black/40 ${
           selected || highlighted ? "ring-2 ring-cyan-400/70" : ""
         } ${
           blastDown
@@ -136,6 +137,7 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
             </p>
           </div>
         </div>
+        {data.linkUrl && <LinkButton href={data.linkUrl} />}
       </article>
     </NodeGlossaryTooltip>
   );

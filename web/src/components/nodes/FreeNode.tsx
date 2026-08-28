@@ -9,6 +9,7 @@ import { cssDirection } from "@/components/ui/NodeGradientPicker";
 import { fillPatternCss } from "@/components/ui/NodeFillPatternPicker";
 import { resolveFreeIcon } from "@/lib/free-icons";
 import { useGraphStore } from "@/lib/graph-store";
+import LinkButton from "@/components/nodes/LinkButton";
 import type {
   FreeFillPattern,
   FreeHoverEffect,
@@ -326,10 +327,11 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
 
   return (
     <div
-      className={`relative h-full w-full ${selected ? "ring-2 ring-[var(--accent)]/70" : ""} ${HOVER_CLASS[hoverEffect]}`}
+      className={`relative h-full w-full group ${selected ? "ring-2 ring-[var(--accent)]/70" : ""} ${HOVER_CLASS[hoverEffect]}`}
       aria-label={data.label}
       style={{ contain: "layout style" }}
     >
+      {data.linkUrl && <LinkButton href={data.linkUrl} />}
       <NodeResizer
         minWidth={48}
         minHeight={32}

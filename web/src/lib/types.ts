@@ -215,6 +215,8 @@ export type ArchNodeData = {
   tgwAttachments?: TgwAttachment[];
   /** Notas / especificações do card (HTML do editor rico). */
   notes?: string;
+  /** URL opcional — abre um botão de link no canto do nó. */
+  linkUrl?: string;
 };
 
 export type BlockNodeData = {
