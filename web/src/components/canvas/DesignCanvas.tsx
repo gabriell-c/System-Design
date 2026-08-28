@@ -120,6 +120,8 @@ function CanvasInner() {
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
   const snapRef = useRef({ active: false, originalPositions: new Map<string, { x: number; y: number }>() });
+  const isLockedRef = useRef(isLocked);
+  useEffect(() => { isLockedRef.current = isLocked; }, [isLocked]);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [miniMapSize, setMiniMapSize] = useState(140);
 
@@ -625,7 +627,11 @@ function CanvasInner() {
         zoomOnScroll={!isLocked}
         panOnDrag={!isLocked ? [1, 2] : false}
         zoomOnPinch={!isLocked}
+        selectionOnDrag={!isLocked}
+        selectionMode={isLocked ? undefined : SelectionMode.Partial}
+        multiSelectionKeyCode={!isLocked ? "Shift" : undefined}
         onSelectionChange={useCallback(({ nodes: selected, edges: selectedEdges }) => {
+          if (isLockedRef.current) return;
           if (selectedEdges?.[0]) {
             setSelectedEdgeId(selectedEdges[0].id);
             return;
@@ -633,14 +639,14 @@ function CanvasInner() {
           const ids = (selected ?? []).map((n) => n.id);
           setSelectedNodeIds(ids);
         }, [setSelectedEdgeId, setSelectedNodeIds])}
-        onEdgeClick={useCallback((_: unknown, edge: { id: string }) => setSelectedEdgeId(edge.id), [setSelectedEdgeId])}
+        onEdgeClick={useCallback((_: unknown, edge: { id: string }) => {
+          if (isLockedRef.current) return;
+          setSelectedEdgeId(edge.id);
+        }, [setSelectedEdgeId])}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        selectionOnDrag
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode="Shift"
-        panOnDrag={[1, 2]}
         onNodeDragStart={useCallback((event: unknown, node: { id: string }) => {
+          if (isLockedRef.current) return;
           checkpointDrag();
           snapRef.current.active = true;
           snapRef.current.originalPositions = new Map(
@@ -649,6 +655,7 @@ function CanvasInner() {
         }, [checkpointDrag])}
         onNodeDrag={useCallback((event: unknown, draggedNode: { id: string; position: { x: number; y: number } }) => {
           if (!snapRef.current.active || !draggedNode) return;
+          if (isLockedRef.current) return;
           if (!_lod.snapEnabled) {
             setGuidelines([]);
             return;
@@ -670,11 +677,13 @@ function CanvasInner() {
           setGuidelines(result.guidelines);
         }, [_lod, setNodes, setGuidelines])}
         onNodeDragStop={useCallback((_event: unknown, node: { id: string } | null) => {
+          if (isLockedRef.current) return;
           snapRef.current.active = false;
           setGuidelines([]);
           if (node) resolveNestingAfterDrag(node.id);
         }, [resolveNestingAfterDrag, setGuidelines])}
         onEdgeDoubleClick={useCallback((_event: unknown, edge: { id: string }) => {
+          if (isLockedRef.current) return;
           disconnectEdge(edge.id);
         }, [disconnectEdge])}
         fitView

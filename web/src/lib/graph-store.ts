@@ -109,6 +109,7 @@ type GraphState = {
   c4ParentNodeId: string | null;
   sequenceMode: boolean;
   isLocked: boolean;
+  setIsLocked: (locked: boolean) => void;
   _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
   _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
