@@ -538,50 +538,57 @@ function CanvasInner() {
       )}
 
       <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-3">
-        {/* Atalhos — left */}
-        <div className="pointer-events-auto shrink-0">
-          <button
-            type="button"
-            className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            onClick={() => setHintsOpen((v) => !v)}
-            aria-expanded={hintsOpen}
-            aria-label="Mostrar atalhos de teclado"
-          >
-            <Keyboard size={12} aria-hidden />
-            Atalhos
-          </button>
-          {hintsOpen && (
-            <ul className="mt-2 max-w-xs space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 p-3 text-sm text-slate-300 elev-3 backdrop-blur">
-              <li className="flex gap-2">
-                <Unlink2 size={12} className="mt-0.5 shrink-0 text-amber-300" />
-                Duplo clique no ponto ou na linha remove a ligação
-              </li>
-              <li>
-                <kbd className="rounded bg-white/10 px-1">Ctrl</kbd>+<kbd className="rounded bg-white/10 px-1">Z</kbd>{" "}
-                desfaz · <kbd className="rounded bg-white/10 px-1">Shift</kbd>+
-                <kbd className="rounded bg-white/10 px-1">Z</kbd> refaz
-              </li>
-              <li>
-                <kbd className="rounded bg-white/10 px-1">Delete</kbd> remove a seleção
-              </li>
-              <li>
-                <kbd className="rounded bg-white/10 px-1">F</kbd> tela cheia ·{" "}
-                <kbd className="rounded bg-white/10 px-1">Esc</kbd> sai
-              </li>
-              <li>Zonas aninham (VPC → AZ → Subnet); blocos de stack ainda exigem mesmo domínio</li>
-              <li>Itens alinham automaticamente ao arrastar</li>
-            </ul>
-          )}
-        </div>
-        {/* Title Block — above shortcuts */}
-        <div className="pointer-events-none mt-2">
-          <TitleBlock
-            title={name || "Arquitetura"}
-            author="Arquiteto"
-            version="1.0"
-            nfr={nfr}
-            variant="overlay"
-          />
+        {/* Left side — Title, Legend, Shortcuts */}
+        <div className="pointer-events-none flex flex-col items-start gap-2">
+          {/* Title Block */}
+          <div className="pointer-events-auto">
+            <TitleBlock
+              title={name || "Arquitetura"}
+              author="Arquiteto"
+              version="1.0"
+              nfr={nfr}
+              variant="overlay"
+            />
+          </div>
+          {/* Legend */}
+          <div className="pointer-events-auto">
+            <DiagramLegend variant="overlay" />
+          </div>
+          {/* Shortcuts */}
+          <div className="pointer-events-auto shrink-0">
+            <button
+              type="button"
+              className="btn-ghost inline-flex items-center gap-1.5 bg-[var(--surface-1)]/90 text-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              onClick={() => setHintsOpen((v) => !v)}
+              aria-expanded={hintsOpen}
+              aria-label="Mostrar atalhos de teclado"
+            >
+              <Keyboard size={12} aria-hidden />
+              Atalhos
+            </button>
+            {hintsOpen && (
+              <ul className="mt-2 max-w-xs space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 p-3 text-sm text-slate-300 elev-3 backdrop-blur">
+                <li className="flex gap-2">
+                  <Unlink2 size={12} className="mt-0.5 shrink-0 text-amber-300" />
+                  Duplo clique no ponto ou na linha remove a ligação
+                </li>
+                <li>
+                  <kbd className="rounded bg-white/10 px-1">Ctrl</kbd>+<kbd className="rounded bg-white/10 px-1">Z</kbd>{" "}
+                  desfaz · <kbd className="rounded bg-white/10 px-1">Shift</kbd>+
+                  <kbd className="rounded bg-white/10 px-1">Z</kbd> refaz
+                </li>
+                <li>
+                  <kbd className="rounded bg-white/10 px-1">Delete</kbd> remove a seleção
+                </li>
+                <li>
+                  <kbd className="rounded bg-white/10 px-1">F</kbd> tela cheia ·{" "}
+                  <kbd className="rounded bg-white/10 px-1">Esc</kbd> sai
+                </li>
+                <li>Zonas aninham (VPC → AZ → Subnet); blocos de stack ainda exigem mesmo domínio</li>
+                <li>Itens alinham automaticamente ao arrastar</li>
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
