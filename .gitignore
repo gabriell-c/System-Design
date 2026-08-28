@@ -4,8 +4,8 @@ out/
 dist/
 *.pyc
 __pycache__/
-.pytest_cache/
-.ruff_cache/
+.pypytest_cache/
+.rff_cache/
 .venv/
 venv/
 backend/data/*.db
@@ -22,7 +22,22 @@ web/playwright-report/
 web/blob-report/
 web/eslint-errors.json
 web/tsconfig.tsbuildinfo
-
 backend/data/*.db-shm
 backend/data/*.db-wal
-
+# Ignore analysis and temporary files
+*.txt
+analysis_*.txt
+chunk_*.txt
+line_*.txt
+test-*.txt
+debug-*.txt
+cookies.txt
+docker_content.txt
+final-results.txt
+project_check.txt
+pyproject_content.txt
+readme_content.txt
+requirements_content.txt
+test-log.txt
+test-output.txt
+test-results.txt
