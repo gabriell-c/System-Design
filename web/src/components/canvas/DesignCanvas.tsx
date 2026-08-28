@@ -537,7 +537,7 @@ function CanvasInner() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute top-3 left-3 z-10">
+      <div className="pointer-events-none absolute bottom-20 left-3 z-10">
         <div className="pointer-events-auto">
           <button
             type="button"
@@ -696,7 +696,7 @@ function CanvasInner() {
         {!sequenceMode && (
           <>
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(30,41,59,0.5)" />
-            <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
+            <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
               <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
                 MiniMap
                 <input
@@ -720,8 +720,8 @@ function CanvasInner() {
                 }
               />
             </div>
-            {/* Title Block — top left */}
-            <div className="absolute top-3 left-3 z-30 pointer-events-none">
+            {/* Title Block — bottom left */}
+            <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
               <TitleBlock
                 title={name || "Arquitetura"}
                 author="Arquiteto"
@@ -730,8 +730,8 @@ function CanvasInner() {
                 variant="overlay"
               />
             </div>
-            {/* Legend — top right, above minimap */}
-            <div className="absolute top-12 right-3 z-30 pointer-events-none">
+            {/* Legend — bottom right, above minimap */}
+            <div className="absolute bottom-20 right-3 z-30 pointer-events-none">
               <DiagramLegend variant="overlay" />
             </div>
             {/* Templates button for free mode */}
