@@ -190,24 +190,6 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             : "bg-gradient-to-b from-slate-50 via-white to-slate-50 border-r border-slate-200/50"
         }`}
       >
-        {/* Toggle button — always visible */}
-        <button
-          type="button"
-          onClick={toggle}
-          className={`absolute top-1/2 -translate-y-1/2 z-40 flex items-center justify-center w-6 h-10 rounded-l-lg border border-l-0 border-slate-700/50 ${
-            theme === "dark"
-              ? "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
-          } transition-all duration-200 ${effectiveCollapsed ? "right-0" : "right-0"}`}
-          aria-label={effectiveCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        >
-          {effectiveCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
-        {/* ─── Toggle button (inside aside, right edge) ─── */}
 
         {/* ─── FULL SIDEBAR ─── */}
         {!effectiveCollapsed && (
