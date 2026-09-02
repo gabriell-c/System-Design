@@ -179,9 +179,14 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
       )}
 
       <aside suppressHydrationWarning
-        className={`relative z-30 flex shrink-0 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-slate-800/50 transition-all duration-300 ${
+        className={`relative z-30 flex shrink-0 flex-col transition-all duration-300 ${
           effectiveCollapsed ? "w-20" : "w-72"
-        } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}`}
+        } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}
+        ${
+          theme === "dark"
+            ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-slate-800/50"
+            : "bg-gradient-to-b from-slate-50 via-white to-slate-50 border-r border-slate-200/50"
+        }`}
         onMouseEnter={() => !forceExpanded && setIsHovering(true)}
         onMouseLeave={() => !forceExpanded && setIsHovering(false)}
       >
@@ -191,46 +196,141 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         {!effectiveCollapsed && (
           <>
             {/* Logo Header */}
-            <div className="flex items-center gap-3 border-b border-slate-800/50 px-6 py-6">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/30">
-                <Command className="h-5 w-5 text-white" />
+            <div className={`flex items-center gap-3 border-b px-6 py-6 ${
+              theme === "dark"
+                ? "border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-950"
+                : "border-slate-200/50 bg-gradient-to-b from-slate-50 to-white"
+            }`}>
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30"
+                  : "bg-gradient-to-br from-blue-400 to-blue-500 shadow-blue-500/20"
+              }`}>
+                <Command className={`h-5 w-5 ${theme === "dark" ? "text-white" : "text-white"}`} />
               </div>
               <div className="flex-1">
-                <h1 className="text-lg font-bold text-white tracking-tight">Archia</h1>
-                <p className="text-xs text-slate-400">Design System</p>
+                <h1 className={`text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Archia</h1>
+                <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Design System</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 lg:hidden transition"
+                className={`rounded-lg p-1.5 transition lg:hidden ${
+                  theme === "dark"
+                    ? "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-700"
+                }`}
                 aria-label="Fechar menu"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Actions */}
-            <div className="px-3 py-3">
+            {/* Quick Actions */}
+            <div className="px-4 py-4 border-b border-slate-800/50">
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-2 text-sm font-semibold text-[var(--accent-fg)] shadow transition hover:bg-[var(--accent-hover)]"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 py-3 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all duration-200"
               >
-                <Plus className="h-4 w-4" />
-                Novo projeto
+                <Plus className="h-5 w-5" />
+                Novo Projeto
               </button>
             </div>
 
             {/* Search */}
-            <div className="relative mx-3 mb-2">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar…"
-                className="w-full rounded-lg border border-[var(--border)] bg-black/30 py-2 pr-3 pl-8 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]"
-              />
+            <div className="px-4 py-3 border-b border-slate-800/50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-800 transition"
+                />
+              </div>
             </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto px-4 py-4">
+              {/* Main Menu Section */}
+              <div className="mb-8">
+                <p className="mb-4 px-0 text-xs font-semibold uppercase text-slate-500 tracking-widest">Menu Principal</p>
+                <div className="space-y-2">
+                  <Link
+                    href="/"
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                      isActive("/")
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                    }`}
+                  >
+                    <LayoutGrid className="h-5 w-5 shrink-0" />
+                    <span className="font-medium text-sm">Dashboard</span>
+                  </Link>
+
+                  <Link
+                    href="/graphs"
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                      isActive("/graphs")
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                    }`}
+                  >
+                    <Monitor className="h-5 w-5 shrink-0" />
+                    <span className="font-medium text-sm">Diagramas</span>
+                  </Link>
+
+                  <Link
+                    href="/compare"
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                      isActive("/compare")
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                    }`}
+                  >
+                    <Sparkles className="h-5 w-5 shrink-0" />
+                    <span className="font-medium text-sm">Comparar</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Projects Section */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setExpanded((v) => !v)}
+                  className="mb-4 flex w-full items-center justify-between px-0 transition"
+                >
+                  <p className="text-xs font-semibold uppercase text-slate-500 tracking-widest">Meus Projetos</p>
+                  <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+                </button>
+                
+                {expanded && (
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {filteredProjects.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-slate-500 text-center">Nenhum projeto</p>
+                    ) : (
+                      filteredProjects.map((p) => (
+                        <Link
+                          key={p.id}
+                          href={`/project/${p.id}`}
+                          className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm transition-all duration-200 ${
+                            currentProject === p.id
+                              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                              : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                          }`}
+                        >
+                          <FolderKanban className="h-4 w-4 shrink-0" />
+                          <span className="truncate font-medium text-sm">{p.name}</span>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </nav>
 
             {/* Global nav */}
             <nav className="flex-1 min-w-0 overflow-y-auto px-2">
@@ -445,51 +545,52 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-slate-700/50 px-2 py-4">
-              <div className="flex flex-col items-center gap-3">
+            <div className="border-t border-slate-800/50 px-4 py-4 mt-auto">
+              <div className="flex flex-col gap-3">
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-indigo-500/10 hover:text-slate-300"
+                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
                   title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-                  aria-label={
-                    theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
-                  }
                 >
                   {theme === "dark" ? (
-                    <Sun className="h-6 w-6 text-amber-400" />
+                    <Sun className="h-5 w-5 text-amber-400" />
                   ) : (
-                    <Moon className="h-6 w-6 text-indigo-400" />
+                    <Moon className="h-5 w-5 text-indigo-400" />
                   )}
+                  <span className="text-sm font-medium">{theme === "dark" ? "Claro" : "Escuro"}</span>
                 </button>
 
-                <div className="w-full border-t border-slate-700/50" />
+                <div className="border-t border-slate-800/50" />
 
-                <Tooltip text="Sair">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      router.push("/login");
-                    }}
-                    className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-300"
-                  >
-                    <LogOut className="h-6 w-6" />
-                  </button>
-                </Tooltip>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    router.push("/login");
+                  }}
+                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200"
+                  title="Sair"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="text-sm font-medium">Sair</span>
+                </button>
 
-                <Tooltip text="Meu perfil">
-                  <Link
-                    href="/profile"
-                    className="mt-1 flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-slate-600/50 transition-all duration-200 hover:bg-indigo-500/20 hover:ring-2 hover:ring-indigo-500/30"
-                  >
+                <div className="border-t border-slate-800/50" />
+
+                <Link
+                  href="/profile"
+                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-700">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-xs font-bold text-slate-200">{initials}</span>
                     )}
-                  </Link>
-                </Tooltip>
+                  </div>
+                  <span className="text-sm font-medium">Perfil</span>
+                </Link>
               </div>
             </div>
           </>
