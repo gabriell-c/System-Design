@@ -340,41 +340,41 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                 <button
                   type="button"
                   onClick={() => setExpanded((v) => !v)}
-                  className="mb-4 flex w-full items-center justify-between px-0 transition"
+                  className="mb-3 flex w-full items-center justify-between px-0 transition focus:outline-none focus:ring-2 focus:ring-offset-0 rounded"
                 >
                   <p className={`text-xs font-semibold uppercase tracking-widest ${
                     theme === "dark"
-                      ? "text-violet-400/60"
-                      : "text-violet-600/60"
+                      ? "text-violet-400/50"
+                      : "text-violet-600/50"
                   }`}>Meus Projetos</p>
                   <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
                     theme === "dark"
-                      ? "text-violet-400/60"
-                      : "text-violet-600/60"
+                      ? "text-violet-400/50"
+                      : "text-violet-600/50"
                   } ${expanded ? "rotate-180" : ""}`} />
                 </button>
                 
                 {expanded && (
-                  <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                  <div className="space-y-1 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-violet-600/30 scrollbar-track-transparent">
                     {filteredProjects.length === 0 ? (
-                      <p className={`px-4 py-3 text-xs text-center ${
+                      <p className={`px-3 py-2 text-xs text-center ${
                         theme === "dark"
-                          ? "text-violet-400/50"
-                          : "text-violet-600/50"
+                          ? "text-violet-400/40"
+                          : "text-violet-600/40"
                       }`}>Nenhum projeto</p>
                     ) : (
                       filteredProjects.map((p) => (
                         <Link
                           key={p.id}
                           href={`/project/${p.id}`}
-                          className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 ${
                             currentProject === p.id
                               ? theme === "dark"
-                                ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
-                                : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                                ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                                : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                               : theme === "dark"
-                                ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                                : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                                ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                                : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                           }`}
                         >
                           <FolderKanban className="h-4 w-4 shrink-0" />
@@ -495,18 +495,18 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Footer */}
             <div className={`border-t px-3 py-3 ${
               theme === "dark"
-                ? "border-violet-800/50"
-                : "border-violet-200/50"
+                ? "border-violet-800/20"
+                : "border-violet-100"
             }`}>
-              <Link href="/profile" className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition ${
+              <Link href="/profile" className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors focus:outline-none focus:ring-2 ${
                 theme === "dark"
-                  ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                  : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                  ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                  : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
               }`}>
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden ${
                   theme === "dark"
-                    ? "bg-gradient-to-br from-violet-600 to-purple-600"
-                    : "bg-gradient-to-br from-violet-500 to-purple-600"
+                    ? "bg-violet-600"
+                    : "bg-violet-600"
                 }`}>
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
@@ -517,28 +517,28 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                 <div className="min-w-0 flex-1">
                   <p className={`truncate text-xs font-medium ${
                     theme === "dark"
-                      ? "text-violet-200"
+                      ? "text-violet-100"
                       : "text-violet-900"
                   }`}>
                     {user?.username}
                   </p>
-                  <p className={`truncate text-sm ${
+                  <p className={`truncate text-xs ${
                     theme === "dark"
-                      ? "text-violet-400/50"
-                      : "text-violet-600/50"
+                      ? "text-violet-400/60"
+                      : "text-violet-600/60"
                   }`}>
                     {user?.email}
                   </p>
                 </div>
               </Link>
-              <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-violet-800/20">
                 <div className="flex items-center gap-2">
                   {theme === "dark" ? (
-                    <Moon className="h-4 w-4 text-indigo-400" />
+                    <Moon className={`h-4 w-4 ${theme === "dark" ? "text-violet-400" : "text-violet-600"}`} />
                   ) : (
-                    <Sun className="h-4 w-4 text-amber-500" />
+                    <Sun className={`h-4 w-4 ${theme === "dark" ? "text-violet-400" : "text-violet-600"}`} />
                   )}
-                  <span className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                  <span className={`text-xs font-medium ${theme === "dark" ? "text-violet-300" : "text-violet-700"}`}>
                     {theme === "dark" ? "Escuro" : "Claro"}
                   </span>
                 </div>
@@ -574,89 +574,92 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Logo */}
             <div className={`flex h-14 items-center justify-center border-b ${
               theme === "dark"
-                ? "border-violet-800/50"
-                : "border-violet-200/50"
+                ? "border-violet-800/20"
+                : "border-violet-100"
             }`}>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-xl shadow-md bg-gradient-to-br ${
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                 theme === "dark"
-                  ? "from-violet-500 to-purple-600 shadow-purple-500/30"
-                  : "from-violet-500 to-purple-600 shadow-purple-500/20"
+                  ? "bg-violet-600"
+                  : "bg-violet-600"
               }`}>
                 <Command className="h-5 w-5 text-white" />
               </div>
             </div>
 
             {/* Nav icons */}
-            <nav className="flex-1 min-w-0 overflow-y-auto px-2 py-4">
-              <div className="space-y-3">
+            <nav className="flex-1 min-w-0 overflow-y-auto px-2 py-3 scrollbar-thin scrollbar-thumb-violet-600/30 scrollbar-track-transparent">
+              <div className="space-y-2">
                 <Link
                   href="/"
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 ${
                     isActive("/")
                       ? theme === "dark"
-                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
-                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                        ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                        : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                       : theme === "dark"
-                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                        ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                        : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                   }`}
+                  title="Dashboard"
                 >
-                  <LayoutGrid className="h-6 w-6" />
+                  <LayoutGrid className="h-5 w-5" />
                 </Link>
 
                 <Link
                   href="/project"
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 ${
                     pathname.startsWith("/project")
                       ? theme === "dark"
-                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
-                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                        ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                        : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                       : theme === "dark"
-                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                        ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                        : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                   }`}
+                  title="Projetos"
                 >
-                  <FolderKanban className="h-6 w-6" />
+                  <FolderKanban className="h-5 w-5" />
                 </Link>
 
                 <div className={`my-1 border-t ${
                   theme === "dark"
-                    ? "border-violet-700/50"
-                    : "border-violet-300/50"
+                    ? "border-violet-800/20"
+                    : "border-violet-100"
                 }`} />
 
                 <Link
                   href="/profile"
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 ${
                     isActive("/profile")
                       ? theme === "dark"
-                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
-                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                        ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                        : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                       : theme === "dark"
-                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                        ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                        : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                   }`}
+                  title="Perfil"
                 >
-                  <User className="h-6 w-6" />
+                  <User className="h-5 w-5" />
                 </Link>
               </div>
             </nav>
 
             {/* Footer */}
-            <div className={`border-t px-2 py-4 ${
+            <div className={`border-t px-2 py-3 ${
               theme === "dark"
-                ? "border-violet-800/50"
-                : "border-violet-200/50"
+                ? "border-violet-800/20"
+                : "border-violet-100"
             }`}>
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-2">
                 {/* Theme Toggle (só ícone) */}
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 ${
                     theme === "dark"
-                      ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                      : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                      ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                      : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                   }`}
                   title={theme === "dark" ? "Modo claro" : "Modo escuro"}
                 >
@@ -669,8 +672,8 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
 
                 <div className={`w-full border-t ${
                   theme === "dark"
-                    ? "border-violet-800/50"
-                    : "border-violet-200/50"
+                    ? "border-violet-800/20"
+                    : "border-violet-100"
                 }`} />
 
                 {/* Sair (só ícone) */}
@@ -680,10 +683,10 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                     logout();
                     router.push("/login");
                   }}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 ${
                     theme === "dark"
-                      ? "text-rose-300/70 hover:bg-rose-900/30 hover:text-rose-200"
-                      : "text-rose-600/70 hover:bg-rose-100/30 hover:text-rose-900"
+                      ? "text-rose-300 hover:bg-rose-900/30 focus:ring-rose-500/50"
+                      : "text-rose-600 hover:bg-rose-50 focus:ring-rose-400/50"
                   }`}
                   title="Sair"
                 >
@@ -692,17 +695,17 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
 
                 <div className={`w-full border-t ${
                   theme === "dark"
-                    ? "border-violet-800/50"
-                    : "border-violet-200/50"
+                    ? "border-violet-800/20"
+                    : "border-violet-100"
                 }`} />
 
                 {/* Perfil (só ícone) */}
                 <Link
                   href="/profile"
-                  className={`flex h-10 w-10 items-center justify-center rounded-full overflow-hidden transition-all duration-200 ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-full overflow-hidden transition-colors focus:outline-none focus:ring-2 ${
                     theme === "dark"
-                      ? "bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
-                      : "bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                      ? "bg-violet-600 hover:bg-violet-700 focus:ring-violet-500/50"
+                      : "bg-violet-600 hover:bg-violet-700 focus:ring-violet-400/50"
                   }`}
                   title="Perfil"
                 >
