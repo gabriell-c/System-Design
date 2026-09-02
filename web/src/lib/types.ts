@@ -576,6 +576,8 @@ export type GraphRecord = {
   c4_parent_node_id?: string | null;
   created_at: string;
   updated_at: string;
+  /** Optimistic concurrency token (from ETag response header) */
+  etag?: string | null;
 };
 
 export type ProjectAccessRole = "read" | "full";

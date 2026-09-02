@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +44,7 @@ from app.routes.resilience import router as resilience_router
 from app.routes.settings import router as settings_router
 from app.routes.simulations import router as simulations_router
 from app.routes.users import router as users_router
+from app.routes.ws import router as ws_router, set_main_loop
 from app.seed import seed_default_users
 
 configure_logging(level=settings.log_level, json_logs=settings.log_json)
@@ -55,6 +57,7 @@ async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _ensure_sqlite_columns()
     seed_default_users()
+    set_main_loop(asyncio.get_running_loop())
     logger.info(
         "archia_started cors=%s db=%s env=%s",
         settings.origin_list,
@@ -62,6 +65,7 @@ async def lifespan(_app: FastAPI):
         settings.archia_env,
     )
     yield
+    set_main_loop(None)
 
 
 def _ensure_sqlite_columns() -> None:
@@ -197,8 +201,8 @@ app.add_middleware(
     allow_origins=settings.origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
-    expose_headers=["Content-Type", "Authorization", "X-Request-ID", "Deprecation", "Link", "Sunset"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID", "If-Match"],
+    expose_headers=["Content-Type", "Authorization", "X-Request-ID", "Deprecation", "Link", "Sunset", "ETag"],
     max_age=600,
 )
 app.include_router(health_router)
@@ -221,3 +225,4 @@ app.include_router(profile_router)
 app.include_router(users_router)
 app.include_router(resilience_router)
 app.include_router(network_router)
+app.include_router(ws_router)

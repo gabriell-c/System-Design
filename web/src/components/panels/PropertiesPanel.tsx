@@ -493,7 +493,7 @@ export default function PropertiesPanel() {
             <p className="text-xs text-[var(--muted-fg)] mb-1.5">Borda</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Espessura</label>
+                <label className="text-xs text-[var(--muted)]">Espessura</label>
                 <input
                   type="range"
                   min={1}
@@ -505,17 +505,17 @@ export default function PropertiesPanel() {
                     updateNodeData(node.id, { borderWidth: Number(e.target.value) })
                   }
                 />
-                <p className="text-[10px] text-[var(--muted)] text-right">{free.borderWidth ?? 2}px</p>
+                <p className="text-xs text-[var(--muted)] text-right">{free.borderWidth ?? 2}px</p>
               </div>
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Estilo</label>
+                <label className="text-xs text-[var(--muted)]">Estilo</label>
                 <div className="mt-1 flex gap-1">
                   {(["solid", "dashed", "dotted"] as FreeBorderStyle[]).map((style) => (
                     <button
                       key={style}
                       type="button"
                       aria-pressed={(free.borderStyle ?? "solid") === style}
-                      className={`flex-1 rounded border py-1 text-[10px] ${
+                      className={`flex-1 rounded border py-1 text-xs ${
                         (free.borderStyle ?? "solid") === style
                           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--muted-fg)]"
@@ -534,7 +534,7 @@ export default function PropertiesPanel() {
             <p className="text-xs text-[var(--muted-fg)] mb-1.5">Tipografia</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Tamanho</label>
+                <label className="text-xs text-[var(--muted)]">Tamanho</label>
                 <input
                   type="range"
                   min={12}
@@ -546,17 +546,17 @@ export default function PropertiesPanel() {
                     updateNodeData(node.id, { fontSize: Number(e.target.value) })
                   }
                 />
-                <p className="text-[10px] text-[var(--muted)] text-right">{free.fontSize ?? 14}px</p>
+                <p className="text-xs text-[var(--muted)] text-right">{free.fontSize ?? 14}px</p>
               </div>
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Peso</label>
+                <label className="text-xs text-[var(--muted)]">Peso</label>
                 <div className="mt-1 flex gap-1">
                   {(["normal", "medium", "bold"] as FreeFontWeight[]).map((w) => (
                     <button
                       key={w}
                       type="button"
                       aria-pressed={(free.fontWeight ?? "medium") === w}
-                      className={`flex-1 rounded border py-1 text-[10px] ${
+                      className={`flex-1 rounded border py-1 text-xs ${
                         (free.fontWeight ?? "medium") === w
                           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--muted-fg)]"
@@ -573,7 +573,7 @@ export default function PropertiesPanel() {
                       key={s}
                       type="button"
                       aria-pressed={(free.fontStyle ?? "normal") === s}
-                      className={`flex-1 rounded border py-1 text-[10px] ${
+                      className={`flex-1 rounded border py-1 text-xs ${
                         (free.fontStyle ?? "normal") === s
                           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--muted-fg)]"
@@ -592,14 +592,14 @@ export default function PropertiesPanel() {
             <p className="text-xs text-[var(--muted-fg)] mb-1.5">Alinhamento</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Horizontal</label>
+                <label className="text-xs text-[var(--muted)]">Horizontal</label>
                 <div className="mt-1 flex gap-1">
                   {(["left", "center", "right"] as FreeTextAlign[]).map((a) => (
                     <button
                       key={a}
                       type="button"
                       aria-pressed={(free.textAlign ?? "center") === a}
-                      className={`flex-1 rounded border py-1 text-[10px] ${
+                      className={`flex-1 rounded border py-1 text-xs ${
                         (free.textAlign ?? "center") === a
                           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--muted-fg)]"
@@ -612,14 +612,14 @@ export default function PropertiesPanel() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] text-[var(--muted)]">Vertical</label>
+                <label className="text-xs text-[var(--muted)]">Vertical</label>
                 <div className="mt-1 flex gap-1">
                   {(["top", "center", "bottom"] as FreeVerticalAlign[]).map((a) => (
                     <button
                       key={a}
                       type="button"
                       aria-pressed={(free.verticalAlign ?? "center") === a}
-                      className={`flex-1 rounded border py-1 text-[10px] ${
+                      className={`flex-1 rounded border py-1 text-xs ${
                         (free.verticalAlign ?? "center") === a
                           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--muted-fg)]"
@@ -665,7 +665,7 @@ export default function PropertiesPanel() {
                   key={effect}
                   type="button"
                   aria-pressed={(free.hoverEffect ?? "none") === effect}
-                  className={`rounded border py-1.5 text-[10px] capitalize ${
+                  className={`rounded border py-1.5 text-xs capitalize ${
                     (free.hoverEffect ?? "none") === effect
                       ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                       : "border-[var(--border)] text-[var(--muted-fg)]"

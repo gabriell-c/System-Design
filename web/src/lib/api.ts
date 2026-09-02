@@ -17,6 +17,19 @@ import type {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 
+export class ApiConflictError extends Error {
+  readonly status = 409;
+  readonly serverEtag: string | null;
+  readonly updatedAt: string | null;
+
+  constructor(message: string, serverEtag: string | null = null, updatedAt: string | null = null) {
+    super(message);
+    this.name = "ApiConflictError";
+    this.serverEtag = serverEtag;
+    this.updatedAt = updatedAt;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     ...init,
@@ -28,18 +41,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
+    let serverEtag: string | null = response.headers.get("ETag");
+    let updatedAt: string | null = null;
     try {
-      const body = (await response.json()) as { detail?: string };
-      if (body.detail) detail = body.detail;
+      const body = (await response.json()) as {
+        detail?: string | { code?: string; message?: string; server_etag?: string; updated_at?: string };
+      };
+      if (typeof body.detail === "string") {
+        detail = body.detail;
+      } else if (body.detail && typeof body.detail === "object") {
+        detail = body.detail.message || detail;
+        serverEtag = body.detail.server_etag ?? serverEtag;
+        updatedAt = body.detail.updated_at ?? null;
+      }
     } catch {
       /* ignore */
+    }
+    if (response.status === 409) {
+      throw new ApiConflictError(detail, serverEtag, updatedAt);
     }
     throw new Error(detail);
   }
   if (response.status === 204) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  const data = (await response.json()) as T;
+  // Attach ETag for optimistic concurrency when present
+  const etag = response.headers.get("ETag");
+  if (etag && data && typeof data === "object") {
+    (data as { etag?: string }).etag = etag;
+  }
+  return data;
 }
 
 export type GraphPayload = {
@@ -61,8 +93,19 @@ export const api = {
   getGraph: (id: string) => request<GraphRecord>(`/api/v1/graphs/${id}`),
   createGraph: (payload: GraphPayload) =>
     request<GraphRecord>("/api/v1/graphs", { method: "POST", body: JSON.stringify(payload) }),
-  updateGraph: (id: string, payload: Partial<GraphPayload> & { analysis?: AnalysisResult | null }) =>
-    request<GraphRecord>(`/api/v1/graphs/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  updateGraph: (
+    id: string,
+    payload: Partial<GraphPayload> & { analysis?: AnalysisResult | null },
+    opts?: { ifMatch?: string | null; force?: boolean },
+  ) =>
+    request<GraphRecord>(`/api/v1/graphs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+      headers:
+        !opts?.force && opts?.ifMatch
+          ? { "If-Match": opts.ifMatch }
+          : undefined,
+    }),
   deleteGraph: (id: string) =>
     request<void>(`/api/v1/graphs/${id}`, { method: "DELETE" }),
   analyze: (payload: GraphPayload & { persist_id?: string | null }) =>

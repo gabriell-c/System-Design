@@ -18,7 +18,7 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={cycleTheme}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white/5 px-2.5 py-2 text-[12px] font-medium text-[var(--muted-fg)] transition hover:border-[var(--border-strong)] hover:text-slate-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white/5 px-2.5 py-2 text-xs font-medium text-[var(--muted-fg)] transition hover:border-[var(--border-strong)] hover:text-slate-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       title={nextHint}
       aria-label={nextHint}
       data-testid="theme-toggle"

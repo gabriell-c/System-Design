@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,16 @@ from app.services.heuristic import analyze_graph, compare_analyses
 
 router = APIRouter(prefix="/api/v1")
 
+
+def graph_etag(graph: Graph) -> str:
+    """Weak ETag from updated_at — used for optimistic concurrency (If-Match)."""
+    ts = graph.updated_at.isoformat() if graph.updated_at else "0"
+    return f'W/"{graph.id}:{ts}"'
+
+
+def _apply_etag(response: Response, graph: Graph) -> None:
+    response.headers["ETag"] = graph_etag(graph)
+    response.headers["Cache-Control"] = "no-cache"
 
 def _parse_json_list(raw: str) -> list:
     try:
@@ -143,18 +153,43 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db), current_u
 
 
 @router.get("/graphs/{graph_id}", response_model=GraphOut)
-def get_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> GraphOut:
+def get_graph(
+    graph_id: str,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> GraphOut:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    _apply_etag(response, graph)
     return to_out(graph)
 
 
 @router.put("/graphs/{graph_id}", response_model=GraphOut)
-def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> GraphOut:
+def update_graph(
+    graph_id: str,
+    payload: GraphUpdate,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    if_match: str | None = Header(default=None, alias="If-Match"),
+) -> GraphOut:
     graph = db.get(Graph, graph_id)
     if not graph:
         raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    current = graph_etag(graph)
+    # Optimistic lock: when client sends If-Match, reject stale writes
+    if if_match is not None and if_match.strip() and if_match.strip() != current:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "conflict",
+                "message": "O diagrama foi alterado por outra sessão. Recarregue ou escolha a versão.",
+                "server_etag": current,
+                "updated_at": graph.updated_at.isoformat() if graph.updated_at else None,
+            },
+        )
     if payload.name is not None:
         graph.name = payload.name.strip()
     if payload.context is not None:
@@ -182,6 +217,7 @@ def update_graph(graph_id: str, payload: GraphUpdate, db: Session = Depends(get_
         _snapshot(db, graph)
         db.commit()
         db.refresh(graph)
+    _apply_etag(response, graph)
     return to_out(graph)
 
 

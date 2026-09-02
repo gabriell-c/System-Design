@@ -39,11 +39,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("archia-theme");
-      if (isTheme(stored)) {
-        setThemeState(stored);
-        return;
-      }
+      // Force dark theme always, ignore localStorage
+      localStorage.setItem("archia-theme", "dark");
+      setThemeState("dark");
     } catch {
       /* ignore */
     }

@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════
+   Excalidraw — esconder links sociais (GitHub / Discord / Follow us)
+   ═══════════════════════════════════════════════════════════ */
+.dropdown-menu-group:has([aria-label="GitHub"]),
+.dropdown-menu-group:has([aria-label="Discord"]),
+.dropdown-menu-item[aria-label="GitHub"],
+.dropdown-menu-item[aria-label="Discord"],
+.dropdown-menu-item[title="GitHub"],
+.dropdown-menu-item[title="Discord"] {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
    Archia Design System tokens
    Spec: docs/system_design.md
    Accent: Indigo · Fonts: Inter + JetBrains Mono
@@ -652,6 +664,24 @@ textarea::placeholder {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  .theme-transition,
+  .theme-transition *,
+  .free-node-hover-glow,
+  .free-node-hover-scale,
+  .free-node-hover-shadow,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    transition: none !important;
+    transform: none !important;
   }
 }
 
@@ -785,9 +815,38 @@ textarea::placeholder {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-    background: var(--surface-3);
+@keyframes archia-indeterminate {
+  0% {
+    transform: translateX(-100%);
   }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.archia-indeterminate-bar {
+  animation: archia-indeterminate 1.2s ease-in-out infinite;
+}
+
+/* ── RTL (manual §14) ── */
+.archia-rtl {
+  direction: rtl;
+}
+
+.archia-rtl .sidebar-panel {
+  border-right: none;
+  border-left: 1px solid var(--card-border);
+}
+
+.archia-rtl input,
+.archia-rtl select,
+.archia-rtl textarea {
+  background-position: left 0.5rem center;
+  padding-right: 0.75rem;
+  padding-left: 2.5rem;
+}
+
+/* Logical margin helpers for mirrored chrome */
+[dir="rtl"] .ms-auto {
+  margin-inline-start: auto;
 }

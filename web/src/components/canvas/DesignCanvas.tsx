@@ -13,7 +13,7 @@ import {
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Keyboard, Maximize, Minus, Plus, Trash2, Unlink2, Zap } from "lucide-react";
+import { Keyboard, Maximize, Minus, Plus, Trash2, Unlink2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArchNode from "@/components/nodes/ArchNode";
 import BlockNode from "@/components/nodes/BlockNode";
@@ -28,6 +28,7 @@ import NoteNode from "@/components/nodes/NoteNode";
 import CidrNode from "@/components/nodes/CidrNode";
 import TenantBoundaryNode from "@/components/nodes/TenantBoundaryNode";
 import DrillDownNavigator from "@/components/canvas/DrillDownNavigator";
+import CollabPresenceBadge from "@/components/canvas/CollabPresenceBadge";
 import SequenceDiagramView from "@/components/canvas/SequenceDiagramView";
 import BlastRadiusOverlay from "@/components/canvas/BlastRadiusOverlay";
 import FlowBadgeEdge from "@/components/edges/FlowBadgeEdge";
@@ -98,8 +99,6 @@ function CanvasInner() {
   const resolveNestingAfterDrag = useGraphStore((s) => s.resolveNestingAfterDrag);
   const checkpointDrag = useGraphStore((s) => s.checkpointDrag);
   const deleteSelected = useGraphStore((s) => s.deleteSelected);
-  const addFreeNode = useGraphStore((s) => s.addFreeNode);
-  const applyFreeTemplate = useGraphStore((s) => s.applyFreeTemplate);
   const disconnectEdge = useGraphStore((s) => s.disconnectEdge);
   const undo = useGraphStore((s) => s.undo);
   const redo = useGraphStore((s) => s.redo);
@@ -147,39 +146,7 @@ function CanvasInner() {
       const mod = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
 
-      // Atalhos para formas no free mode
-      if (isFreeMode && !mod) {
-        if (key === "r") {
-          event.preventDefault();
-          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-          addFreeNode("free-rectangle", pos);
-          return;
-        }
-        if (key === "c") {
-          event.preventDefault();
-          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-          addFreeNode("free-circle", pos);
-          return;
-        }
-        if (key === "d") {
-          event.preventDefault();
-          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-          addFreeNode("free-diamond", pos);
-          return;
-        }
-        if (key === "t") {
-          event.preventDefault();
-          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-          addFreeNode("free-text", pos);
-          return;
-        }
-        if (key === "n") {
-          event.preventDefault();
-          const pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-          addFreeNode("free-note", pos);
-          return;
-        }
-      }
+      // Atalhos free-mode removidos — Diagrama Livre é Excalidraw puro
 
       if (mod && key === "0") {
         event.preventDefault();
@@ -205,7 +172,7 @@ function CanvasInner() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteSelected, redo, undo, isFreeMode, screenToFlowPosition, addFreeNode, fitView]);
+  }, [deleteSelected, redo, undo, fitView]);
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -435,39 +402,39 @@ function CanvasInner() {
       >
         <button
           type="button"
-          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="btn-ghost inline-flex h-11 min-w-11 items-center justify-center gap-1 px-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           onClick={() => void zoomIn({ duration: 200 })}
           aria-label="Aumentar zoom"
           title="Zoom +"
         >
-          <Plus size={14} aria-hidden />
+          <Plus size={16} aria-hidden />
           <span className="hidden md:inline">Zoom +</span>
         </button>
         <button
           type="button"
-          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="btn-ghost inline-flex h-11 min-w-11 items-center justify-center gap-1 px-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           onClick={() => void zoomOut({ duration: 200 })}
           aria-label="Diminuir zoom"
           title="Zoom −"
         >
-          <Minus size={14} aria-hidden />
+          <Minus size={16} aria-hidden />
           <span className="hidden md:inline">Zoom −</span>
         </button>
         <button
           type="button"
-          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="btn-ghost inline-flex h-11 min-w-11 items-center justify-center gap-1 px-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           onClick={() => void fitView({ padding: 0.2, duration: 300 })}
           aria-label="Ajustar à tela"
           title="Fit view (Ctrl+0)"
           data-testid="fit-view-btn"
         >
-          <Maximize size={14} aria-hidden />
+          <Maximize size={16} aria-hidden />
           <span className="hidden md:inline">Encaixar</span>
         </button>
         <span className="mx-1 hidden h-5 w-px bg-[var(--border-strong)] sm:block" aria-hidden />
         <button
           type="button"
-          className="btn-ghost inline-flex items-center gap-1 px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="btn-ghost inline-flex h-11 min-w-11 items-center justify-center gap-1 px-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-40"
           onClick={() => deleteSelected()}
           disabled={selectedNodeIds.length === 0}
           aria-label={
@@ -477,7 +444,7 @@ function CanvasInner() {
           }
           title="Delete"
         >
-          <Trash2 size={14} aria-hidden />
+          <Trash2 size={16} aria-hidden />
           <span className="hidden md:inline">
             {selectedNodeIds.length > 1 ? `Apagar (${selectedNodeIds.length})` : "Apagar"}
           </span>
@@ -594,7 +561,7 @@ function CanvasInner() {
 
       {/* Bottom right — MiniMap only */}
       <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1">
-        <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-[10px] text-[var(--muted-fg)] backdrop-blur">
+        <label className="pointer-events-auto flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface-1)]/90 px-1.5 py-0.5 text-xs text-[var(--muted-fg)] backdrop-blur">
           MiniMap
           <input
             type="range"
@@ -659,8 +626,9 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        selectable={!isLocked ? "true" : "false"}
-        connectable={!isLocked}
+        elementsSelectable={!isLocked}
+        nodesConnectable={!isLocked}
+        nodesDraggable={!isLocked}
         zoomOnScroll={!isLocked}
         panOnDrag={!isLocked ? [1, 2] : false}
         zoomOnPinch={!isLocked}
@@ -740,38 +708,6 @@ function CanvasInner() {
         {!sequenceMode && (
           <>
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(30,41,59,0.5)" />
-            {/* Templates button for free mode */}
-            {isFreeMode && nodes.length === 0 && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => applyFreeTemplate("simple-flow")}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  aria-label="Aplicar template fluxo simples"
-                >
-                  <Zap className="h-3 w-3" aria-hidden />
-                  Fluxo simples
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFreeTemplate("decision-tree")}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  aria-label="Aplicar template árvore de decisão"
-                >
-                  <Zap className="h-3 w-3" aria-hidden />
-                  Árvore decisão
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyFreeTemplate("process")}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/95 px-3 py-2 text-xs text-[var(--foreground)] backdrop-blur transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  aria-label="Aplicar template processo"
-                >
-                  <Zap className="h-3 w-3" aria-hidden />
-                  Processo
-                </button>
-              </div>
-            )}
           </>
         )}
       </ReactFlow>
@@ -791,6 +727,7 @@ export default function DesignCanvas() {
   return (
     <ReactFlowProvider>
       <CanvasInner />
+      <CollabPresenceBadge />
     </ReactFlowProvider>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
-import DesignCanvas from "@/components/canvas/DesignCanvas";
+import { Maximize2, Minimize2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import ExcalidrawWrapper from "@/components/canvas/ExcalidrawWrapper";
 import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
-import FreePalette from "@/components/sidebar/FreePalette";
 import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
 import PresentationMode from "@/components/layout/PresentationMode";
 import ResizablePanel from "@/components/ui/ResizablePanel";
@@ -15,6 +15,8 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import { useGraphStore } from "@/lib/graph-store";
 import { useProjectStore } from "@/lib/project-store";
 import TopBar from "./TopBar";
+
+const DesignCanvas = dynamic(() => import("@/components/canvas/DesignCanvas"), { ssr: false });
 
 const FOCUS_KEY = "archia-focus-mode";
 const AUTO_ANALYZE_KEY = "archia-auto-analyze";
@@ -120,13 +122,15 @@ export default function EditorShell() {
         return;
       }
       if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        // Don't steal F from Excalidraw in free mode
+        if (isFreeProject) return;
         event.preventDefault();
         toggleFocus();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focusMode, setFocus, toggleFocus]);
+  }, [focusMode, setFocus, toggleFocus, isFreeProject]);
 
   const fingerprint = useMemo(
     () => structureKey(nodes, edges) + "|" + context.trim() + "|" + JSON.stringify(nfr),
@@ -181,6 +185,19 @@ export default function EditorShell() {
     };
   }, [fingerprint, isFreeProject]);
 
+  // ── Free mode: Excalidraw puro (zero chrome Archia) ──
+  if (isFreeProject) {
+    return (
+      <div
+        className="h-full min-h-0 w-full overflow-hidden"
+        style={{ height: "100%", width: "100%", background: "#fff" }}
+      >
+        <ExcalidrawWrapper />
+      </div>
+    );
+  }
+
+  // ── Architecture mode: React Flow canvas + Archia chrome ──
   return (
     <div className="flex h-full min-h-0 bg-[var(--background)] text-[var(--foreground)]">
       <DomainNotice />
@@ -191,18 +208,18 @@ export default function EditorShell() {
             onAnalyze={() => void runAnalyze()}
             onToggleFocus={toggleFocus}
             focusMode={focusMode}
-            hideAnalysis={isFreeProject}
+            hideAnalysis={false}
           />
         )}
         <div className="flex min-h-0 flex-1">
           {!focusMode && (
             <ResizablePanel storageKey="archia-sidebar-left" defaultWidth={300} side="left">
               <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                {isFreeProject ? <FreePalette /> : <ComponentPalette />}
+                <ComponentPalette />
               </div>
             </ResizablePanel>
           )}
-          <main className="relative min-w-0 flex-1 bg-[var(--canvas-bg)]">
+          <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-[var(--canvas-bg)]">
             <DesignCanvas />
             {focusMode && (
               <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-2">
@@ -233,12 +250,11 @@ export default function EditorShell() {
           </main>
           {!focusMode && (
             <ResizablePanel storageKey="archia-sidebar-right" defaultWidth={380} side="right">
-              <Inspector hideAnalysis={isFreeProject} />
+              <Inspector hideAnalysis={false} />
             </ResizablePanel>
           )}
         </div>
       </div>
-      {/* P3.1.2 — Presentation Mode */}
       <PresentationMode graphId={graphId ?? ""} />
     </div>
   );

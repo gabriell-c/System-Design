@@ -10,6 +10,7 @@ type Props = {
   maxWidth?: number;
   side: "left" | "right";
   children: React.ReactNode;
+  className?: string;
 };
 
 export default function ResizablePanel({
@@ -19,6 +20,7 @@ export default function ResizablePanel({
   maxWidth = 600,
   side,
   children,
+  className,
 }: Props) {
   const [width, setWidth] = useState(() => {
     try {
@@ -71,7 +73,7 @@ export default function ResizablePanel({
 
   return (
     <div
-      className="flex h-full shrink-0"
+      className={`flex h-full shrink-0 ${className ?? ""}`}
       style={{ width, minWidth, maxWidth }}
     >
       {side === "right" && (

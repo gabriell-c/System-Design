@@ -1,0 +1,15 @@
+// Cache configuration for Archia project
+// Forces immediate revalidation on every request
+// ONLY affects this project, does NOT touch other containers/services
+
+module.exports = {
+  // Revalidate every 0 seconds (always fresh)
+  revalidate: 0,
+  
+  // Headers to prevent caching
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
+};

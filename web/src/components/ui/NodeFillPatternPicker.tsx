@@ -25,7 +25,7 @@ export default function NodeFillPatternPicker({ value, onChange }: Props) {
             type="button"
             title={opt.label}
             aria-pressed={value === opt.id}
-            className={`rounded border px-1 py-1.5 text-[10px] ${
+            className={`rounded border px-1 py-1.5 text-xs ${
               value === opt.id
                 ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                 : "border-[var(--border)] text-[var(--muted-fg)]"

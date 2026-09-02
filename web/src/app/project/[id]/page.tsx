@@ -10,7 +10,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/layout/ErrorBoundary";
 
-const EditorShell = dynamic(() => import("@/components/layout/EditorShell"), { ssr: false });
+const EditorShell = dynamic(() => import("@/components/layout/EditorShell"), { 
+  ssr: false,
+  loading: () => <div className="flex h-screen items-center justify-center bg-[var(--surface-1)]">Carregando...</div>,
+});
 
 export default function ProjectEditorPage() {
   const params = useParams<{ id: string }>();
@@ -29,8 +32,28 @@ export default function ProjectEditorPage() {
   }, [fetchProfile]);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push("/login");
-  }, [authLoading, isAuthenticated, router]);
+    if (authLoading) return; // Ainda carregando autenticação
+    
+    if (!isAuthenticated && !projectId) {
+      router.push("/login");
+      return;
+    }
+
+    // Se não autenticado, verificar se projeto é público
+    if (!isAuthenticated && projectId) {
+      (async () => {
+        try {
+          const project = await api.getProject(projectId);
+          // Se projeto não é público, redirecionar para login
+          if (!project.is_public) {
+            router.push("/login");
+          }
+        } catch {
+          router.push("/login");
+        }
+      })();
+    }
+  }, [authLoading, isAuthenticated, projectId, router]);
 
   useEffect(() => {
     if (!isAuthenticated || !projectId) return;

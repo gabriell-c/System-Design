@@ -31,7 +31,7 @@ export default function NodeGradientPicker({ value, onChange }: Props) {
         <p className="text-xs text-[var(--muted-fg)]">Gradiente</p>
         <button
           type="button"
-          className={`text-[10px] px-2 py-0.5 rounded border ${
+          className={`text-xs px-2 py-0.5 rounded border ${
             enabled
               ? "border-[var(--accent)] text-[var(--accent)]"
               : "border-[var(--border)] text-[var(--muted)]"

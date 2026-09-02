@@ -41,6 +41,84 @@ export default function CanvasComments() {
       .catch(() => undefined);
   }, [graphId, setCanvasComments]);
 
+  // Real-time comment sync via shared collab WebSocket room
+  useEffect(() => {
+    if (!graphId || typeof window === "undefined") return;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
+    const wsUrl = base.replace(/^http/, "ws") + `/api/v1/ws/graphs/${graphId}`;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        ws?.send(JSON.stringify({ type: "hello", userId: "comments-listener", displayName: "Comments" }));
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(String(ev.data)) as {
+            type?: string;
+            comment?: {
+              id: string;
+              text?: string;
+              author?: string;
+              created_at?: string;
+              position_x?: number | null;
+              position_y?: number | null;
+              resolved?: boolean;
+              assignee?: string | null;
+              mentions?: string[];
+              node_id?: string | null;
+              nodeId?: string | null;
+            };
+          };
+          if (!msg.type?.startsWith("comment.") || !msg.comment) return;
+          const current = useGraphStore.getState().canvasComments;
+          if (msg.type === "comment.created") {
+            if (current.some((c) => c.id === msg.comment!.id)) return;
+            const c = msg.comment;
+            setCanvasComments([
+              ...current,
+              {
+                id: c.id,
+                nodeId: c.node_id ?? c.nodeId,
+                text: c.text ?? "",
+                author: c.author ?? "?",
+                created_at: c.created_at ?? new Date().toISOString(),
+                position_x: c.position_x,
+                position_y: c.position_y,
+                resolved: c.resolved,
+                assignee: c.assignee,
+                mentions: c.mentions,
+              },
+            ]);
+            pushUiNotice({ type: "info", text: `Novo comentário de ${c.author ?? "alguém"}` });
+          } else if (msg.type === "comment.updated") {
+            setCanvasComments(
+              current.map((c) =>
+                c.id === msg.comment!.id
+                  ? {
+                      ...c,
+                      text: msg.comment!.text ?? c.text,
+                      resolved: msg.comment!.resolved ?? c.resolved,
+                      assignee: msg.comment!.assignee ?? c.assignee,
+                    }
+                  : c,
+              ),
+            );
+          } else if (msg.type === "comment.deleted") {
+            setCanvasComments(current.filter((c) => c.id !== msg.comment!.id));
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      ws?.close();
+    };
+  }, [graphId, setCanvasComments, pushUiNotice]);
+
   const onCanvasClick = useCallback(
     (e: React.MouseEvent) => {
       if (!mode || !graphId) return;

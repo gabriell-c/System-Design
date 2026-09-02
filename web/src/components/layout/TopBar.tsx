@@ -27,7 +27,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import CustomSelect from "@/components/ui/Select";
 import Tooltip from "@/components/ui/Tooltip";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { api } from "@/lib/api";
+import { api, ApiConflictError } from "@/lib/api";
 import { parseImportPayload } from "@/lib/export";
 import { useAuthStore } from "@/lib/auth-store";
 import { useGraphStore } from "@/lib/graph-store";
@@ -80,6 +80,8 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
   const isLocked = useGraphStore((s) => s.isLocked);
   const setIsLocked = useGraphStore((s) => s.setIsLocked);
+  const lastEtag = useGraphStore((s) => s.lastEtag);
+  const loadGraph = useGraphStore((s) => s.loadGraph);
 
   const user = useAuthStore((s) => s.user);
   const [isOnline, setIsOnline] = useState(
@@ -127,10 +129,58 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
         parent_graph_id: parentGraphId,
         c4_parent_node_id: c4ParentNodeId,
       };
-      const saved = graphId ? await api.updateGraph(graphId, payload) : await api.createGraph(payload);
-      markSaved(saved.id);
+      const saved = graphId
+        ? await api.updateGraph(graphId, payload, { ifMatch: lastEtag })
+        : await api.createGraph(payload);
+      markSaved(saved.id, saved.etag ?? null);
       pushUiNotice({ type: "success", text: "Arquitetura salva." });
     } catch (err) {
+      if (err instanceof ApiConflictError && graphId) {
+        const keepMine = await confirm({
+          title: "Conflito de versão",
+          description:
+            "Outra sessão alterou este diagrama desde o seu último carregamento.",
+          consequences:
+            "Escolha “Usar minha versão” para sobrescrever o servidor, ou “Carregar do servidor” para descartar suas alterações locais.",
+          confirmLabel: "Usar minha versão",
+          cancelLabel: "Carregar do servidor",
+        });
+        if (keepMine) {
+          try {
+            const payload = {
+              name,
+              context,
+              nfr,
+              nodes,
+              edges,
+              owner_team: ownerTeam || null,
+              diagram_kind: diagramKind,
+              parent_graph_id: parentGraphId,
+              c4_parent_node_id: c4ParentNodeId,
+            };
+            const saved = await api.updateGraph(graphId, payload, { force: true });
+            markSaved(saved.id, saved.etag ?? null);
+            pushUiNotice({ type: "success", text: "Sua versão foi salva (sobrescrita)." });
+          } catch (e2) {
+            pushUiNotice({
+              type: "error",
+              text: e2 instanceof Error ? e2.message : "Falha ao sobrescrever.",
+            });
+          }
+        } else {
+          try {
+            const remote = await api.getGraph(graphId);
+            loadGraph(remote);
+            pushUiNotice({ type: "info", text: "Versão do servidor carregada." });
+          } catch (e2) {
+            pushUiNotice({
+              type: "error",
+              text: e2 instanceof Error ? e2.message : "Falha ao recarregar do servidor.",
+            });
+          }
+        }
+        return;
+      }
       pushUiNotice({
         type: "error",
         text:
@@ -172,7 +222,17 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   return (
     <>
       {dialog}
-      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-1)]/95 px-3 backdrop-blur">
+      <header className="relative sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-1)]/95 px-3 backdrop-blur">
+        {analyzing && (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-[var(--surface-3)]"
+            role="progressbar"
+            aria-label="Análise em andamento"
+            aria-valuetext="Analisando arquitetura"
+          >
+            <div className="archia-indeterminate-bar h-full w-1/3 bg-[var(--accent)]" />
+          </div>
+        )}
         <nav className="mr-1 hidden shrink-0 items-center gap-1.5 text-sm sm:flex" aria-label="Breadcrumb">
           <Link href="/" className="font-semibold tracking-tight text-[var(--foreground)]" title="Voltar aos projetos">
             Archia

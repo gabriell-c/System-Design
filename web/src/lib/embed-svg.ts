@@ -114,8 +114,11 @@ export function renderEmbedSvg(
 
   svg += `</svg>`;
 
-  // Generate iframe snippet
-  const iframeSnippet = `<iframe src="about:blank" width="${svgWidth}" height="${svgHeight}" style="border:1px solid ${isLight ? "#e2e8f0" : "#1e293b"};border-radius:8px;"></iframe>\n<!-- Replace src with actual SVG data URL or hosted endpoint -->`;
+  // Generate iframe snippet with live embed URL
+  const iframeSnippet =
+    `<iframe src="/embed?theme=${theme}" width="${svgWidth}" height="${svgHeight}" ` +
+    `style="border:1px solid ${isLight ? "#e2e8f0" : "#1e293b"};border-radius:8px;" ` +
+    `title="Archia diagram" loading="lazy"></iframe>`;
 
   return {
     svg,

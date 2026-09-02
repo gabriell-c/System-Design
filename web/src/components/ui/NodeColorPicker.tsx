@@ -84,7 +84,7 @@ export default function NodeColorPicker({ label, value, onChange }: Props) {
               }}
             />
           ))}
-          <label className="col-span-6 mt-1 flex cursor-pointer items-center gap-2 text-[10px] text-[var(--muted)]">
+          <label className="col-span-6 mt-1 flex cursor-pointer items-center gap-2 text-xs text-[var(--muted)]">
             <input
               type="color"
               value={hex}

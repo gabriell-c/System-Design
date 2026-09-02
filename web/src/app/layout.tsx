@@ -7,6 +7,7 @@ import ThemeInitializer from "@/components/client/ThemeInit";
 import SWRegister from "@/components/client/SWRegister";
 import AppShell from "@/components/layout/AppShell";
 import { I18nProvider } from "@/i18n";
+import DirSync from "@/components/client/DirSync";
 import ptBR from "@/i18n/pt-BR.json";
 
 const inter = Inter({
@@ -25,12 +26,21 @@ export const metadata: Metadata = {
   title: "Archia — Editor de Design de Sistemas",
   description: "Desenhe arquiteturas e receba avaliação de um arquiteto virtual.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0b1220",
   appleWebApp: {
     capable: true,
     title: "Archia",
     statusBarStyle: "black-translucent",
   },
+};
+
+export const viewport: {
+  themeColor: string;
+  width: string;
+  initialScale: number;
+} = {
+  themeColor: "#0b1220",
+  width: "width=device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="h-full min-h-0 font-sans" suppressHydrationWarning>
         <I18nProvider translations={ptBR}>
           <ThemeProvider>
+            <DirSync />
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-[var(--accent-fg)]"

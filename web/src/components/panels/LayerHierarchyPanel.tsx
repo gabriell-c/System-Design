@@ -81,7 +81,7 @@ export default function LayerHierarchyPanel() {
                   : "border-[var(--border)] bg-[var(--surface-2)]"
               }`}
             >
-              <span className="text-[10px] font-mono text-[var(--muted-fg)] w-6 text-right">
+              <span className="text-xs font-mono text-[var(--muted-fg)] w-6 text-right">
                 {index + 1}
               </span>
               <Layers className="h-3 w-3 text-[var(--muted)] shrink-0" />
@@ -116,7 +116,7 @@ export default function LayerHierarchyPanel() {
       </div>
 
       <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2">
-        <p className="text-[10px] text-[var(--muted-fg)]">
+        <p className="text-xs text-[var(--muted-fg)]">
           <strong>Legenda:</strong> Posição <strong>1</strong> = mais atrás, posição <strong>N</strong> = mais na frente.
           Setas ↑↓ movem o nó para frente/trás na pilha visual.
         </p>

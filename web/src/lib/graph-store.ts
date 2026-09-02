@@ -110,6 +110,12 @@ type GraphState = {
   sequenceMode: boolean;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
+  lastEtag: string | null;
+  analyzePhase: "idle" | "analyzing" | "scoring" | "review" | "done";
+  excalidrawElements: import("@excalidraw/excalidraw/element/types").ExcalidrawElement[];
+  selectedExcalidrawElementId: string | null;
+  setExcalidrawElements: (elements: import("@excalidraw/excalidraw/element/types").ExcalidrawElement[]) => void;
+  setSelectedExcalidrawElementId: (id: string | null) => void;
   _pendingNodesChanges: NodeChange<Node<CanvasNodeData>>[] | null;
   _pendingTimeout: ReturnType<typeof setTimeout> | null;
   setName: (name: string) => void;
@@ -213,7 +219,7 @@ type GraphState = {
   canUndo: () => boolean;
   canRedo: () => boolean;
   reset: () => void;
-  markSaved: (id: string) => void;
+  markSaved: (id: string, etag?: string | null) => void;
 };
 
 let nodeSeq = 1;
@@ -315,6 +321,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   c4ParentNodeId: null,
   sequenceMode: false,
   isLocked: false,
+  lastEtag: null,
+  analyzePhase: "idle",
+  excalidrawElements: [],
+  selectedExcalidrawElementId: null,
   _pendingNodesChanges: null,
   _pendingTimeout: null,
 
@@ -1190,6 +1200,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   setSequenceMode: (on) => set({ sequenceMode: on }),
   setIsLocked: (locked) => set({ isLocked: locked }),
+  setLastEtag: (etag) => set({ lastEtag: etag }),
+  setAnalyzePhase: (phase) => set({ analyzePhase: phase }),
+  setExcalidrawElements: (elements) => set({ excalidrawElements: elements }),
+  setSelectedExcalidrawElementId: (id) => set({ selectedExcalidrawElementId: id }),
   renameNode: (id, label) => {
     const trimmed = label.trim() || "Sem nome";
     withHistory(get, set, () => {
@@ -1504,11 +1518,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
   },
 
-  markSaved: (id) =>
+  markSaved: (id, etag = null) =>
     set({
       graphId: id,
       dirty: false,
       lastSavedAt: new Date().toISOString(),
+      lastEtag: etag,
     }),
 }));
 

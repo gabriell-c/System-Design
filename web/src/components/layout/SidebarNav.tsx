@@ -74,7 +74,7 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
-export default function SidebarNav() {
+export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout, setAvatarUrl } = useAuthStore();
@@ -85,14 +85,18 @@ export default function SidebarNav() {
   const [modalOpen, setModalOpen] = useState(false);
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // ✅ Começa minimizada
   const [hydrated, setHydrated] = useState(false);
+  const [isHovering, setIsHovering] = useState(false); // ✅ Novo: estado de hover
+  
+  // When forceExpanded is set (free mode), sidebar is always fully open
+  const effectiveCollapsed = forceExpanded ? false : (collapsed && !isHovering); // ✅ Expande se hover
   // After the component mounts on the client, read the persisted collapsed state.
   useEffect(() => {
     setHydrated(true);
     try {
       const stored = localStorage.getItem(COLLAPSED_KEY);
-      if (stored !== null) {
+      if (!forceExpanded && stored !== null) {
         setCollapsed(stored === "1");
       }
     } catch {
@@ -100,9 +104,10 @@ export default function SidebarNav() {
     }
     // Load projects when sidebar mounts
     void loadProjects();
-  }, [loadProjects]);
+  }, [forceExpanded, loadProjects]);
 
   const toggle = useCallback(() => {
+    if (forceExpanded) return;
     setCollapsed((prev) => {
       const next = !prev;
       try {
@@ -112,7 +117,7 @@ export default function SidebarNav() {
       }
       return next;
     });
-  }, []);
+  }, [forceExpanded]);
 
   const currentProject = useMemo(() => {
     const match = pathname.match(/^\/project\/([^/]+)(\/.*)?$/);
@@ -134,7 +139,7 @@ export default function SidebarNav() {
     );
   }, [projects, search]);
 
-  const navClass = "flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition";
+  const navClass = "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-sm transition";
   const navActive = "bg-[var(--accent-muted)] text-indigo-200";
   const navIdle = "text-(--muted-fg) hover:bg-(--surface-3) hover:text-(--foreground)";
 
@@ -163,9 +168,9 @@ export default function SidebarNav() {
   const initials = (user?.username ?? "U")[0].toUpperCase();
 
   return (
-    <SidebarContext.Provider value={{ collapsed }}>
+    <SidebarContext.Provider value={{ collapsed: effectiveCollapsed }}>
       {/* Mobile overlay */}
-      {hydrated && !collapsed && (
+      {hydrated && !effectiveCollapsed && (
         <div
           className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm transition lg:hidden"
           onClick={() => setCollapsed(true)}
@@ -174,46 +179,33 @@ export default function SidebarNav() {
       )}
 
       <aside suppressHydrationWarning
-        className={`relative z-30 flex shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-1)] transition-all duration-200 ${
-          collapsed ? "w-16" : "w-64"
-        } ${collapsed ? "overflow-hidden" : ""}`}
+        className={`relative z-30 flex shrink-0 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-slate-800/50 transition-all duration-300 ${
+          effectiveCollapsed ? "w-20" : "w-72"
+        } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}`}
+        onMouseEnter={() => !forceExpanded && setIsHovering(true)}
+        onMouseLeave={() => !forceExpanded && setIsHovering(false)}
       >
         {/* ─── Toggle button (inside aside, right edge) ─── */}
-        <button
-          type="button"
-          onClick={toggle}
-          className={`absolute top-1/2 -translate-y-1/2 z-40 rounded-l-lg border border-l-0 border-[var(--border)] bg-[var(--surface-1)]/95 p-1.5 text-[var(--muted-fg)] shadow-lg backdrop-blur transition hover:bg-(--surface-3) hover:text-(--foreground) ${
-            collapsed ? "right-0 top-1/2" : "right-0 top-1/2"
-          }`}
-          style={{ top: "50%" }}
-          aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-          title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        >
-          {collapsed ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
 
         {/* ─── FULL SIDEBAR ─── */}
-        {!collapsed && (
+        {!effectiveCollapsed && (
           <>
-            {/* Logo */}
-            <div className="flex h-14 items-center gap-2 border-b border-[var(--border)] px-4">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-md">
-                <Command className="h-4 w-4 text-slate-950" />
+            {/* Logo Header */}
+            <div className="flex items-center gap-3 border-b border-slate-800/50 px-6 py-6">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/30">
+                <Command className="h-5 w-5 text-white" />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-slate-100">
-                Archia
-              </span>
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-white tracking-tight">Archia</h1>
+                <p className="text-xs text-slate-400">Design System</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
-                className="ml-auto rounded p-1 text-[var(--muted)] hover:bg-(--surface-3) lg:hidden"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 lg:hidden transition"
                 aria-label="Fechar menu"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -241,44 +233,41 @@ export default function SidebarNav() {
             </div>
 
             {/* Global nav */}
-            <nav className="flex-1 overflow-y-auto px-2">
+            <nav className="flex-1 min-w-0 overflow-y-auto px-2">
               <Section title="Geral" icon={<Sparkles className="h-3.5 w-3.5" />}>
                 <Link
                   href="/"
                   className={`${navClass} ${isActive("/") ? navActive : navIdle}`}
                 >
-                  <LayoutGrid className="h-4 w-4" />
-                  <span>Dashboard</span>
+                  <LayoutGrid className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">Dashboard</span>
                 </Link>
                 <Link
                   href="/profile"
                   className={`${navClass} ${isActive("/profile") ? navActive : navIdle}`}
                 >
-                  <User className="h-4 w-4" />
-                  <span>Meu perfil</span>
+                  <User className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">Meu perfil</span>
                 </Link>
               </Section>
 
-              <Section
-                title="Projetos"
-                icon={<FolderKanban className="h-3.5 w-3.5" />}
-                defaultOpen
-              >
+              <Section title="Projetos" icon={<FolderKanban className="h-4 w-4" />}>
                 <div className="mb-1 flex items-center justify-between px-2">
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-[var(--muted)]">
-                    <Archive className="h-3 w-3" />
-                    {projects.length} projeto{projects.length !== 1 ? "s" : ""}
+                  <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-[var(--muted)]">
+                    <Archive className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{projects.length} projeto{projects.length !== 1 ? "s" : ""}</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setExpanded((v) => !v)}
-                    className="rounded p-0.5 text-[var(--muted)] hover:text-(--foreground)"
+                    className="ml-1 flex shrink-0 items-center justify-center rounded-lg p-2 text-(--muted) transition-all hover:bg-(--accent-muted) hover:text-(--accent-fg)"
                     aria-label={expanded ? "Recolher projetos" : "Expandir projetos"}
+                    title={expanded ? "Recolher projetos" : "Expandir projetos"}
                   >
                     {expanded ? (
-                      <ChevronDown className="h-3.5 w-3.5" />
+                      <ChevronDown className="h-4 w-4" />
                     ) : (
-                      <ChevronRight className="h-3.5 w-3.5" />
+                      <ChevronRight className="h-4 w-4" />
                     )}
                   </button>
                 </div>
@@ -328,22 +317,22 @@ export default function SidebarNav() {
                   onClick={() => setDiagramModalOpen(true)}
                   className={`${navClass} ${navIdle} w-full text-left`}
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span>Criar Diagrama</span>
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">Criar Diagrama</span>
                 </button>
                 <span
                   className={`${navClass} ${navIdle} cursor-not-allowed opacity-50`}
                   title="Em desenvolvimento"
                 >
-                  <Monitor className="h-4 w-4" />
-                  <span>Quadro Kanban</span>
+                  <Monitor className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">Quadro Kanban</span>
                 </span>
                 <span
                   className={`${navClass} ${navIdle} cursor-not-allowed opacity-50`}
                   title="Em desenvolvimento"
                 >
-                  <MessageSquare className="h-4 w-4" />
-                  <span>Reuniões</span>
+                  <MessageSquare className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">Reuniões</span>
                 </span>
               </Section>
             </nav>
@@ -400,7 +389,7 @@ export default function SidebarNav() {
         )}
 
         {/* ─── MINI SIDEBAR (collapsed) ─── */}
-        {collapsed && (
+        {effectiveCollapsed && (
           <>
             {/* Logo */}
             <div className="flex h-14 items-center justify-center border-b border-[var(--border)]">
@@ -410,69 +399,71 @@ export default function SidebarNav() {
             </div>
 
             {/* Nav icons */}
-            <nav className="flex-1 overflow-y-auto px-2 py-3">
-              <div className="space-y-1">
+            <nav className="flex-1 min-w-0 overflow-y-auto px-2 py-4">
+              <div className="space-y-3">
                 <Tooltip text="Dashboard">
                   <Link
                     href="/"
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                       isActive("/")
-                        ? "bg-[var(--accent-muted)] text-indigo-300"
-                        : "text-[var(--muted-fg)] hover:bg-(--surface-3) hover:text-(--foreground)"
+                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
                     }`}
                   >
-                    <LayoutGrid className="h-5 w-5" />
+                    <LayoutGrid className="h-6 w-6" />
                   </Link>
                 </Tooltip>
 
                 <Tooltip text={`Projetos (${projects.length})`}>
                   <Link
                     href="/project"
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                       pathname.startsWith("/project")
-                        ? "bg-[var(--accent-muted)] text-indigo-300"
-                        : "text-[var(--muted-fg)] hover:bg-(--surface-3) hover:text-(--foreground)"
+                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
                     }`}
                   >
-                    <FolderKanban className="h-5 w-5" />
+                    <FolderKanban className="h-6 w-6" />
                   </Link>
                 </Tooltip>
 
-                <div className="my-2 border-t border-[var(--border)]" />
+                <div className="my-1 border-t border-slate-700/50" />
 
                 <Tooltip text="Meu perfil">
                   <Link
                     href="/profile"
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                       isActive("/profile")
-                        ? "bg-[var(--accent-muted)] text-indigo-300"
-                        : "text-[var(--muted-fg)] hover:bg-(--surface-3) hover:text-(--foreground)"
+                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
                     }`}
                   >
-                    <User className="h-5 w-5" />
+                    <User className="h-6 w-6" />
                   </Link>
                 </Tooltip>
               </div>
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-[var(--border)] px-2 py-3">
-              <div className="flex flex-col items-center gap-2">
+            <div className="border-t border-slate-700/50 px-2 py-4">
+              <div className="flex flex-col items-center gap-3">
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--muted-fg)] transition hover:bg-(--surface-3) hover:text-(--foreground)"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-indigo-500/10 hover:text-slate-300"
                   title={theme === "dark" ? "Modo claro" : "Modo escuro"}
                   aria-label={
                     theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
                   }
                 >
                   {theme === "dark" ? (
-                    <Sun className="h-5 w-5 text-amber-400" />
+                    <Sun className="h-6 w-6 text-amber-400" />
                   ) : (
-                    <Moon className="h-5 w-5 text-indigo-400" />
+                    <Moon className="h-6 w-6 text-indigo-400" />
                   )}
                 </button>
+
+                <div className="w-full border-t border-slate-700/50" />
 
                 <Tooltip text="Sair">
                   <button
@@ -481,16 +472,16 @@ export default function SidebarNav() {
                       logout();
                       router.push("/login");
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--muted-fg)] transition hover:bg-(--surface-3) hover:text-rose-300"
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-300"
                   >
-                    <LogOut className="h-5 w-5" />
+                    <LogOut className="h-6 w-6" />
                   </button>
                 </Tooltip>
 
                 <Tooltip text="Meu perfil">
                   <Link
                     href="/profile"
-                    className="mt-1 flex h-7 w-7 items-center justify-center rounded-full overflow-hidden bg-slate-700 transition hover:bg-[var(--accent-muted)] hover:text-indigo-200"
+                    className="mt-1 flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-slate-600/50 transition-all duration-200 hover:bg-indigo-500/20 hover:ring-2 hover:ring-indigo-500/30"
                   >
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
@@ -506,7 +497,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile toggle when collapsed */}
-      {collapsed && (
+      {effectiveCollapsed && (
         <button
           type="button"
           onClick={toggle}
@@ -612,16 +603,16 @@ function Section({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold uppercase tracking-wider text-[var(--muted)] hover:bg-(--surface-3) hover:text-(--foreground)"
+        className="mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold uppercase tracking-wider text-[var(--muted)] hover:bg-(--surface-3) hover:text-(--foreground) transition-colors"
       >
-        <span className="inline-flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-2">
           {icon}
-          {title}
+          <span className="truncate">{title}</span>
         </span>
         {open ? (
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-[var(--muted)] transition-transform" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-[var(--muted)] transition-transform" />
         )}
       </button>
       {open && <div className="pb-1">{children}</div>}

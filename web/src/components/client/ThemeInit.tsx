@@ -10,12 +10,10 @@ export default function ThemeInit() {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     try {
-      let t = localStorage.getItem('archia-theme');
-      if (t !== 'light' && t !== 'dark' && t !== 'high-contrast') {
-        t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      }
+      // Force dark theme always
+      localStorage.setItem('archia-theme', 'dark');
       document.documentElement.classList.remove('archia-dark', 'archia-light', 'archia-high-contrast');
-      document.documentElement.classList.add('archia-' + t);
+      document.documentElement.classList.add('archia-dark');
     } catch {
       document.documentElement.classList.add('archia-dark');
     }

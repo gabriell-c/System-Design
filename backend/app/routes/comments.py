@@ -8,6 +8,7 @@ from app.models.graph import Comment, Graph, new_uuid
 from app.routes.auth import get_current_user
 from app.schemas.comment import CommentCreate, CommentOut, CommentUpdate
 from app.services.comments import extract_mentions, notify_mentions
+from app.routes.ws import broadcast_comment_event
 
 router = APIRouter(prefix="/api/v1/graphs", tags=["comments"])
 
@@ -65,7 +66,9 @@ def create_comment(graph_id: str, payload: CommentCreate, db: Session = Depends(
     db.commit()
     db.refresh(comment)
     notify_mentions(mentions, graph_id, text)
-    return _comment_out(comment)
+    out = _comment_out(comment)
+    broadcast_comment_event(graph_id, "comment.created", out.model_dump(mode="json"))
+    return out
 
 
 @router.patch("/{graph_id}/comments/{comment_id}", response_model=CommentOut)
@@ -88,7 +91,9 @@ def update_comment(
         comment.assignee = payload.assignee.strip() or None
     db.commit()
     db.refresh(comment)
-    return _comment_out(comment)
+    out = _comment_out(comment)
+    broadcast_comment_event(graph_id, "comment.updated", out.model_dump(mode="json"))
+    return out
 
 
 @router.delete("/{graph_id}/comments/{comment_id}")
@@ -98,6 +103,8 @@ def delete_comment(graph_id: str, comment_id: str, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.author != user.email and getattr(user, "role", "") != "senior":
         raise HTTPException(status_code=403, detail="Not authorized")
+    cid = comment.id
     db.delete(comment)
     db.commit()
+    broadcast_comment_event(graph_id, "comment.deleted", {"id": cid})
     return {"ok": True}

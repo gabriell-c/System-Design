@@ -120,13 +120,23 @@ export function useAutoSave() {
         headers: {
           "Content-Type": "application/json",
           ...(body !== payloadJson ? { "Content-Encoding": "gzip" } : {}),
+          ...(state.lastEtag ? { "If-Match": state.lastEtag } : {}),
         },
         body,
       })
         .then(async (res) => {
           if (res.ok) {
             setSyncStatus("synced");
-            state.markSaved(state.graphId!);
+            const etag = res.headers.get("ETag");
+            state.markSaved(state.graphId!, etag);
+            return;
+          }
+          if (res.status === 409) {
+            setSyncStatus("error");
+            state.pushUiNotice({
+              type: "error",
+              text: "Conflito: o diagrama mudou em outra sessão. Abra Salvar para resolver (minha vs servidor).",
+            });
             return;
           }
           setSyncStatus("error");

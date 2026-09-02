@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Network, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
@@ -164,6 +164,46 @@ export default function ComponentPalette() {
     addCatalogNode(catalogId, { x: 280 + offset, y: 160 + offset });
   }
 
+  const flatCatalogItems = useMemo(
+    () =>
+      filteredByKind.flatMap(({ kind, items }) => {
+        if (!isSearching && collapsed[kind]) return [];
+        return items;
+      }),
+    [filteredByKind, collapsed, isSearching],
+  );
+
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const listboxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [q, providerFilter]);
+
+  const onListKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (flatCatalogItems.length === 0) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % flatCatalogItems.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((i) => (i <= 0 ? flatCatalogItems.length - 1 : i - 1));
+      } else if ((e.key === "Enter" || e.key === " ") && activeIndex >= 0) {
+        e.preventDefault();
+        const item = flatCatalogItems[activeIndex];
+        if (item) placeCard(item.id);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        setActiveIndex(0);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        setActiveIndex(flatCatalogItems.length - 1);
+      }
+    },
+    [flatCatalogItems, activeIndex, addCatalogNode, nodes.length],
+  );
+
   return (
     <aside
       className="flex h-full w-full flex-col border-r border-[var(--border)] bg-[var(--surface-1)]"
@@ -226,7 +266,19 @@ export default function ComponentPalette() {
       )}
 
       {paletteTab === "componentes" && (
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div
+        ref={listboxRef}
+        className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+        role="listbox"
+        aria-label="Componentes da paleta"
+        tabIndex={0}
+        aria-activedescendant={
+          activeIndex >= 0 && flatCatalogItems[activeIndex]
+            ? `palette-option-${flatCatalogItems[activeIndex]!.id}`
+            : undefined
+        }
+        onKeyDown={onListKeyDown}
+      >
         {(!q || "zona region vpc az".includes(q)) && (
           <section aria-labelledby="palette-zones">
             <h3 id="palette-zones" className="mb-1.5 flex items-center gap-1.5 px-1 text-sm font-semibold uppercase tracking-wider text-[var(--muted-fg)]">
@@ -446,23 +498,30 @@ export default function ComponentPalette() {
                   items={items}
                   estimateSize={72}
                   getKey={(item) => item.id}
-                  renderItem={(item) => (
+                  renderItem={(item) => {
+                    const flatIdx = flatCatalogItems.findIndex((x) => x.id === item.id);
+                    const isActive = flatIdx === activeIndex;
+                    return (
                     <button
                       type="button"
+                      id={`palette-option-${item.id}`}
+                      role="option"
+                      aria-selected={isActive}
                       draggable
-                      tabIndex={0}
+                      tabIndex={-1}
                       onDragStart={(event) => {
                         event.dataTransfer.setData("application/system-design", item.id);
                         event.dataTransfer.effectAllowed = "move";
                       }}
-                      onClick={() => placeCard(item.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          placeCard(item.id);
-                        }
+                      onClick={() => {
+                        setActiveIndex(flatIdx);
+                        placeCard(item.id);
                       }}
-                      className="flex min-h-6 min-w-6 w-full cursor-grab items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-left transition hover:border-[var(--border-strong)] hover:bg-[#171f2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
+                      className={`flex min-h-11 min-w-6 w-full cursor-grab items-start gap-2 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing ${
+                        isActive
+                          ? "border-[var(--accent)] bg-[var(--accent-muted)]"
+                          : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--border-strong)] hover:bg-[#171f2b]"
+                      }`}
                       title="Clique para adicionar · arraste para dentro do bloco"
                     >
                       <TechIcon
@@ -478,7 +537,8 @@ export default function ComponentPalette() {
                       </span>
                       <Plus size={12} className="mt-1 shrink-0 text-[var(--muted-fg)]" />
                     </button>
-                  )}
+                    );
+                  }}
                 />
               )}
             </section>

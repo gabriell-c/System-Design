@@ -26,7 +26,7 @@ export default function NodeIconPicker({
         {iconId && (
           <button
             type="button"
-            className="text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
+            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
             onClick={() => onIconChange(undefined)}
           >
             Remover
@@ -56,14 +56,14 @@ export default function NodeIconPicker({
         })}
       </div>
       <div>
-        <p className="text-[10px] text-[var(--muted)] mb-1">Tamanho</p>
+        <p className="text-xs text-[var(--muted)] mb-1">Tamanho</p>
         <div className="flex gap-1">
           {ICON_SIZES.map((size) => (
             <button
               key={size}
               type="button"
               aria-pressed={iconSize === size}
-              className={`flex-1 rounded border py-1 text-[10px] ${
+              className={`flex-1 rounded border py-1 text-xs ${
                 iconSize === size
                   ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
                   : "border-[var(--border)] text-[var(--muted-fg)]"

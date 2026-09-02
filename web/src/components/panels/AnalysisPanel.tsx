@@ -6,6 +6,50 @@ import PanelEmpty from "@/components/ui/PanelEmpty";
 import { Search, Sparkles } from "lucide-react";
 import Skeleton from "@/components/ui/Skeleton";
 
+const PHASE_LABEL: Record<string, string> = {
+  analyzing: "Lendo contexto e topologia…",
+  scoring: "Calculando score e findings…",
+  review: "Revisando recomendações…",
+  done: "Quase pronto…",
+};
+
+function AnalysisLoadingSkeleton() {
+  const phase = useGraphStore((s) => s.analyzePhase);
+  const showFindings = phase === "scoring" || phase === "review" || phase === "done";
+  const showRecs = phase === "review" || phase === "done";
+  const width =
+    phase === "analyzing" ? "25%" : phase === "scoring" ? "55%" : phase === "review" ? "80%" : "95%";
+
+  return (
+    <div className="space-y-4 px-4 py-6" aria-busy="true" aria-live="polite">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+        <p className="text-xs font-medium text-[var(--accent)]">
+          {PHASE_LABEL[phase] ?? "Analisando…"}
+        </p>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
+          <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width }} />
+        </div>
+      </div>
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+        <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Nota geral</p>
+        <Skeleton rows={2} />
+      </section>
+      {showFindings && (
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Findings</p>
+          <Skeleton rows={3} />
+        </section>
+      )}
+      {showRecs && (
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Recomendações</p>
+          <Skeleton rows={2} />
+        </section>
+      )}
+    </div>
+  );
+}
+
 function severityClass(severity: Finding["severity"]): string {
   if (severity === "critical") return "border-rose-500/40 bg-rose-500/10 text-rose-100";
   if (severity === "warning") return "border-amber-500/40 bg-amber-500/10 text-amber-100";
@@ -21,11 +65,7 @@ export default function AnalysisPanel() {
   const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
 
   if (analyzing) {
-    return (
-      <div className="px-4 py-6">
-        <Skeleton rows={5} />
-      </div>
-    );
+    return <AnalysisLoadingSkeleton />;
   }
   if (analyzeError) {
     return (
