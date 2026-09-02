@@ -85,12 +85,11 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
   const [modalOpen, setModalOpen] = useState(false);
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState(true); // ✅ Começa minimizada
+  const [collapsed, setCollapsed] = useState(true); // ✅ Começa minimizada em TODAS as páginas
   const [hydrated, setHydrated] = useState(false);
-  const [isHovering, setIsHovering] = useState(false); // ✅ Novo: estado de hover
   
-  // When forceExpanded is set (free mode), sidebar is always fully open
-  const effectiveCollapsed = forceExpanded ? false : (collapsed && !isHovering); // ✅ Expande se hover
+  // Sidebar starts minimized on ALL pages - no hover expand
+  const effectiveCollapsed = forceExpanded ? false : collapsed;
   // After the component mounts on the client, read the persisted collapsed state.
   useEffect(() => {
     setHydrated(true);
@@ -187,9 +186,24 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-slate-800/50"
             : "bg-gradient-to-b from-slate-50 via-white to-slate-50 border-r border-slate-200/50"
         }`}
-        onMouseEnter={() => !forceExpanded && setIsHovering(true)}
-        onMouseLeave={() => !forceExpanded && setIsHovering(false)}
       >
+        {/* Toggle button — always visible */}
+        <button
+          type="button"
+          onClick={toggle}
+          className={`absolute top-1/2 -translate-y-1/2 z-40 flex items-center justify-center w-6 h-10 rounded-l-lg border border-l-0 border-slate-700/50 ${
+            theme === "dark"
+              ? "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+          } transition-all duration-200 ${effectiveCollapsed ? "right-0" : "right-0"}`}
+          aria-label={effectiveCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
+        >
+          {effectiveCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
         {/* ─── Toggle button (inside aside, right edge) ─── */}
 
         {/* ─── FULL SIDEBAR ─── */}
@@ -550,78 +564,56 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-slate-800/50 px-4 py-4 mt-auto">
-              <div className="flex flex-col gap-3">
-                {/* Theme Toggle Switch (Centered for collapsed) */}
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    {theme === "dark" ? (
-                      <Moon className="h-4 w-4 text-indigo-400" />
-                    ) : (
-                      <Sun className="h-4 w-4 text-amber-500" />
-                    )}
-                    
-                    <label className="theme-switch-container">
-                      <input
-                        type="checkbox"
-                        checked={theme !== "dark"}
-                        onChange={toggleTheme}
-                      />
-                      <span className="theme-switch-slider" />
-                    </label>
-                  </div>
-                  <span className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                    {theme === "dark" ? "Escuro" : "Claro"}
-                  </span>
-                </div>
+            <div className="border-t border-slate-800/50 px-2 py-4">
+              <div className="flex flex-col items-center gap-3">
+                {/* Theme Toggle (só ícone) */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
+                  title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+                >
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
+                </button>
 
-                <div className="border-t border-slate-800/50" />
+                <div className="w-full border-t border-slate-800/50" />
 
+                {/* Sair (só ícone) */}
                 <button
                   type="button"
                   onClick={() => {
                     logout();
                     router.push("/login");
                   }}
-                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200"
                   title="Sair"
                 >
                   <LogOut className="h-5 w-5" />
-                  <span className="text-sm font-medium">Sair</span>
                 </button>
 
-                <div className="border-t border-slate-800/50" />
+                <div className="w-full border-t border-slate-800/50" />
 
+                {/* Perfil (só ícone) */}
                 <Link
                   href="/profile"
-                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
+                  className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-slate-700 hover:bg-indigo-500/20 transition-all duration-200"
+                  title="Perfil"
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-700">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-xs font-bold text-slate-200">{initials}</span>
-                    )}
-                  </div>
-                  <span className="text-sm font-medium">Perfil</span>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-slate-200">{initials}</span>
+                  )}
                 </Link>
               </div>
             </div>
           </>
         )}
       </aside>
-
-      {/* Mobile toggle when collapsed */}
-      {effectiveCollapsed && (
-        <button
-          type="button"
-          onClick={toggle}
-          className="fixed bottom-4 left-20 z-40 flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-300 shadow hover:bg-slate-700 lg:hidden"
-          aria-label="Abrir menu"
-        >
-          ☰
-        </button>
-      )}
 
       <NewProjectModal
         open={modalOpen}
