@@ -87,9 +87,10 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(true); // ✅ Começa minimizada em TODAS as páginas
   const [hydrated, setHydrated] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   
-  // Sidebar starts minimized on ALL pages - no hover expand
-  const effectiveCollapsed = forceExpanded ? false : collapsed;
+  // Sidebar expands on hover, collapses when mouse leaves
+  const effectiveCollapsed = forceExpanded ? false : (collapsed && !isHovering);
   // After the component mounts on the client, read the persisted collapsed state.
   useEffect(() => {
     setHydrated(true);
@@ -178,6 +179,8 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
       )}
 
       <aside suppressHydrationWarning
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         className={`relative z-30 flex shrink-0 flex-col transition-all duration-300 ${
           effectiveCollapsed ? "w-20" : "w-72"
         } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}
@@ -322,7 +325,7 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                 </button>
                 
                 {expanded && (
-                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                  <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
                     {filteredProjects.length === 0 ? (
                       <p className="px-4 py-3 text-xs text-slate-500 text-center">Nenhum projeto</p>
                     ) : (
@@ -330,7 +333,7 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                         <Link
                           key={p.id}
                           href={`/project/${p.id}`}
-                          className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm transition-all duration-200 ${
+                          className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${
                             currentProject === p.id
                               ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
                               : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
