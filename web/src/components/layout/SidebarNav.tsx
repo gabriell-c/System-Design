@@ -456,22 +456,27 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   </p>
                 </div>
               </Link>
-              <div className="flex items-center gap-1 mt-1">
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="rounded p-1 text-[var(--muted)] hover:bg-(--surface-3) hover:text-amber-300"
-                  title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-                  aria-label={
-                    theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
-                  }
-                >
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
                   {theme === "dark" ? (
-                    <Sun className="h-4 w-4 text-amber-400" />
-                  ) : (
                     <Moon className="h-4 w-4 text-indigo-400" />
+                  ) : (
+                    <Sun className="h-4 w-4 text-amber-500" />
                   )}
-                </button>
+                  <span className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                    {theme === "dark" ? "Escuro" : "Claro"}
+                  </span>
+                </div>
+                
+                {/* Theme Toggle Switch */}
+                <label className="theme-switch-container">
+                  <input
+                    type="checkbox"
+                    checked={theme !== "dark"}
+                    onChange={toggleTheme}
+                  />
+                  <span className="theme-switch-slider" />
+                </label>
                 <button
                   type="button"
                   onClick={() => {
@@ -547,19 +552,28 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Footer */}
             <div className="border-t border-slate-800/50 px-4 py-4 mt-auto">
               <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="flex items-center justify-center gap-3 rounded-lg px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
-                  title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5 text-amber-400" />
-                  ) : (
-                    <Moon className="h-5 w-5 text-indigo-400" />
-                  )}
-                  <span className="text-sm font-medium">{theme === "dark" ? "Claro" : "Escuro"}</span>
-                </button>
+                {/* Theme Toggle Switch (Centered for collapsed) */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    {theme === "dark" ? (
+                      <Moon className="h-4 w-4 text-indigo-400" />
+                    ) : (
+                      <Sun className="h-4 w-4 text-amber-500" />
+                    )}
+                    
+                    <label className="theme-switch-container">
+                      <input
+                        type="checkbox"
+                        checked={theme !== "dark"}
+                        onChange={toggleTheme}
+                      />
+                      <span className="theme-switch-slider" />
+                    </label>
+                  </div>
+                  <span className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                    {theme === "dark" ? "Escuro" : "Claro"}
+                  </span>
+                </div>
 
                 <div className="border-t border-slate-800/50" />
 
