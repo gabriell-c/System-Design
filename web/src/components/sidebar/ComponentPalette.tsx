@@ -176,11 +176,10 @@ export default function ComponentPalette() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const listboxRef = useRef<HTMLDivElement>(null);
 
-  // Reset active index when filters change (using useMemo to avoid useEffect)
-  const effectiveActiveIndex = useMemo(() => -1, [q, providerFilter]);
-  if (effectiveActiveIndex !== activeIndex) {
-    setActiveIndex(effectiveActiveIndex);
-  }
+  // Reset active index when filters change
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [/* q, providerFilter */]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onListKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
