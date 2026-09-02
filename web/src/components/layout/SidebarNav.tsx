@@ -186,8 +186,8 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}
         ${
           theme === "dark"
-            ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-r border-slate-800/50"
-            : "bg-gradient-to-b from-slate-50 via-white to-slate-50 border-r border-slate-200/50"
+            ? "bg-gradient-to-b from-violet-950 via-purple-950 to-violet-950 border-r border-violet-800/50"
+            : "bg-gradient-to-b from-violet-50 via-purple-50 to-violet-50 border-r border-violet-200/50"
         }`}
       >
 
@@ -197,27 +197,27 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Logo Header */}
             <div className={`flex items-center gap-3 border-b px-6 py-6 ${
               theme === "dark"
-                ? "border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-950"
-                : "border-slate-200/50 bg-gradient-to-b from-slate-50 to-white"
+                ? "border-violet-800/50 bg-gradient-to-b from-purple-900 to-violet-950"
+                : "border-violet-200/50 bg-gradient-to-b from-violet-100 to-purple-50"
             }`}>
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30"
-                  : "bg-gradient-to-br from-blue-400 to-blue-500 shadow-blue-500/20"
+                  ? "bg-gradient-to-br from-violet-500 to-purple-600 shadow-purple-500/30"
+                  : "bg-gradient-to-br from-violet-500 to-purple-600 shadow-purple-500/20"
               }`}>
                 <Command className={`h-5 w-5 ${theme === "dark" ? "text-white" : "text-white"}`} />
               </div>
               <div className="flex-1">
-                <h1 className={`text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Archia</h1>
-                <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Design System</p>
+                <h1 className={`text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-violet-900"}`}>Archia</h1>
+                <p className={`text-xs ${theme === "dark" ? "text-violet-300/60" : "text-violet-600/70"}`}>Design System</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
                 className={`rounded-lg p-1.5 transition lg:hidden ${
                   theme === "dark"
-                    ? "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-700"
+                    ? "text-violet-300/60 hover:bg-purple-800/50 hover:text-violet-200"
+                    : "text-violet-600/70 hover:bg-violet-200/50 hover:text-violet-700"
                 }`}
                 aria-label="Fechar menu"
               >
@@ -226,11 +226,19 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </div>
 
             {/* Quick Actions */}
-            <div className="px-4 py-4 border-b border-slate-800/50">
+            <div className={`px-4 py-4 border-b ${
+              theme === "dark"
+                ? "border-violet-800/50"
+                : "border-violet-200/50"
+            }`}>
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 py-3 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all duration-200"
+                className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 px-4 text-sm font-semibold shadow-lg transition-all duration-200 ${
+                  theme === "dark"
+                    ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-purple-600/30"
+                    : "bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-purple-600/20"
+                }`}
               >
                 <Plus className="h-5 w-5" />
                 Novo Projeto
@@ -238,15 +246,27 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </div>
 
             {/* Search */}
-            <div className="px-4 py-3 border-b border-slate-800/50">
+            <div className={`px-4 py-3 border-b ${
+              theme === "dark"
+                ? "border-violet-800/50"
+                : "border-violet-200/50"
+            }`}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${
+                  theme === "dark"
+                    ? "text-violet-400/60"
+                    : "text-violet-500/60"
+                }`} />
                 <input
                   type="text"
                   placeholder="Buscar..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-800 transition"
+                  className={`w-full rounded-lg pl-10 pr-4 py-2.5 text-sm transition focus:outline-none ${
+                    theme === "dark"
+                      ? "bg-purple-900/30 border border-violet-700/50 text-violet-100 placeholder-violet-400/50 focus:border-violet-500/50 focus:bg-purple-900/50"
+                      : "bg-violet-100/50 border border-violet-300/50 text-violet-900 placeholder-violet-500/50 focus:border-violet-500/50 focus:bg-violet-100"
+                  }`}
                 />
               </div>
             </div>
@@ -255,14 +275,22 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             <nav className="flex-1 overflow-y-auto px-4 py-4">
               {/* Main Menu Section */}
               <div className="mb-8">
-                <p className="mb-4 px-0 text-xs font-semibold uppercase text-slate-500 tracking-widest">Menu Principal</p>
+                <p className={`mb-4 px-0 text-xs font-semibold uppercase tracking-widest ${
+                  theme === "dark"
+                    ? "text-violet-400/60"
+                    : "text-violet-600/60"
+                }`}>Menu Principal</p>
                 <div className="space-y-2">
                   <Link
                     href="/"
                     className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
                       isActive("/")
-                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                        ? theme === "dark"
+                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
+                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                        : theme === "dark"
+                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                     }`}
                   >
                     <LayoutGrid className="h-5 w-5 shrink-0" />
@@ -273,8 +301,12 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                     href="/graphs"
                     className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
                       isActive("/graphs")
-                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                        ? theme === "dark"
+                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
+                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                        : theme === "dark"
+                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                     }`}
                   >
                     <Monitor className="h-5 w-5 shrink-0" />
@@ -285,8 +317,12 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                     href="/compare"
                     className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
                       isActive("/compare")
-                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                        ? theme === "dark"
+                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
+                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                        : theme === "dark"
+                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                     }`}
                   >
                     <Sparkles className="h-5 w-5 shrink-0" />
@@ -302,14 +338,26 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   onClick={() => setExpanded((v) => !v)}
                   className="mb-4 flex w-full items-center justify-between px-0 transition"
                 >
-                  <p className="text-xs font-semibold uppercase text-slate-500 tracking-widest">Meus Projetos</p>
-                  <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+                  <p className={`text-xs font-semibold uppercase tracking-widest ${
+                    theme === "dark"
+                      ? "text-violet-400/60"
+                      : "text-violet-600/60"
+                  }`}>Meus Projetos</p>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                    theme === "dark"
+                      ? "text-violet-400/60"
+                      : "text-violet-600/60"
+                  } ${expanded ? "rotate-180" : ""}`} />
                 </button>
                 
                 {expanded && (
                   <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
                     {filteredProjects.length === 0 ? (
-                      <p className="px-4 py-3 text-xs text-slate-500 text-center">Nenhum projeto</p>
+                      <p className={`px-4 py-3 text-xs text-center ${
+                        theme === "dark"
+                          ? "text-violet-400/50"
+                          : "text-violet-600/50"
+                      }`}>Nenhum projeto</p>
                     ) : (
                       filteredProjects.map((p) => (
                         <Link
@@ -317,8 +365,12 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                           href={`/project/${p.id}`}
                           className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${
                             currentProject === p.id
-                              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                              : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                              ? theme === "dark"
+                                ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
+                                : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                              : theme === "dark"
+                                ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                                : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                           }`}
                         >
                           <FolderKanban className="h-4 w-4 shrink-0" />
@@ -437,20 +489,40 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-[var(--border)] px-3 py-3">
-              <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--muted-fg)] transition hover:bg-(--surface-3) hover:text-(--foreground)">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-700">
+            <div className={`border-t px-3 py-3 ${
+              theme === "dark"
+                ? "border-violet-800/50"
+                : "border-violet-200/50"
+            }`}>
+              <Link href="/profile" className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition ${
+                theme === "dark"
+                  ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                  : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+              }`}>
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full overflow-hidden ${
+                  theme === "dark"
+                    ? "bg-gradient-to-br from-violet-600 to-purple-600"
+                    : "bg-gradient-to-br from-violet-500 to-purple-600"
+                }`}>
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-slate-200">{initials}</span>
+                    <span className="text-xs font-bold text-white">{initials}</span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-slate-200">
+                  <p className={`truncate text-xs font-medium ${
+                    theme === "dark"
+                      ? "text-violet-200"
+                      : "text-violet-900"
+                  }`}>
                     {user?.username}
                   </p>
-                  <p className="truncate text-sm text-[var(--muted)]">
+                  <p className={`truncate text-sm ${
+                    theme === "dark"
+                      ? "text-violet-400/50"
+                      : "text-violet-600/50"
+                  }`}>
                     {user?.email}
                   </p>
                 </div>
@@ -496,9 +568,17 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         {effectiveCollapsed && (
           <>
             {/* Logo */}
-            <div className="flex h-14 items-center justify-center border-b border-slate-800/50">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-md">
-                <Command className="h-5 w-5 text-slate-950" />
+            <div className={`flex h-14 items-center justify-center border-b ${
+              theme === "dark"
+                ? "border-violet-800/50"
+                : "border-violet-200/50"
+            }`}>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-xl shadow-md bg-gradient-to-br ${
+                theme === "dark"
+                  ? "from-violet-500 to-purple-600 shadow-purple-500/30"
+                  : "from-violet-500 to-purple-600 shadow-purple-500/20"
+              }`}>
+                <Command className="h-5 w-5 text-white" />
               </div>
             </div>
 
@@ -509,8 +589,12 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   href="/"
                   className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                     isActive("/")
-                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                      ? theme === "dark"
+                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
+                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                      : theme === "dark"
+                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                   }`}
                 >
                   <LayoutGrid className="h-6 w-6" />
@@ -520,21 +604,33 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   href="/project"
                   className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                     pathname.startsWith("/project")
-                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                      ? theme === "dark"
+                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
+                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                      : theme === "dark"
+                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                   }`}
                 >
                   <FolderKanban className="h-6 w-6" />
                 </Link>
 
-                <div className="my-1 border-t border-slate-700/50" />
+                <div className={`my-1 border-t ${
+                  theme === "dark"
+                    ? "border-violet-700/50"
+                    : "border-violet-300/50"
+                }`} />
 
                 <Link
                   href="/profile"
                   className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
                     isActive("/profile")
-                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                      ? theme === "dark"
+                        ? "bg-violet-600/30 text-violet-200 shadow-md shadow-violet-500/20"
+                        : "bg-violet-200/50 text-violet-900 shadow-md shadow-violet-400/20"
+                      : theme === "dark"
+                        ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                        : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
                   }`}
                 >
                   <User className="h-6 w-6" />
@@ -543,13 +639,21 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </nav>
 
             {/* Footer */}
-            <div className="border-t border-slate-800/50 px-2 py-4">
+            <div className={`border-t px-2 py-4 ${
+              theme === "dark"
+                ? "border-violet-800/50"
+                : "border-violet-200/50"
+            }`}>
               <div className="flex flex-col items-center gap-3">
                 {/* Theme Toggle (só ícone) */}
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-200"
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
+                    theme === "dark"
+                      ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
+                      : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                  }`}
                   title={theme === "dark" ? "Modo claro" : "Modo escuro"}
                 >
                   {theme === "dark" ? (
@@ -559,7 +663,11 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   )}
                 </button>
 
-                <div className="w-full border-t border-slate-800/50" />
+                <div className={`w-full border-t ${
+                  theme === "dark"
+                    ? "border-violet-800/50"
+                    : "border-violet-200/50"
+                }`} />
 
                 {/* Sair (só ícone) */}
                 <button
@@ -568,24 +676,36 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                     logout();
                     router.push("/login");
                   }}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200"
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
+                    theme === "dark"
+                      ? "text-rose-300/70 hover:bg-rose-900/30 hover:text-rose-200"
+                      : "text-rose-600/70 hover:bg-rose-100/30 hover:text-rose-900"
+                  }`}
                   title="Sair"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>
 
-                <div className="w-full border-t border-slate-800/50" />
+                <div className={`w-full border-t ${
+                  theme === "dark"
+                    ? "border-violet-800/50"
+                    : "border-violet-200/50"
+                }`} />
 
                 {/* Perfil (só ícone) */}
                 <Link
                   href="/profile"
-                  className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-slate-700 hover:bg-indigo-500/20 transition-all duration-200"
+                  className={`flex h-10 w-10 items-center justify-center rounded-full overflow-hidden transition-all duration-200 ${
+                    theme === "dark"
+                      ? "bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+                      : "bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                  }`}
                   title="Perfil"
                 >
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-slate-200">{initials}</span>
+                    <span className="text-xs font-bold text-white">{initials}</span>
                   )}
                 </Link>
               </div>
