@@ -511,7 +511,7 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         {effectiveCollapsed && (
           <>
             {/* Logo */}
-            <div className="flex h-14 items-center justify-center border-b border-[var(--border)]">
+            <div className="flex h-14 items-center justify-center border-b border-slate-800/50">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-md">
                 <Command className="h-5 w-5 text-slate-950" />
               </div>
@@ -520,46 +520,40 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Nav icons */}
             <nav className="flex-1 min-w-0 overflow-y-auto px-2 py-4">
               <div className="space-y-3">
-                <Tooltip text="Dashboard">
-                  <Link
-                    href="/"
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
-                      isActive("/")
-                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
-                    }`}
-                  >
-                    <LayoutGrid className="h-6 w-6" />
-                  </Link>
-                </Tooltip>
+                <Link
+                  href="/"
+                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                    isActive("/")
+                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                  }`}
+                >
+                  <LayoutGrid className="h-6 w-6" />
+                </Link>
 
-                <Tooltip text={`Projetos (${projects.length})`}>
-                  <Link
-                    href="/project"
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
-                      pathname.startsWith("/project")
-                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
-                    }`}
-                  >
-                    <FolderKanban className="h-6 w-6" />
-                  </Link>
-                </Tooltip>
+                <Link
+                  href="/project"
+                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                    pathname.startsWith("/project")
+                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                  }`}
+                >
+                  <FolderKanban className="h-6 w-6" />
+                </Link>
 
                 <div className="my-1 border-t border-slate-700/50" />
 
-                <Tooltip text="Meu perfil">
-                  <Link
-                    href="/profile"
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
-                      isActive("/profile")
-                        ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                        : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
-                    }`}
-                  >
-                    <User className="h-6 w-6" />
-                  </Link>
-                </Tooltip>
+                <Link
+                  href="/profile"
+                  className={`flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-200 ${
+                    isActive("/profile")
+                      ? "bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
+                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-300"
+                  }`}
+                >
+                  <User className="h-6 w-6" />
+                </Link>
               </div>
             </nav>
 
