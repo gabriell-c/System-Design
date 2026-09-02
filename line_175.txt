@@ -1,1 +1,0 @@
-  - journey.spec.ts-snapshots\editor-shell-chromium-win32.png

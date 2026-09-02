@@ -1,1 +1,0 @@
-  - diagram_text_to_mermaid.py

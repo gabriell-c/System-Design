@@ -1,1 +1,0 @@
-  - test_nfr_kickoff.py

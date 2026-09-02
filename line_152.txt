@@ -1,1 +1,0 @@
-Docker Compose: Sim (PostgreSQL 16, Backend, Frontend)

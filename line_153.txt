@@ -1,1 +1,0 @@
-Portas: Backend 4410, Frontend 3015, DB 5434

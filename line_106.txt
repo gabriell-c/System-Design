@@ -1,1 +1,0 @@
-  - test_zone_analyze_integration.py
