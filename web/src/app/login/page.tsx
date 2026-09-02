@@ -30,9 +30,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const root = document.documentElement;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     root.classList.remove("archia-light");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     root.classList.add("archia-dark");
   }, []);
 

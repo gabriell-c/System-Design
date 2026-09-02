@@ -62,17 +62,17 @@ export default function NewProjectModal({ open, onClose, onSubmit }: Props) {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setName("");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDescription("");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setProjectKind("architecture");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setIsPublic(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setAccessList([]);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setSubmitting(false);
   }, [open]);
 

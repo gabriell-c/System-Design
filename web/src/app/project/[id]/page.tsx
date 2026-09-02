@@ -60,7 +60,7 @@ export default function ProjectEditorPage() {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setError(null);
 
     (async () => {
@@ -88,7 +88,7 @@ export default function ProjectEditorPage() {
         }
         setReady(true);
       } catch (err) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         if (!cancelled) setError(err instanceof Error ? err.message : "Projeto não encontrado");
       }
     })();

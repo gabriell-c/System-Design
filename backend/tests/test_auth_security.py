@@ -1,5 +1,5 @@
 ﻿"""Unit tests for auth security: JWT, password hashing, token validation."""
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt as pyjwt
 
@@ -32,12 +32,12 @@ def test_create_and_decode_token():
 
 def _exp_to_aware(exp):
     if isinstance(exp, (int, float)):
-        return datetime.fromtimestamp(exp, tz=UTC)
+        return datetime.fromtimestamp(exp, tz=timezone.utc)
     if isinstance(exp, str):
         dt = datetime.fromisoformat(exp)
-        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     if exp.tzinfo is None:
-        return exp.replace(tzinfo=UTC)
+        return exp.replace(tzinfo=timezone.utc)
     return exp
 
 
@@ -46,7 +46,7 @@ def test_remember_me_token_long_expiry():
     payload = decode_token(token)
     assert payload["remember_me"] is True
     exp = _exp_to_aware(payload["exp"])
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     delta = exp - now
     assert delta.days >= 6
 
@@ -55,7 +55,7 @@ def test_regular_token_short_expiry():
     token = create_access_token(user_id=1, remember_me=False)
     payload = decode_token(token)
     exp = _exp_to_aware(payload["exp"])
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     delta = exp - now
     assert delta.days <= 1
 
@@ -74,7 +74,7 @@ def test_decode_tampered_token_returns_none():
 def test_decode_token_with_wrong_secret():
     payload = {
         "sub": "1",
-        "exp": datetime.now(UTC) + timedelta(hours=1),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
         "type": "access",
         "jti": "fake",
         "remember_me": False,
@@ -87,7 +87,7 @@ def test_get_token_expiry_valid():
     token = create_access_token(user_id=5)
     expiry = get_token_expiry(token)
     assert expiry is not None
-    assert expiry > datetime.now(UTC)
+    assert expiry > datetime.now(timezone.utc)
 
 
 def test_get_token_expiry_invalid():

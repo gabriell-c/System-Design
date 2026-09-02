@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useAuthStore } from "@/lib/auth-store";
 import { maskPhone } from "@/lib/masks";
 import {
@@ -52,25 +53,19 @@ export default function ProfilePage() {
     void fetchProfile();
   }, [fetchProfile]);
 
-  useEffect(() => {
-    if (user) {
-      setForm({ username: user.username, email: user.email, phone: user.phone ?? "" });
-      setAutoSaveEnabled(user.auto_save_enabled ?? true);
-      setAutoSaveInterval(user.auto_save_interval_minutes ?? 15);
-    }
-  }, [user]);
-
   // Load avatar from localStorage on mount if not in store
   useEffect(() => {
     if (!avatarUrl) {
       try {
         const saved = localStorage.getItem("archia-user-avatar");
-        if (saved) setAvatarUrl(saved);
+        if (saved) {
+          setAvatarUrl(prev => prev || saved);
+        }
       } catch {
         // ignore
       }
     }
-  }, [avatarUrl, setAvatarUrl]);
+  }, [avatarUrl]);
 
   async function save() {
     setSaving(true);
@@ -240,7 +235,13 @@ export default function ProfilePage() {
                 <div className="relative group">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 text-xl font-bold text-slate-950 overflow-hidden">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                      <Image
+                        src={avatarUrl}
+                        alt="Avatar"
+                        width={64}
+                        height={64}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       user.username[0].toUpperCase()
                     )}
@@ -570,9 +571,11 @@ function CropModal({
           ref={containerRef}
           className="relative w-full aspect-square overflow-hidden rounded-lg bg-[var(--surface-3)] select-none"
         >
-          <img
+          <Image
             src={src}
             alt="Crop preview"
+            width={500}
+            height={500}
             className="h-full w-full object-cover"
           />
           {/* Dark overlay outside crop area */}

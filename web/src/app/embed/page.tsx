@@ -18,22 +18,26 @@ export default function EmbedPage() {
   const [loading, setLoading] = useState(true);
   const svgRef = useRef<HTMLDivElement>(null);
 
-  // Read URL params after mount (avoid hydration mismatch)
+  // Initialize from URL params without setState in effect
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const initialGraphId = params?.get("graph");
+  const initialTheme = params?.get("theme");
+  const resolvedTheme = initialTheme === "light" ? "light" : initialTheme === "dark" ? "dark" : "dark";
+  const hasInitialId = !!initialGraphId;
+
+  // Use useEffect only for side effects, not state initialization
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("graph");
-    const t = params.get("theme");
-    if (id) setGraphId(id);
-    if (t === "light" || t === "dark") setTheme(t);
-    if (!id) setLoading(false);
-  }, []);
+    if (!hasInitialId) {
+      // Already set loading=true in useState, no need to change
+    }
+  }, [hasInitialId]);
 
   useEffect(() => {
     if (!graphId) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     void (async () => {
+      setLoading(true);
+      setError(null);
       try {
         const payload = await api.getEmbed(graphId);
         if (cancelled) return;

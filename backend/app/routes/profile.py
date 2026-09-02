@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -52,7 +52,7 @@ def update_profile(
         user.phone = profile_update.phone
 
     if profile_update.birth_date is not None:
-        user.birth_date = datetime.strptime(profile_update.birth_date, "%Y-%m-%d").replace(tzinfo=UTC)
+        user.birth_date = datetime.strptime(profile_update.birth_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
     if profile_update.auto_save_enabled is not None:
         user.auto_save_enabled = profile_update.auto_save_enabled
@@ -67,7 +67,7 @@ def update_profile(
             )
         user.auto_save_interval_minutes = profile_update.auto_save_interval_minutes
 
-    user.updated_at = datetime.now(UTC)
+    user.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
 

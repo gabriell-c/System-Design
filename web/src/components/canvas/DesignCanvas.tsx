@@ -386,7 +386,7 @@ function CanvasInner() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowOnboarding(localStorage.getItem("archia-onboarded") !== "1");
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setShowOnboarding(true);
     }
   }, []);

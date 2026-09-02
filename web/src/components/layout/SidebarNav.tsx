@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   Archive,
   ChevronDown,
@@ -86,25 +87,15 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(true); // ✅ Começa minimizada em TODAS as páginas
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated] = useState(true); // Assume hydrated from start to avoid hydration mismatch
   const [isHovering, setIsHovering] = useState(false);
-  
+
   // Sidebar expands on hover, collapses when mouse leaves
   const effectiveCollapsed = forceExpanded ? false : (collapsed && !isHovering);
-  // After the component mounts on the client, read the persisted collapsed state.
+  // Load projects when sidebar mounts
   useEffect(() => {
-    setHydrated(true);
-    try {
-      const stored = localStorage.getItem(COLLAPSED_KEY);
-      if (!forceExpanded && stored !== null) {
-        setCollapsed(stored === "1");
-      }
-    } catch {
-      // ignore errors – keep default (expanded)
-    }
-    // Load projects when sidebar mounts
     void loadProjects();
-  }, [forceExpanded, loadProjects]);
+  }, [loadProjects]);
 
   const toggle = useCallback(() => {
     if (forceExpanded) return;
@@ -509,7 +500,13 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                     : "bg-violet-600"
                 }`}>
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    <Image
+                      src={avatarUrl}
+                      alt="Avatar"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover rounded-full"
+                    />
                   ) : (
                     <span className="text-xs font-bold text-white">{initials}</span>
                   )}
@@ -710,7 +707,13 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
                   title="Perfil"
                 >
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    <Image
+                      src={avatarUrl}
+                      alt="Avatar"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover rounded-full"
+                    />
                   ) : (
                     <span className="text-xs font-bold text-white">{initials}</span>
                   )}

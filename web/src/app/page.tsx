@@ -46,49 +46,25 @@ export default function DashboardPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardDismissed, setWizardDismissed] = useState(false);
+  const [wizardDismissed, setWizardDismissed] = useState(() => {
+    // Initialize from localStorage to avoid hydration mismatch
+    try {
+      const onboarded = localStorage.getItem("archia-onboarded");
+      return onboarded === "1";
+    } catch {
+      return false;
+    }
+  });
   const [searchDraft, setSearchDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const router = useRouter();
 
   const refresh = useCallback(() => void loadProjects(), [loadProjects]);
 
-  // Check localStorage on mount to prevent wizard from showing if already onboarded
-  useEffect(() => {
-    try {
-      const onboarded = localStorage.getItem("archia-onboarded");
-      if (onboarded === "1") {
-        setWizardDismissed(true);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
+  // Load projects on mount (this is a side effect, not state sync)
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    if (isLoading) return;
-    // Only show wizard if: not dismissed, no projects, not in archived view, and not already onboarded
-    if (
-      !wizardDismissed &&
-      projects.length === 0 &&
-      !filters.archived &&
-      !localStorage.getItem("archia-onboarded")
-    ) {
-      setWizardOpen(true);
-    } else if (projects.length > 0 && !wizardDismissed) {
-      // Hide wizard as soon as the user has at least one project
-      setWizardDismissed(true);
-      try {
-        localStorage.setItem("archia-onboarded", "1");
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [isLoading, projects.length, filters.archived, wizardDismissed]);
 
   useEffect(() => {
     const t = setTimeout(() => {

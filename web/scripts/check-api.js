@@ -1,4 +1,5 @@
-const http = require("http");
+import http from "http";
+import { chromium } from "@playwright/test";
 
 const options = {
   hostname: "localhost",
@@ -35,12 +36,11 @@ const req = http.request(options, (res) => {
       res2.on("data", (chunk) => data2 += chunk);
       res2.on("end", () => {
         const projects = JSON.parse(data2);
-        const freeProjects = projects.items?.filter(p => p.project_kind === "free") || [];
+        const freeProjects = projects.items?.filter((p) => p.project_kind === "free") || [];
         console.log("Free projects:", freeProjects.length);
         freeProjects.forEach(p => console.log("ID:", p.id, "Kind:", p.project_kind, "Name:", p.name));
         
         // Navigate with Playwright
-        const { chromium } = require("@playwright/test");
         (async () => {
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage();

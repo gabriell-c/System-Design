@@ -39,17 +39,17 @@ export default function FirstProjectWizard({ open, onClose, onComplete }: Props)
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStep(1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setName("");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDescription("");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setContext("");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setSubmitting(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setSuccess(false);
   }, [open]);
 
