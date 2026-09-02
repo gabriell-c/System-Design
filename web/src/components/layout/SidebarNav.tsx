@@ -183,11 +183,11 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         onMouseLeave={() => setIsHovering(false)}
         className={`relative z-30 flex shrink-0 flex-col transition-all duration-300 ${
           effectiveCollapsed ? "w-20" : "w-72"
-        } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto"}
+        } ${effectiveCollapsed ? "overflow-hidden" : "overflow-y-auto scrollbar-thin scrollbar-thumb-violet-700/30 scrollbar-track-transparent"}
         ${
           theme === "dark"
-            ? "bg-gradient-to-b from-violet-950 via-purple-950 to-violet-950 border-r border-violet-800/50"
-            : "bg-gradient-to-b from-violet-50 via-purple-50 to-violet-50 border-r border-violet-200/50"
+            ? "bg-violet-950 border-r border-violet-800/30"
+            : "bg-white border-r border-violet-100"
         }`}
       >
 
@@ -195,29 +195,33 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
         {!effectiveCollapsed && (
           <>
             {/* Logo Header */}
-            <div className={`flex items-center gap-3 border-b px-6 py-6 ${
+            <div className={`flex items-center gap-3 border-b px-6 py-5 ${
               theme === "dark"
-                ? "border-violet-800/50 bg-gradient-to-b from-purple-900 to-violet-950"
-                : "border-violet-200/50 bg-gradient-to-b from-violet-100 to-purple-50"
+                ? "border-violet-800/20 bg-violet-950"
+                : "border-violet-100 bg-white"
             }`}>
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg ${
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-violet-500 to-purple-600 shadow-purple-500/30"
-                  : "bg-gradient-to-br from-violet-500 to-purple-600 shadow-purple-500/20"
+                  ? "bg-violet-600"
+                  : "bg-violet-600"
               }`}>
-                <Command className={`h-5 w-5 ${theme === "dark" ? "text-white" : "text-white"}`} />
+                <Command className="h-5 w-5 text-white" />
               </div>
-              <div className="flex-1">
-                <h1 className={`text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-violet-900"}`}>Archia</h1>
-                <p className={`text-xs ${theme === "dark" ? "text-violet-300/60" : "text-violet-600/70"}`}>Design System</p>
+              <div className="flex-1 min-w-0">
+                <h1 className={`text-lg font-bold tracking-tight leading-tight ${
+                  theme === "dark" ? "text-white" : "text-violet-900"
+                }`}>Archia</h1>
+                <p className={`text-xs font-medium ${
+                  theme === "dark" ? "text-violet-400/60" : "text-violet-600/60"
+                }`}>Design System</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
-                className={`rounded-lg p-1.5 transition lg:hidden ${
+                className={`rounded-lg p-1.5 transition-colors lg:hidden focus:outline-none focus:ring-2 ${
                   theme === "dark"
-                    ? "text-violet-300/60 hover:bg-purple-800/50 hover:text-violet-200"
-                    : "text-violet-600/70 hover:bg-violet-200/50 hover:text-violet-700"
+                    ? "text-violet-400 hover:bg-violet-800/30 focus:ring-violet-500/50"
+                    : "text-violet-600 hover:bg-violet-100 focus:ring-violet-400/50"
                 }`}
                 aria-label="Fechar menu"
               >
@@ -226,18 +230,18 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             </div>
 
             {/* Quick Actions */}
-            <div className={`px-4 py-4 border-b ${
+            <div className={`px-4 py-3 border-b ${
               theme === "dark"
-                ? "border-violet-800/50"
-                : "border-violet-200/50"
+                ? "border-violet-800/20"
+                : "border-violet-100"
             }`}>
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 px-4 text-sm font-semibold shadow-lg transition-all duration-200 ${
+                className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 px-4 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 ${
                   theme === "dark"
-                    ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-purple-600/30"
-                    : "bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-purple-600/20"
+                    ? "bg-violet-600 hover:bg-violet-700 text-white focus:ring-violet-500/50"
+                    : "bg-violet-600 hover:bg-violet-700 text-white focus:ring-violet-400/50"
                 }`}
               >
                 <Plus className="h-5 w-5" />
@@ -248,24 +252,24 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             {/* Search */}
             <div className={`px-4 py-3 border-b ${
               theme === "dark"
-                ? "border-violet-800/50"
-                : "border-violet-200/50"
+                ? "border-violet-800/20"
+                : "border-violet-100"
             }`}>
               <div className="relative">
                 <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${
                   theme === "dark"
-                    ? "text-violet-400/60"
-                    : "text-violet-500/60"
+                    ? "text-violet-400"
+                    : "text-violet-600"
                 }`} />
                 <input
                   type="text"
                   placeholder="Buscar..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full rounded-lg pl-10 pr-4 py-2.5 text-sm transition focus:outline-none ${
+                  className={`w-full rounded-lg pl-10 pr-4 py-2 text-sm transition focus:outline-none focus:ring-2 ${
                     theme === "dark"
-                      ? "bg-purple-900/30 border border-violet-700/50 text-violet-100 placeholder-violet-400/50 focus:border-violet-500/50 focus:bg-purple-900/50"
-                      : "bg-violet-100/50 border border-violet-300/50 text-violet-900 placeholder-violet-500/50 focus:border-violet-500/50 focus:bg-violet-100"
+                      ? "bg-violet-900/30 border border-violet-800/30 text-white placeholder-violet-400 focus:ring-violet-500/50 focus:bg-violet-900/50"
+                      : "bg-violet-50 border border-violet-200 text-violet-900 placeholder-violet-500 focus:ring-violet-400/50 focus:bg-white"
                   }`}
                 />
               </div>
@@ -275,22 +279,22 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
             <nav className="flex-1 overflow-y-auto px-4 py-4">
               {/* Main Menu Section */}
               <div className="mb-8">
-                <p className={`mb-4 px-0 text-xs font-semibold uppercase tracking-widest ${
+                <p className={`mb-3 px-0 text-xs font-semibold uppercase tracking-widest ${
                   theme === "dark"
-                    ? "text-violet-400/60"
-                    : "text-violet-600/60"
+                    ? "text-violet-400/50"
+                    : "text-violet-600/50"
                 }`}>Menu Principal</p>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Link
                     href="/"
-                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 ${
                       isActive("/")
                         ? theme === "dark"
-                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
-                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                          ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                          : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                         : theme === "dark"
-                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                          ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                          : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                     }`}
                   >
                     <LayoutGrid className="h-5 w-5 shrink-0" />
@@ -299,14 +303,14 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
 
                   <Link
                     href="/graphs"
-                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 ${
                       isActive("/graphs")
                         ? theme === "dark"
-                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
-                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                          ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                          : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                         : theme === "dark"
-                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                          ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                          : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                     }`}
                   >
                     <Monitor className="h-5 w-5 shrink-0" />
@@ -315,14 +319,14 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
 
                   <Link
                     href="/compare"
-                    className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 ${
                       isActive("/compare")
                         ? theme === "dark"
-                          ? "bg-violet-600/30 text-violet-200 border border-violet-500/50"
-                          : "bg-violet-200/50 text-violet-900 border border-violet-400/50"
+                          ? "bg-violet-600/20 text-violet-100 focus:ring-violet-500/50"
+                          : "bg-violet-100 text-violet-900 focus:ring-violet-400/50"
                         : theme === "dark"
-                          ? "text-violet-300/70 hover:bg-purple-800/30 hover:text-violet-200"
-                          : "text-violet-600/70 hover:bg-violet-100/30 hover:text-violet-900"
+                          ? "text-violet-300 hover:bg-violet-900/30 focus:ring-violet-500/50"
+                          : "text-violet-700 hover:bg-violet-50 focus:ring-violet-400/50"
                     }`}
                   >
                     <Sparkles className="h-5 w-5 shrink-0" />
