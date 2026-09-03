@@ -58,9 +58,8 @@ export default function ProjectEditorPage() {
   useEffect(() => {
     if (!isAuthenticated || !projectId) return;
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(false);
-     
+
     setError(null);
 
     (async () => {
@@ -84,11 +83,21 @@ export default function ProjectEditorPage() {
         if (primary) {
           const full = await api.getGraph(primary.id);
           if (cancelled) return;
+
+          // FIX: Validate that graph belongs to current project
+          const graphProjectId = full.project_id;
+          if (graphProjectId && graphProjectId !== project.id) {
+            console.warn(`[Project ${project.id}] Graph ${primary.id} belongs to project ${graphProjectId}, ignoring`);
+            // Reset graph store since this graph doesn't belong to current project
+            useGraphStore.getState().reset();
+            return;
+          }
+
           loadGraph(full);
         }
         setReady(true);
       } catch (err) {
-         
+
         if (!cancelled) setError(err instanceof Error ? err.message : "Projeto não encontrado");
       }
     })();

@@ -78,6 +78,7 @@ type GraphState = {
   context: string;
   nfr: ProjectNfr;
   graphId: string | null;
+  projectId: string | null; // NEW: track which project this graph belongs to
   nodes: Node<CanvasNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
@@ -290,6 +291,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   context: "",
   nfr: emptyNfr(),
   graphId: null,
+  projectId: null, // NEW: track project association
   nodes: [],
   edges: [],
   selectedNodeId: null,
@@ -1456,6 +1458,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
     set({
       graphId: graph.id,
+      projectId: graph.project_id ?? null, // NEW: track project association
       name: graph.name,
       context: graph.context ?? "",
       nfr: normalizeNfr(graph.nfr),
@@ -1503,6 +1506,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         context: "",
         nfr: emptyNfr(),
         graphId: null,
+        projectId: null, // NEW: reset project association
         nodes: [],
         edges: [],
         selectedNodeId: null,

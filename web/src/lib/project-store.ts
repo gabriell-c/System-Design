@@ -1,154 +1,131 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+"use client";
 
-import type { Project, ProjectAccessEntry, ProjectListFilters } from './types';
-import { api } from './api';
+import { create } from "zustand";
+import { api } from "./api";
+import { useGraphStore } from "./graph-store";
 
-interface ProjectState {
-  projects: Project[];
-  activeProjectId: string | null;
-  isLoading: boolean;
-  filters: ProjectListFilters;
-
-  setFilters: (partial: Partial<ProjectListFilters>) => void;
-  loadProjects: (overrides?: Partial<ProjectListFilters>) => Promise<void>;
-  createProject: (input: {
-    name: string;
-    description?: string;
-    context?: string;
-    is_public?: boolean;
-    project_kind?: string;
-    access_list?: ProjectAccessEntry[];
-  }) => Promise<Project>;
-  setActiveProject: (id: string | null) => void;
-  upsertProject: (project: Project) => void;
-  deleteProject: (id: string) => Promise<void>;
-  updateProject: (id: string, updates: Partial<Project> & { access_list?: ProjectAccessEntry[] }) => Promise<void>;
-  archiveProject: (id: string) => Promise<void>;
-  pinProject: (id: string) => Promise<void>;
-}
-
-const defaultFilters: ProjectListFilters = {
-  search: '',
-  sort_by: 'recent',
-  archived: false,
-  pinned_first: true,
+export type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  is_public: boolean;
+  project_kind?: "architecture" | "free";
+  created_at: string;
+  updated_at?: string;
+  diagrams?: Array<{ id: string; diagram_kind?: string }>;
 };
 
-export const useProjectStore = create<ProjectState>()(
-  persist(
-    (set, get) => ({
-      projects: [],
-      activeProjectId: null,
-      isLoading: false,
-      filters: defaultFilters,
+type ProjectState = {
+  projects: Project[];
+  isLoading: boolean;
+  filters: {
+    archived: boolean;
+    pinned: boolean;
+    public: boolean;
+  };
+  activeProjectId: string | null;
+  loadProjects: () => Promise<void>;
+  setFilters: (filters: Partial<ProjectState["filters"]>) => void;
+  createProject: (data: {
+    name: string;
+    description?: string;
+    project_kind?: "architecture" | "free";
+  }) => Promise<Project>;
+  deleteProject: (id: string) => Promise<void>;
+  archiveProject: (id: string) => Promise<void>;
+  pinProject: (id: string) => Promise<void>;
+  upsertProject: (project: Project) => void;
+  setActiveProject: (id: string | null) => void;
+};
 
-      setFilters: (partial) =>
-        set((state) => ({ filters: { ...state.filters, ...partial } })),
+export const useProjectStore = create<ProjectState>((set, get) => ({
+  projects: [],
+  isLoading: true,
+  filters: {
+    archived: false,
+    pinned: false,
+    public: false,
+  },
+  activeProjectId: null,
 
-      loadProjects: async (overrides) => {
-        const filters = { ...get().filters, ...overrides };
-        set({ isLoading: true, filters });
-        try {
-          const resp = await api.listProjects({
-            search: filters.search || undefined,
-            sort_by: filters.sort_by,
-            archived: filters.archived ?? false,
-            pinned_first: filters.pinned_first ?? true,
-            limit: 50,
-            offset: 0,
-          });
-          const projects = Array.isArray(resp) ? resp : (resp.items ?? []);
-          const withDiagrams = await Promise.all(
-            projects.map(async (p) => {
-              try {
-                const diagrams = await api.listProjectDiagrams(p.id);
-                return { ...p, diagrams };
-              } catch {
-                return { ...p, diagrams: p.diagrams ?? [] };
-              }
-            }),
-          );
-          set({ projects: withDiagrams, isLoading: false });
-        } catch {
-          set({ isLoading: false });
-        }
-      },
+  loadProjects: async () => {
+    set({ isLoading: true });
+    try {
+      const projects = await api.listProjects();
+      set({ projects, isLoading: false });
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      set({ isLoading: false });
+    }
+  },
 
-      createProject: async (input) => {
-        const resp = await api.createProject({
-          name: input.name,
-          description: input.description ?? '',
-          context: input.context ?? '',
-          nfr_json: '{}',
-          is_public: input.is_public ?? false,
-          project_kind: input.project_kind ?? 'architecture',
-          access_list: input.access_list ?? [],
-        });
-        const diagrams = await api.listProjectDiagrams(resp.id);
-        const full = { ...resp, diagrams, nfr: null };
-        set((state) => ({
-          projects: [full, ...state.projects],
-          activeProjectId: resp.id,
-        }));
-        return full;
-      },
+  setFilters: (filters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...filters },
+    }));
+  },
 
-      setActiveProject: (id) => set({ activeProjectId: id }),
+  createProject: async (data) => {
+    const project = await api.createProject(data);
+    set((state) => ({
+      projects: [project, ...state.projects],
+    }));
+    return project;
+  },
 
-      upsertProject: (project) =>
-        set((state) => {
-          const idx = state.projects.findIndex((p) => p.id === project.id);
-          if (idx >= 0) {
-            const projects = [...state.projects];
-            projects[idx] = { ...projects[idx], ...project };
-            return { projects };
-          }
-          return { projects: [project, ...state.projects] };
-        }),
+  deleteProject: async (id) => {
+    await api.deleteProject(id);
+    set((state) => ({
+      projects: state.projects.filter((p) => p.id !== id),
+      activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
+    }));
+  },
 
-      deleteProject: async (id) => {
-        await api.deleteProject(id);
-        set((state) => ({
-          projects: state.projects.filter((p) => p.id !== id),
-          activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
-        }));
-      },
+  archiveProject: async (id) => {
+    await api.archiveProject(id);
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, is_public: false } : p
+      ),
+    }));
+  },
 
-      updateProject: async (id, updates) => {
-        const resp = await api.updateProject(id, updates);
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p,
-          ),
-        }));
-      },
+  pinProject: async (id) => {
+    await api.pinProject(id);
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, is_public: !p.is_public } : p
+      ),
+    }));
+  },
 
-      archiveProject: async (id) => {
-        const resp = await api.archiveProject(id);
-        set((state) => ({
-          projects: state.projects
-            .map((p) => (p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p))
-            .filter((p) => Boolean(p.archived) === Boolean(state.filters.archived)),
-        }));
-      },
+  upsertProject: (project) => {
+    set((state) => {
+      const index = state.projects.findIndex((p) => p.id === project.id);
+      if (index >= 0) {
+        const newProjects = [...state.projects];
+        newProjects[index] = project;
+        return { projects: newProjects };
+      }
+      return { projects: [project, ...state.projects] };
+    });
+  },
 
-      pinProject: async (id) => {
-        const resp = await api.pinProject(id);
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, ...resp, diagrams: p.diagrams } : p,
-          ),
-        }));
-        await get().loadProjects();
-      },
-    }),
-    {
-      name: 'archia-projects',
-      partialize: (state) => ({
-        activeProjectId: state.activeProjectId,
-        filters: state.filters,
-      }),
-    },
-  ),
-);
+  setActiveProject: (id) => {
+    const state = get();
+    
+    // FIX: Reset graph store when switching projects
+    if (state.activeProjectId !== id) {
+      const graphStore = useGraphStore.getState();
+      const currentGraphProjectId = graphStore.projectId;
+      
+      // Only reset if we're switching to a different project
+      if (currentGraphProjectId && currentGraphProjectId !== id) {
+        console.log(`[ProjectStore] Switching from project ${currentGraphProjectId} to ${id}, resetting graph`);
+        graphStore.reset();
+      }
+    }
+    
+    set({ activeProjectId: id });
+  },
+}));
