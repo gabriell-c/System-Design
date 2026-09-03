@@ -150,7 +150,7 @@ export default function ProjectEditorPage() {
   return (
     <ErrorBoundary>
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        {ready ? <EditorShell /> : (
+        {ready ? <EditorShell key={projectId} /> : (
           <div className="flex min-h-full items-center justify-center">
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-muted)]">
