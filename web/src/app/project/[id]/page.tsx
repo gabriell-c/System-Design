@@ -62,15 +62,18 @@ export default function ProjectEditorPage() {
 
     setError(null);
 
-    // Reset graph store immediately when navigating to a new project
+    // Reset graph store IMMEDIATELY before fetching
+    console.log(`[ProjectPage] Loading project ${projectId}, resetting graph store`);
     useGraphStore.getState().reset();
 
     (async () => {
       try {
         const project = await api.getProject(projectId);
+        console.log(`[ProjectPage] Fetched project: ${project.id} (kind: ${project.project_kind})`);
         if (cancelled) return;
 
         const diagrams = await api.listProjectDiagrams(project.id);
+        console.log(`[ProjectPage] Project ${project.id} has ${diagrams.length} diagrams:`, diagrams.map(d => ({ id: d.id, kind: d.diagram_kind })));
         if (cancelled) return;
 
         upsertProject({ ...project, diagrams });
@@ -83,22 +86,25 @@ export default function ProjectEditorPage() {
               diagrams.find((d) => d.diagram_kind === "context") ??
               diagrams[0];
 
+        console.log(`[ProjectPage] Primary diagram: ${primary?.id} (kind: ${primary?.diagram_kind})`);
+
         if (primary) {
           const full = await api.getGraph(primary.id);
           if (cancelled) return;
 
-          // FIX: Validate that graph belongs to current project
-          const graphProjectId = full.project_id;
-          if (graphProjectId && graphProjectId !== project.id) {
-            console.warn(`[Project ${project.id}] Graph ${primary.id} belongs to project ${graphProjectId}, ignoring`);
-            // Reset graph store since this graph doesn't belong to current project
+          console.log(`[ProjectPage] Loaded graph ${full.id}, project_id=${full.project_id}, nodes=${(full.nodes as any[])?.length}, edges=${(full.edges as any[])?.length}`);
+
+          // STRICT validation: graph MUST belong to current project
+          if (full.project_id && full.project_id !== project.id) {
+            console.error(`[ProjectPage] BUG: Graph ${full.id} belongs to project ${full.project_id}, NOT ${project.id}!`);
             useGraphStore.getState().reset();
             return;
           }
 
           loadGraph(full);
+          console.log(`[ProjectPage] Graph store loaded. graphId=${useGraphStore.getState().graphId}, projectId=${useGraphStore.getState().projectId}, nodes=${useGraphStore.getState().nodes.length}`);
         } else {
-          // No diagrams found - reset to empty state
+          console.log(`[ProjectPage] No diagrams found for project ${project.id}`);
           useGraphStore.getState().reset();
         }
         setReady(true);
@@ -113,8 +119,8 @@ export default function ProjectEditorPage() {
 
   // Cleanup: reset graph when navigating away from project
   useEffect(() => {
+    console.log(`[ProjectPage] Cleanup for project ${projectId}, resetting graph store`);
     return () => {
-      console.log(`[Project ${projectId}] Unmounting, resetting graph store`);
       useGraphStore.getState().reset();
     };
   }, [projectId]);
