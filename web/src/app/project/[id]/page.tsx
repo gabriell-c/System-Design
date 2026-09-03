@@ -62,6 +62,9 @@ export default function ProjectEditorPage() {
 
     setError(null);
 
+    // Reset graph store immediately when navigating to a new project
+    useGraphStore.getState().reset();
+
     (async () => {
       try {
         const project = await api.getProject(projectId);
@@ -94,6 +97,9 @@ export default function ProjectEditorPage() {
           }
 
           loadGraph(full);
+        } else {
+          // No diagrams found - reset to empty state
+          useGraphStore.getState().reset();
         }
         setReady(true);
       } catch (err) {
@@ -104,6 +110,14 @@ export default function ProjectEditorPage() {
 
     return () => { cancelled = true; };
   }, [isAuthenticated, projectId, setActiveProject, upsertProject, loadGraph]);
+
+  // Cleanup: reset graph when navigating away from project
+  useEffect(() => {
+    return () => {
+      console.log(`[Project ${projectId}] Unmounting, resetting graph store`);
+      useGraphStore.getState().reset();
+    };
+  }, [projectId]);
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
