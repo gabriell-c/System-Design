@@ -113,16 +113,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setActiveProject: (id) => {
     const state = get();
-    console.log(`[ProjectStore] setActiveProject: ${state.activeProjectId} -> ${id}`);
-    console.log(`[ProjectStore] Current graph state: graphId=${useGraphStore.getState().graphId}, projectId=${useGraphStore.getState().projectId}, nodes=${useGraphStore.getState().nodes.length}`);
-
+    
     // ALWAYS reset graph when switching to a different project
     if (state.activeProjectId !== id) {
-      console.log(`[ProjectStore] Switching projects, resetting graph store`);
-      useGraphStore.getState().reset();
-      console.log(`[ProjectStore] After reset: graphId=${useGraphStore.getState().graphId}, projectId=${useGraphStore.getState().projectId}, nodes=${useGraphStore.getState().nodes.length}`);
+      console.log(`[ProjectStore] Switching project: ${state.activeProjectId} -> ${id}, resetting graph`);
+      const graphStore = useGraphStore.getState();
+      graphStore.reset();
+      console.log(`[ProjectStore] After reset: graphId=${graphStore.graphId}, projectId=${graphStore.projectId}, nodes=${graphStore.nodes.length}`);
     }
-
+    
     set({ activeProjectId: id });
   },
 }));

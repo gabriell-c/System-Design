@@ -32,19 +32,17 @@ export default function ProjectEditorPage() {
   }, [fetchProfile]);
 
   useEffect(() => {
-    if (authLoading) return; // Ainda carregando autenticação
+    if (authLoading) return;
     
     if (!isAuthenticated && !projectId) {
       router.push("/login");
       return;
     }
 
-    // Se não autenticado, verificar se projeto é público
     if (!isAuthenticated && projectId) {
       (async () => {
         try {
           const project = await api.getProject(projectId);
-          // Se projeto não é público, redirecionar para login
           if (!project.is_public) {
             router.push("/login");
           }
@@ -57,28 +55,32 @@ export default function ProjectEditorPage() {
 
   useEffect(() => {
     if (!isAuthenticated || !projectId) return;
-    let cancelled = false;
-    setReady(false);
-
-    setError(null);
-
-    // Reset graph store IMMEDIATELY before fetching
-    console.log(`[ProjectPage] Loading project ${projectId}, resetting graph store`);
+    
+    // AbortController to cancel in-flight requests
+    const controller = new AbortController();
+    
+    // STEP 1: Reset graph store IMMEDIATELY
+    console.log(`[ProjectPage:${projectId}] RESET graph store`);
     useGraphStore.getState().reset();
+    
+    setReady(false);
+    setError(null);
 
     (async () => {
       try {
         const project = await api.getProject(projectId);
-        console.log(`[ProjectPage] Fetched project: ${project.id} (kind: ${project.project_kind})`);
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
         const diagrams = await api.listProjectDiagrams(project.id);
-        console.log(`[ProjectPage] Project ${project.id} has ${diagrams.length} diagrams:`, diagrams.map(d => ({ id: d.id, kind: d.diagram_kind })));
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
+        console.log(`[ProjectPage:${projectId}] Project ${project.id} has ${diagrams.length} diagrams`);
+        
         upsertProject({ ...project, diagrams });
+        
+        // STEP 2: Set active project (this triggers store reset in project-store)
         setActiveProject(project.id);
-
+        
         const primary =
           project.project_kind === "free"
             ? diagrams.find((d) => d.diagram_kind === "free") ?? diagrams[0]
@@ -86,44 +88,45 @@ export default function ProjectEditorPage() {
               diagrams.find((d) => d.diagram_kind === "context") ??
               diagrams[0];
 
-        console.log(`[ProjectPage] Primary diagram: ${primary?.id} (kind: ${primary?.diagram_kind})`);
+        console.log(`[ProjectPage:${projectId}] Primary diagram: ${primary?.id} (kind: ${primary?.diagram_kind})`);
 
         if (primary) {
           const full = await api.getGraph(primary.id);
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
 
-          console.log(`[ProjectPage] Loaded graph ${full.id}, project_id=${full.project_id}, nodes=${(full.nodes as any[])?.length}, edges=${(full.edges as any[])?.length}`);
+          console.log(`[ProjectPage:${projectId}] Loaded graph ${full.id}, project_id=${full.project_id}, nodes=${(full.nodes as any[])?.length}`);
 
           // STRICT validation: graph MUST belong to current project
           if (full.project_id && full.project_id !== project.id) {
-            console.error(`[ProjectPage] BUG: Graph ${full.id} belongs to project ${full.project_id}, NOT ${project.id}!`);
+            console.error(`[ProjectPage:${projectId}] BUG: Graph ${full.id} belongs to project ${full.project_id}, NOT ${project.id}!`);
             useGraphStore.getState().reset();
+            setReady(true);
             return;
           }
 
+          // STEP 3: Load graph into store
           loadGraph(full);
-          console.log(`[ProjectPage] Graph store loaded. graphId=${useGraphStore.getState().graphId}, projectId=${useGraphStore.getState().projectId}, nodes=${useGraphStore.getState().nodes.length}`);
+          const storeState = useGraphStore.getState();
+          console.log(`[ProjectPage:${projectId}] Store after load: graphId=${storeState.graphId}, nodes=${storeState.nodes.length}`);
         } else {
-          console.log(`[ProjectPage] No diagrams found for project ${project.id}`);
-          useGraphStore.getState().reset();
+          console.log(`[ProjectPage:${projectId}] No diagrams found`);
         }
-        setReady(true);
+        
+        if (!controller.signal.aborted) {
+          setReady(true);
+        }
       } catch (err) {
-
-        if (!cancelled) setError(err instanceof Error ? err.message : "Projeto não encontrado");
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : "Projeto não encontrado");
+        }
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [isAuthenticated, projectId, setActiveProject, upsertProject, loadGraph]);
-
-  // Cleanup: reset graph when navigating away from project
-  useEffect(() => {
-    console.log(`[ProjectPage] Cleanup for project ${projectId}, resetting graph store`);
     return () => {
-      useGraphStore.getState().reset();
+      controller.abort();
+      console.log(`[ProjectPage:${projectId}] Cleanup - aborted`);
     };
-  }, [projectId]);
+  }, [isAuthenticated, projectId, setActiveProject, upsertProject, loadGraph]);
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
