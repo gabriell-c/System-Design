@@ -75,3 +75,70 @@ def test_embed_orphan_graph_is_public(client, anonymous_client):
         json={"name": "Orphan", "nodes": [], "edges": []},
     ).json()
     assert anonymous_client.get(f"/api/v1/embed/{graph['id']}").status_code == 200
+
+
+def test_auto_init_returns_existing_primary(client):
+    proj = client.post("/api/v1/projects", json={"name": "With Diagrams"}).json()
+    diagrams = client.get(f"/api/v1/projects/{proj['id']}/diagrams").json()
+    assert len(diagrams) >= 1
+    resp = client.post(f"/api/v1/projects/{proj['id']}/diagrams/auto-init")
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["project_id"] == proj["id"]
+    assert body["id"] in {d["id"] for d in diagrams}
+
+
+def test_auto_init_creates_when_project_has_no_diagrams(client):
+    """Simula projeto legado sem diagramas: auto-init cria um associado."""
+    from app.database import SessionLocal
+    from app.models.graph import Graph, Project, new_uuid
+
+    with SessionLocal() as db:
+        project = Project(
+            id=new_uuid(),
+            name="Empty Legacy",
+            description="",
+            context="",
+            nfr_json="{}",
+            is_public=False,
+            project_kind="architecture",
+            archived=False,
+            pinned=False,
+        )
+        db.add(project)
+        db.commit()
+        pid = project.id
+
+    assert client.get(f"/api/v1/projects/{pid}/diagrams").json() == []
+    resp = client.post(f"/api/v1/projects/{pid}/diagrams/auto-init")
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["project_id"] == pid
+    assert body["diagram_kind"] == "application"
+    assert body["name"]
+    listed = client.get(f"/api/v1/projects/{pid}/diagrams").json()
+    assert len(listed) == 1
+    assert listed[0]["id"] == body["id"]
+
+
+def test_update_graph_keeps_project_association(client):
+    proj = client.post("/api/v1/projects", json={"name": "Persist"}).json()
+    diagrams = client.get(f"/api/v1/projects/{proj['id']}/diagrams").json()
+    gid = diagrams[0]["id"]
+    payload = {
+        "name": "Persist",
+        "nodes": [{"id": "n1", "type": "arch", "position": {"x": 0, "y": 0}, "data": {"kind": "backend", "label": "API"}}],
+        "edges": [],
+        "project_id": proj["id"],
+        "excalidraw_elements": [{"id": "e1", "type": "rectangle", "x": 1, "y": 2}],
+    }
+    updated = client.put(f"/api/v1/graphs/{gid}", json=payload)
+    assert updated.status_code == 200
+    body = updated.json()
+    assert body["project_id"] == proj["id"]
+    assert len(body["nodes"]) == 1
+    assert len(body.get("excalidraw_elements") or []) == 1
+    again = client.get(f"/api/v1/graphs/{gid}").json()
+    assert again["project_id"] == proj["id"]
+    assert len(again["nodes"]) == 1
+    assert len(again.get("excalidraw_elements") or []) == 1

@@ -1,185 +1,145 @@
+/**
+ * Auto-save confiável para o Archia.
+ * Respeita o intervalo configurado no perfil do usuário.
+ *
+ * Comportamento:
+ * - Ao editar: marca como dirty, mas NÃO salva imediatamente.
+ * - Periodicamente (a cada N minutos do perfil): salva se dirty.
+ * - Ao perder foco da janela: salva se dirty.
+ * - Botão manual: salva na hora.
+ */
 import { useEffect, useRef } from "react";
 import { useGraphStore } from "@/lib/graph-store";
 import { useAuthStore } from "@/lib/auth-store";
-import { persistLocalDraft, type SyncStatus } from "@/lib/local-draft";
+import { api } from "@/lib/api";
 
-const LOCAL_DRAFT_INTERVAL_MS = 5_000;
-const COMPRESSION_THRESHOLD = 50; // Compress payloads with > 50 nodes
+const CHECK_INTERVAL_MS = 10000; // Verifica a cada 10s se precisa salvar
+const MAX_SAVE_INTERVAL_MS = 15 * 60 * 1000; // Teto: máximo 15 min
 
-type SyncListener = (status: SyncStatus) => void;
-const syncListeners = new Set<SyncListener>();
-let currentSyncStatus: SyncStatus = "synced";
+async function saveGraph(): Promise<boolean> {
+  const state = useGraphStore.getState();
 
-export function getSyncStatus(): SyncStatus {
-  return currentSyncStatus;
-}
-
-export function subscribeSyncStatus(listener: SyncListener): () => void {
-  syncListeners.add(listener);
-  listener(currentSyncStatus);
-  return () => {
-    syncListeners.delete(listener);
-  };
-}
-
-function setSyncStatus(status: SyncStatus) {
-  currentSyncStatus = status;
-  for (const listener of syncListeners) {
-    listener(status);
+  if (!state.graphId || !state.projectId) {
+    console.log("[AutoSave] skip — sem graphId ou projectId");
+    return false;
   }
-}
+  if (!state.dirty) {
+    return false;
+  }
 
-/** Compress JSON payload using browser's native CompressionStream API */
-async function compressPayload<T>(data: T): Promise<string> {
-  const json = JSON.stringify(data);
-  if (json.length < 1024) return json; // Don't compress small payloads
+  console.log("[AutoSave] salvando…", {
+    graphId: state.graphId.slice(0, 8),
+    nodes: state.nodes.length,
+    edges: state.edges.length,
+  });
+
+  state.setSaveStatus("saving");
 
   try {
-    const blob = new Blob([json]);
-    const compressedBlob = await new Response(blob.stream().pipeThrough(new CompressionStream("gzip"))).blob();
-    const buffer = await compressedBlob.arrayBuffer();
-    // Convert to base64 for transmission
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  } catch {
-    // Fallback to uncompressed if compression fails
-    return json;
-  }
-}
+    const payload = {
+      name: state.name,
+      context: state.context,
+      nfr: state.nfr,
+      nodes: state.nodes,
+      edges: state.edges,
+      project_id: state.projectId,
+      owner_team: state.ownerTeam ?? null,
+      diagram_kind: state.diagramKind,
+      parent_graph_id: state.parentGraphId,
+      c4_parent_node_id: state.c4ParentNodeId,
+      excalidraw_elements: state.excalidrawElements ?? [],
+    };
 
-/** Decompress base64-encoded gzip payload */
-async function decompressPayload(base64: string): Promise<string> {
-  try {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    const saved = await api.updateGraph(state.graphId, payload, {
+      ifMatch: state.lastEtag,
+    });
+
+    state.markSaved(state.graphId, saved.etag ?? null);
+    console.log("[AutoSave] ✓ salvo");
+    state.pushUiNotice({ type: "success", text: "Salvo automaticamente" });
+    return true;
+  } catch (error) {
+    console.error("[AutoSave] erro:", error);
+    const err = error as { status?: number };
+    if (err.status === 409) {
+      state.pushUiNotice({ type: "error", text: "Conflito de versão. Salve manualmente." });
+    } else {
+      state.pushUiNotice({ type: "error", text: "Erro ao salvar. Rascunho local mantido." });
     }
-    const blob = new Blob([bytes]);
-    const decompressedBlob = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
-    return await decompressedBlob.text();
-  } catch {
-    // Fallback to raw JSON if decompression fails
-    return base64;
+    state.setSaveStatus("error");
+    return false;
   }
 }
 
 export function useAutoSave() {
   const user = useAuthStore((s) => s.user);
-  const graphId = useGraphStore((s) => s.graphId);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const localTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSaveEnabled = user?.auto_save_enabled ?? true;
+  const autoSaveIntervalMinutes = user?.auto_save_interval_minutes ?? 15;
 
-  // Persist draft locally every 5s (independent of backend).
+  // Ref para o timestamp do último save — survives HMR, stable across renders
+  const lastSaveTimeRef = useRef<number>(Date.now());
+  const isSavingRef = useRef(false);
+  const autoSaveEnabledRef = useRef(autoSaveEnabled);
+  const autoSaveIntervalMinutesRef = useRef(autoSaveIntervalMinutes);
+
+  // Keep refs in sync with props
   useEffect(() => {
-    if (localTimerRef.current) clearInterval(localTimerRef.current);
-    localTimerRef.current = setInterval(() => {
-      const state = useGraphStore.getState();
-      if (!state.graphId || state.nodes.length === 0) return;
-      void persistLocalDraft({
-        id: state.graphId,
-        graphId: state.graphId,
-        name: state.name,
-        context: state.context,
-        nfr: state.nfr,
-        nodes: state.nodes,
-        edges: state.edges,
-        analysis: state.analysis,
-        savedAt: new Date().toISOString(),
-      });
-    }, LOCAL_DRAFT_INTERVAL_MS);
-    return () => {
-      if (localTimerRef.current) clearInterval(localTimerRef.current);
-    };
-  }, []);
+    autoSaveEnabledRef.current = autoSaveEnabled;
+  }, [autoSaveEnabled]);
 
   useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (!user || !user.auto_save_enabled || !graphId) return;
-    const intervalMin = user.auto_save_interval_minutes;
-    if (!intervalMin || intervalMin <= 0) return;
-    const ms = intervalMin * 60 * 1000;
-    timerRef.current = setInterval(async () => {
+    autoSaveIntervalMinutesRef.current = autoSaveIntervalMinutes;
+  }, [autoSaveIntervalMinutes]);
+
+  // Periodic check
+  useEffect(() => {
+    const intervalMs = Math.min(autoSaveIntervalMinutes * 60 * 1000, MAX_SAVE_INTERVAL_MS);
+
+    const periodicInterval = setInterval(async () => {
+      if (!autoSaveEnabledRef.current) return;
+
       const state = useGraphStore.getState();
-      if (!state.graphId) return;
+      if (!state.graphId || !state.projectId || !state.dirty || isSavingRef.current) return;
 
-      setSyncStatus("saving");
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
-      const payload = {
-        nodes: state.nodes,
-        edges: state.edges,
-      };
-      // Compress payload if large enough
-      const payloadJson = JSON.stringify(payload);
-      const body = payloadJson.length > 1024
-        ? await compressPayload(payload)
-        : payloadJson;
+      const timeSinceLastSave = Date.now() - lastSaveTimeRef.current;
+      if (timeSinceLastSave >= intervalMs) {
+        console.log("[AutoSave] backup periódico…", { intervalMs, timeSinceLastSave });
+        isSavingRef.current = true;
+        try {
+          await saveGraph();
+        } finally {
+          isSavingRef.current = false;
+        }
+      }
+    }, CHECK_INTERVAL_MS);
 
-      void fetch(`${base}/api/v1/graphs/${state.graphId}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(body !== payloadJson ? { "Content-Encoding": "gzip" } : {}),
-          ...(state.lastEtag ? { "If-Match": state.lastEtag } : {}),
-        },
-        body,
-      })
-        .then(async (res) => {
-          if (res.ok) {
-            setSyncStatus("synced");
-            const etag = res.headers.get("ETag");
-            state.markSaved(state.graphId!, etag);
-            return;
-          }
-          if (res.status === 409) {
-            setSyncStatus("error");
-            state.pushUiNotice({
-              type: "error",
-              text: "Conflito: o diagrama mudou em outra sessão. Abra Salvar para resolver (minha vs servidor).",
-            });
-            return;
-          }
-          setSyncStatus("error");
-          const detail = await res.text().catch(() => "");
-          state.pushUiNotice({
-            type: "error",
-            text: detail
-              ? `Falha ao salvar automaticamente (${res.status}). Rascunho local mantido.`
-              : "Falha ao salvar automaticamente. Verifique a conexão — rascunho local mantido.",
-          });
-          void persistLocalDraft({
-            id: state.graphId!,
-            graphId: state.graphId!,
-            name: state.name,
-            context: state.context,
-            nfr: state.nfr,
-            nodes: state.nodes,
-            edges: state.edges,
-            analysis: state.analysis,
-            savedAt: new Date().toISOString(),
-          });
-        })
-        .catch(() => {
-          setSyncStatus("offline");
-          state.pushUiNotice({
-            type: "error",
-            text: "Offline — não foi possível salvar no servidor. Rascunho salvo localmente.",
-          });
-          void persistLocalDraft({
-            id: state.graphId!,
-            graphId: state.graphId!,
-            name: state.name,
-            context: state.context,
-            nfr: state.nfr,
-            nodes: state.nodes,
-            edges: state.edges,
-            analysis: state.analysis,
-            savedAt: new Date().toISOString(),
-          });
-        });
-    }, ms);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+    return () => clearInterval(periodicInterval);
+  }, [autoSaveEnabled, autoSaveIntervalMinutes]);
+
+  // Save on window focus
+  useEffect(() => {
+    const onFocus = async () => {
+      if (!autoSaveEnabledRef.current) return;
+      const state = useGraphStore.getState();
+      if (!state.graphId || !state.projectId || !state.dirty || isSavingRef.current) return;
+      isSavingRef.current = true;
+      try {
+        await saveGraph();
+      } finally {
+        isSavingRef.current = false;
+      }
     };
-  }, [user, graphId]);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [autoSaveEnabled]);
+
+  // Reset lastSaveTime when switching projects
+  const prevProjectIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const state = useGraphStore.getState();
+    if (prevProjectIdRef.current !== state.projectId) {
+      prevProjectIdRef.current = state.projectId;
+      lastSaveTimeRef.current = Date.now();
+    }
+  });
 }

@@ -1,9 +1,12 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import NewProjectModal from "@/components/dashboard/NewProjectModal";
 import ProjectCard from "@/components/dashboard/ProjectCard";
 import ProjectFilters from "@/components/dashboard/ProjectFilters";
 import FirstProjectWizard from "@/components/onboarding/FirstProjectWizard";
+import { useAuthStore } from "@/lib/auth-store";
 import { useProjectStore } from "@/lib/project-store";
 import {
   AlertTriangle,
@@ -20,8 +23,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 type Stats = {
   total: number;
@@ -32,6 +33,16 @@ type Stats = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, authLoading, router]);
+
   const {
     projects,
     isLoading,
@@ -57,7 +68,6 @@ export default function DashboardPage() {
   });
   const [searchDraft, setSearchDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const router = useRouter();
 
   const refresh = useCallback(() => void loadProjects(), [loadProjects]);
 

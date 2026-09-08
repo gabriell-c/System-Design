@@ -85,6 +85,7 @@ export type GraphPayload = {
   diagram_kind?: string | null;
   parent_graph_id?: string | null;
   c4_parent_node_id?: string | null;
+  excalidraw_elements?: unknown[] | null;
 };
 
 export const api = {
@@ -222,6 +223,11 @@ export const api = {
     request<GraphRecord>(`/api/v1/projects/${projectId}/diagrams`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  /** Garante diagrama interno no projeto (cria se vazio; devolve o primario se ja existir). */
+  autoInitProjectDiagram: (projectId: string) =>
+    request<GraphRecord>(`/api/v1/projects/${projectId}/diagrams/auto-init`, {
+      method: "POST",
     }),
   listSubsystems: () =>
     request<Array<{ id: string; name: string; owner_team?: string; node_count: number }>>("/api/v1/projects/subsystems"),

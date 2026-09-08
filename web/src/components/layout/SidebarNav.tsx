@@ -531,11 +531,11 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-violet-800/20">
                 <div className="flex items-center gap-2">
                   {theme === "dark" ? (
-                    <Moon className={`h-4 w-4 ${theme === "dark" ? "text-violet-400" : "text-violet-600"}`} />
+                    <Moon className="h-4 w-4 text-violet-400" />
                   ) : (
-                    <Sun className={`h-4 w-4 ${theme === "dark" ? "text-violet-400" : "text-violet-600"}`} />
+                    <Sun className="h-4 w-4 text-violet-600" />
                   )}
-                  <span className={`text-xs font-medium ${theme === "dark" ? "text-violet-300" : "text-violet-700"}`}>
+                  <span className="text-xs font-medium text-violet-300">
                     {theme === "dark" ? "Escuro" : "Claro"}
                   </span>
                 </div>

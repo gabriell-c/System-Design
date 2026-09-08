@@ -574,6 +574,8 @@ export type GraphRecord = {
   diagram_kind?: string | null;
   parent_graph_id?: string | null;
   c4_parent_node_id?: string | null;
+  /** 关键修复：Excalidraw 自由图元素 */
+  excalidraw_elements?: import("@excalidraw/excalidraw/element/types").ExcalidrawElement[] | null;
   created_at: string;
   updated_at: string;
   /** Optimistic concurrency token (from ETag response header) */
@@ -692,7 +694,7 @@ export type Project = {
   access_list?: ProjectAccessEntry[];
   diagram_count?: number;
   node_count?: number;
-  diagrams: GraphRecord[];
+  diagrams?: Array<{ id: string; name: string; diagram_kind?: string | null }>;
   created_at: string;
   updated_at: string;
 };

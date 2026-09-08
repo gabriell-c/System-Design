@@ -3,6 +3,7 @@
 import SidebarNav from "./SidebarNav";
 import { useProjectStore } from "@/lib/project-store";
 import { useState, useEffect } from "react";
+import AuthGuard from "../auth/AuthGuard";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -32,11 +33,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Sempre usar a MESMA sidebar em TODAS as páginas
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
-      <SidebarNav />
-      <main id="main-content" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {children}
-      </main>
-    </div>
+    <AuthGuard>
+      <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+        <SidebarNav />
+        <main id="main-content" className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </main>
+      </div>
+    </AuthGuard>
   );
 }

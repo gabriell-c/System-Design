@@ -70,6 +70,14 @@ def _node_count(project: Project) -> int:
 
 
 def _to_out(project: Project) -> ProjectOut:
+    diagrams = []
+    if project.diagrams:
+        for d in project.diagrams:
+            diagrams.append({
+                "id": d.id,
+                "name": d.name,
+                "diagram_kind": getattr(d, "diagram_kind", None),
+            })
     return ProjectOut(
         id=project.id,
         name=project.name,
@@ -84,8 +92,9 @@ def _to_out(project: Project) -> ProjectOut:
         created_at=project.created_at,
         updated_at=project.updated_at,
         access_list=_access_list(project),
-        diagram_count=len(project.diagrams or []),
+        diagram_count=len(diagrams),
         node_count=_node_count(project),
+        diagrams=diagrams,
     )
 
 
@@ -148,7 +157,7 @@ def list_projects(
     total = db.scalar(count_stmt) or 0
 
     # Apply pagination
-    projects = list(db.scalars(stmt.unique().offset(offset).limit(limit)).all())
+    projects = list(db.scalars(stmt.offset(offset).limit(limit)).all())
 
     def sort_key(p: Project):
         pin = 0 if (pinned_first and p.pinned) else 1
@@ -361,6 +370,54 @@ def create_diagram(
         diagram_kind=getattr(payload, "diagram_kind", None),
         parent_graph_id=getattr(payload, "parent_graph_id", None),
         c4_parent_node_id=getattr(payload, "c4_parent_node_id", None),
+        excalidraw_elements_json=json.dumps(getattr(payload, "excalidraw_elements", None) or []),
+        review_status="draft",
+    )
+    with sqlite_write_guard():
+        db.add(diagram)
+        db.commit()
+        db.refresh(diagram)
+    return to_out(diagram)
+
+
+@router.post("/{project_id}/diagrams/auto-init", response_model=GraphOut, status_code=201)
+def auto_init_diagram(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Garante que o projeto tenha ao menos um diagrama persistido (idempotente).
+
+    Se já existir diagrama, devolve o primario (free > application > context > primeiro).
+    Caso contrario, cria um diagrama vazio associado ao projeto.
+    """
+    project = _get_project(db, project_id)
+    existing = list(project.diagrams or [])
+    if existing:
+        kind = getattr(project, "project_kind", None) or "architecture"
+        if kind == "free":
+            primary = next((g for g in existing if g.diagram_kind == "free"), existing[0])
+        else:
+            primary = (
+                next((g for g in existing if g.diagram_kind == "application"), None)
+                or next((g for g in existing if g.diagram_kind == "context"), None)
+                or existing[0]
+            )
+        return to_out(primary)
+
+    kind = getattr(project, "project_kind", None) or "architecture"
+    diagram_kind = "free" if kind == "free" else "application"
+    label = "Diagrama Livre" if diagram_kind == "free" else "Diagrama principal"
+    diagram = Graph(
+        id=new_uuid(),
+        project_id=project_id,
+        name=f"{project.name} — {label}",
+        context_text=project.context or "",
+        nfr_json=project.nfr_json or "{}",
+        nodes_json="[]",
+        edges_json="[]",
+        excalidraw_elements_json="[]",
+        diagram_kind=diagram_kind,
         review_status="draft",
     )
     with sqlite_write_guard():

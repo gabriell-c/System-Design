@@ -64,6 +64,7 @@ class GraphPayload(BaseModel):
     diagram_kind: str | None = Field(default=None, max_length=32)
     parent_graph_id: str | None = Field(default=None, max_length=36)
     c4_parent_node_id: str | None = Field(default=None, max_length=36)
+    excalidraw_elements: list[Any] | None = Field(default=None, max_length=5000)
 
 
 class GraphUpdate(BaseModel):
@@ -78,6 +79,7 @@ class GraphUpdate(BaseModel):
     diagram_kind: str | None = Field(default=None, max_length=32)
     parent_graph_id: str | None = Field(default=None, max_length=36)
     c4_parent_node_id: str | None = Field(default=None, max_length=36)
+    excalidraw_elements: list[Any] | None = Field(default=None, max_length=5000)
 
 
 class TeamAccess(BaseModel):
@@ -102,6 +104,7 @@ class GraphOut(BaseModel):
     diagram_kind: str | None = None
     parent_graph_id: str | None = None
     c4_parent_node_id: str | None = None
+    excalidraw_elements: list[Any] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

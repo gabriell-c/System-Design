@@ -49,7 +49,7 @@ export default function ConsistencyPanel() {
               graphId: d.id,
               kind: d.diagram_kind ?? null,
               name: d.name,
-              nodes: (d.nodes ?? []) as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
+              nodes: [] as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
             })),
           );
           setIssues(local);
@@ -61,7 +61,7 @@ export default function ConsistencyPanel() {
             graphId: d.id,
             kind: d.diagram_kind ?? null,
             name: d.name,
-            nodes: (d.nodes ?? []) as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
+            nodes: [] as Array<{ id: string; data?: { label?: string; catalogId?: string; stableRef?: string } }>,
           })),
         );
         setIssues(local);

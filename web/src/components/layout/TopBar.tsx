@@ -82,6 +82,8 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const setIsLocked = useGraphStore((s) => s.setIsLocked);
   const lastEtag = useGraphStore((s) => s.lastEtag);
   const loadGraph = useGraphStore((s) => s.loadGraph);
+  const projectId = useGraphStore((s) => s.projectId);
+  const excalidrawElements = useGraphStore((s) => s.excalidrawElements ?? []);
 
   const user = useAuthStore((s) => s.user);
   const [isOnline, setIsOnline] = useState(
@@ -108,14 +110,6 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
     };
   }, []);
 
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    void import("@/hooks/useAutoSave").then(({ subscribeSyncStatus }) => {
-      unsub = subscribeSyncStatus(setSyncStatus);
-    });
-    return () => unsub?.();
-  }, []);
-
   async function save() {
     try {
       const payload = {
@@ -124,16 +118,24 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
         nfr,
         nodes,
         edges,
+        project_id: projectId,
         owner_team: ownerTeam || null,
         diagram_kind: diagramKind,
         parent_graph_id: parentGraphId,
         c4_parent_node_id: c4ParentNodeId,
+        excalidraw_elements: excalidrawElements.length > 0 ? excalidrawElements : [],
       };
       const saved = graphId
         ? await api.updateGraph(graphId, payload, { ifMatch: lastEtag })
-        : await api.createGraph(payload);
+        : projectId
+          ? await api.createProjectDiagram(projectId, payload)
+          : await api.createGraph(payload);
       markSaved(saved.id, saved.etag ?? null);
-      pushUiNotice({ type: "success", text: "Arquitetura salva." });
+      if (saved.project_id || projectId) {
+        useGraphStore.setState({ projectId: saved.project_id ?? projectId });
+      }
+      setSyncStatus("synced");
+      pushUiNotice({ type: "success", text: "Projeto salvo com sucesso!" });
     } catch (err) {
       if (err instanceof ApiConflictError && graphId) {
         const keepMine = await confirm({
@@ -153,10 +155,12 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
               nfr,
               nodes,
               edges,
+              project_id: projectId,
               owner_team: ownerTeam || null,
               diagram_kind: diagramKind,
               parent_graph_id: parentGraphId,
               c4_parent_node_id: c4ParentNodeId,
+              excalidraw_elements: excalidrawElements.length > 0 ? excalidrawElements : [],
             };
             const saved = await api.updateGraph(graphId, payload, { force: true });
             markSaved(saved.id, saved.etag ?? null);
@@ -266,15 +270,30 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
             placeholder="Nome do desenho"
           />
         </div>
-        <Tooltip content={dirty ? "Alterações pendentes" : "Tudo salvo"}>
+        <Tooltip
+          content={
+            syncStatus === "saving"
+              ? "Salvando no projeto…"
+              : dirty
+                ? "Alterações pendentes — salvamento automático em segundos"
+                : "Tudo salvo no projeto"
+          }
+        >
           <span
             className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-medium sm:inline-flex ${
-              dirty
-                ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
-                : "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
+              syncStatus === "saving"
+                ? "border-sky-500/40 bg-sky-500/15 text-sky-100"
+                : dirty
+                  ? "border-amber-500/40 bg-amber-500/20 text-amber-100"
+                  : "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
             }`}
           >
-            {dirty ? (
+            {syncStatus === "saving" ? (
+              <>
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-sky-200/30 border-t-sky-100" />
+                salvando…
+              </>
+            ) : dirty ? (
               <>
                 <CloudOff className="h-3.5 w-3.5" />
                 não salvo
@@ -300,8 +319,6 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
               {!isOnline || syncStatus === "offline" ? "offline" : "sync erro"}
             </span>
           </Tooltip>
-        ) : syncStatus === "saving" ? (
-          <span className="hidden text-[12px] text-[var(--muted)] sm:inline">salvando…</span>
         ) : null}
 
         <div className="mx-0.5 hidden h-6 w-px bg-[var(--border-strong)] sm:block" />

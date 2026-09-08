@@ -3,17 +3,9 @@
 import { create } from "zustand";
 import { api } from "./api";
 import { useGraphStore } from "./graph-store";
+import type { Project as ProjectType } from "./types";
 
-export type Project = {
-  id: string;
-  name: string;
-  description?: string;
-  is_public: boolean;
-  project_kind?: "architecture" | "free";
-  created_at: string;
-  updated_at?: string;
-  diagrams?: Array<{ id: string; diagram_kind?: string }>;
-};
+export type Project = ProjectType;
 
 type ProjectState = {
   projects: Project[];
@@ -22,14 +14,18 @@ type ProjectState = {
     archived: boolean;
     pinned: boolean;
     public: boolean;
+    search?: string;
   };
   activeProjectId: string | null;
-  loadProjects: () => Promise<void>;
+  loadProjects: (filters?: { search?: string; archived?: boolean }) => Promise<void>;
   setFilters: (filters: Partial<ProjectState["filters"]>) => void;
   createProject: (data: {
     name: string;
     description?: string;
+    context?: string;
+    is_public?: boolean;
     project_kind?: "architecture" | "free";
+    access_list?: Array<{ email: string; role: "read" | "full" }>;
   }) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
   archiveProject: (id: string) => Promise<void>;
@@ -48,11 +44,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
   activeProjectId: null,
 
-  loadProjects: async () => {
+  loadProjects: async (filters?) => {
     set({ isLoading: true });
     try {
-      const projects = await api.listProjects();
-      set({ projects, isLoading: false });
+      const result = await api.listProjects(filters);
+      set({ projects: result.items, isLoading: false });
     } catch (error) {
       console.error("Failed to load projects:", error);
       set({ isLoading: false });
@@ -113,15 +109,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setActiveProject: (id) => {
     const state = get();
-    
-    // ALWAYS reset graph when switching to a different project
+
+    // ALWAYS reset graph when switching to a different project — isolation guarantee
     if (state.activeProjectId !== id) {
       console.log(`[ProjectStore] Switching project: ${state.activeProjectId} -> ${id}, resetting graph`);
-      const graphStore = useGraphStore.getState();
-      graphStore.reset();
-      console.log(`[ProjectStore] After reset: graphId=${graphStore.graphId}, projectId=${graphStore.projectId}, nodes=${graphStore.nodes.length}`);
+      useGraphStore.getState().reset();
+      const after = useGraphStore.getState();
+      console.log(
+        `[ProjectStore] After reset: graphId=${after.graphId}, projectId=${after.projectId}, nodes=${after.nodes.length}, excalidraw=${after.excalidrawElements.length}`,
+      );
     }
-    
+
     set({ activeProjectId: id });
   },
 }));

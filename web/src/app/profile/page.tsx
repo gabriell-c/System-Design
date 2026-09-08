@@ -53,13 +53,22 @@ export default function ProfilePage() {
     void fetchProfile();
   }, [fetchProfile]);
 
+  // Sync form with user data when it loads
+  useEffect(() => {
+    if (user) {
+      setForm({ username: user.username, email: user.email, phone: user.phone ?? "" });
+      setAutoSaveEnabled(user.auto_save_enabled);
+      setAutoSaveInterval(user.auto_save_interval_minutes);
+    }
+  }, [user]);
+
   // Load avatar from localStorage on mount if not in store
   useEffect(() => {
     if (!avatarUrl) {
       try {
         const saved = localStorage.getItem("archia-user-avatar");
         if (saved) {
-          setAvatarUrl(prev => prev || saved);
+          setAvatarUrl(saved);
         }
       } catch {
         // ignore
@@ -120,7 +129,7 @@ export default function ProfilePage() {
   function applyCrop() {
     setCropping(true);
     // Create canvas to crop the image
-    const img = new Image();
+    const img = new (globalThis as any).Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -354,14 +363,17 @@ export default function ProfilePage() {
                   {autoSaveEnabled && (
                     <div className="mt-3 flex items-center gap-2">
                       <label className="text-xs text-[var(--muted)]">Intervalo (minutos):</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={60}
+                      <select
                         value={autoSaveInterval}
-                        onChange={(e) => setAutoSaveInterval(parseInt(e.target.value) || 1)}
-                        className="w-20 rounded-md border border-[var(--border)] bg-black/30 px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                      />
+                        onChange={(e) => setAutoSaveInterval(parseInt(e.target.value))}
+                        className="w-24 rounded-md border border-[var(--border)] bg-black/30 px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                      >
+                        <option value={0}>0 (desativado)</option>
+                        <option value={5}>5</option>
+                        <option value={15}>15</option>
+                        <option value={30}>30</option>
+                        <option value={60}>60</option>
+                      </select>
                     </div>
                   )}
                 </div>

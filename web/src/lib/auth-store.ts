@@ -139,7 +139,13 @@ export const useAuthStore = create<AuthState>()(
 
           if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Update failed');
+            let message = 'Update failed';
+            if (Array.isArray(error.detail)) {
+              message = error.detail.map((e: any) => e.msg || e.loc?.join('.')).join('; ');
+            } else if (typeof error.detail === 'string') {
+              message = error.detail;
+            }
+            throw new Error(message);
           }
 
           const updatedUser = await response.json();

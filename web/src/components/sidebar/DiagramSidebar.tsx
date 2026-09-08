@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type DiagramSidebarProps = {
   collapsed?: boolean;
@@ -148,11 +149,16 @@ export default function DiagramSidebar({ collapsed: initialCollapsed, onToggle }
                   key={project.id}
                   className={`group ${activeProjectId === project.id ? "bg-white/5" : ""}`}
                 >
-                  <div
+                  <Link
+                    href={`/project/${project.id}`}
+                    onClick={() => {
+                      // Set active project when clicking
+                      setActiveProject(project.id);
+                      console.log(`[Sidebar] Navigating to project: ${project.id} (${project.name})`);
+                    }}
                     className={`flex cursor-pointer items-center justify-between px-3 py-2.5 transition-colors hover:bg-white/5 ${
                       activeProjectId === project.id ? "border-l-2 border-[var(--accent)]" : ""
                     }`}
-                    onClick={() => setActiveProject(project.id)}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[var(--foreground)]">{project.name}</p>
@@ -175,7 +181,7 @@ export default function DiagramSidebar({ collapsed: initialCollapsed, onToggle }
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </Tooltip>
-                  </div>
+                  </Link>
 
                   {activeProjectId === project.id && project.diagrams?.length ? (
                     <ul className="border-t border-[var(--border)] pb-1">
@@ -188,7 +194,16 @@ export default function DiagramSidebar({ collapsed: initialCollapsed, onToggle }
                                 ? "bg-[var(--accent-muted)] text-indigo-200"
                                 : "text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
                             }`}
-                            onClick={() => loadGraph(d)}
+                            onClick={async () => {
+                              // Reset store before loading new graph to prevent stale state
+                              useGraphStore.getState().reset();
+                              try {
+                                const full = await api.getGraph(d.id);
+                                loadGraph(full);
+                              } catch (err) {
+                                console.error("Failed to load diagram:", err);
+                              }
+                            }}
                           >
                             <span className="font-medium">{diagramKindLabel(d.diagram_kind)}</span>
                             <span className="mt-0.5 block truncate text-sm text-[var(--muted-fg)]">{d.name}</span>

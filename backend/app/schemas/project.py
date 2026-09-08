@@ -49,6 +49,7 @@ class ProjectOut(BaseModel):
     access_list: list[ProjectAccessEntry] = Field(default_factory=list)
     diagram_count: int = 0
     node_count: int = 0
+    diagrams: list[dict] = Field(default_factory=list)
 
 
 class ShareUrlOut(BaseModel):

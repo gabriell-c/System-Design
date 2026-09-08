@@ -112,6 +112,8 @@ type GraphState = {
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
   lastEtag: string | null;
+  saveStatus: "saved" | "saving" | "dirty" | "error";
+  setSaveStatus: (status: "saved" | "saving" | "dirty" | "error") => void;
   analyzePhase: "idle" | "analyzing" | "scoring" | "review" | "done";
   excalidrawElements: import("@excalidraw/excalidraw/element/types").ExcalidrawElement[];
   selectedExcalidrawElementId: string | null;
@@ -324,6 +326,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   sequenceMode: false,
   isLocked: false,
   lastEtag: null,
+  saveStatus: "saved",
   analyzePhase: "idle",
   excalidrawElements: [],
   selectedExcalidrawElementId: null,
@@ -1203,8 +1206,29 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setSequenceMode: (on) => set({ sequenceMode: on }),
   setIsLocked: (locked) => set({ isLocked: locked }),
   setLastEtag: (etag) => set({ lastEtag: etag }),
+  setSaveStatus: (status) => set({ saveStatus: status }),
   setAnalyzePhase: (phase) => set({ analyzePhase: phase }),
-  setExcalidrawElements: (elements) => set({ excalidrawElements: elements }),
+  setExcalidrawElements: (elements) => {
+    const SENTINEL_ID = "__excalidraw_scene__";
+    const prev = get().nodes.filter((n) => n.id !== SENTINEL_ID);
+    const sentinel: Node<CanvasNodeData> = {
+      id: SENTINEL_ID,
+      type: "default",
+      position: { x: 0, y: 0 },
+      data: {
+        kind: "note",
+        label: "__excalidraw_scene__",
+        // Persist free-diagram scene so PUT /graphs isolates per project
+        text: JSON.stringify(elements),
+      },
+      hidden: true,
+    };
+    set({
+      excalidrawElements: elements,
+      nodes: [...prev, sentinel],
+      dirty: true,
+    });
+  },
   setSelectedExcalidrawElementId: (id) => set({ selectedExcalidrawElementId: id }),
   renameNode: (id, label) => {
     const trimmed = label.trim() || "Sem nome";
@@ -1456,9 +1480,37 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       const data = normalizeEdgeData(e.data);
       return { ...e, data, ...styleEdgeFromData(data), type: e.type ?? "smoothstep" };
     });
+    // 关键修复：优先从后端响应中恢复 Excalidraw 元素，否则从 sentinel 节点恢复
+    const freeScene = graph.excalidraw_elements && graph.excalidraw_elements.length > 0
+      ? graph.excalidraw_elements
+      : (() => {
+          const raw = (graph.nodes ?? []) as Array<{
+            id?: string;
+            data?: { kind?: string; label?: string; text?: string; notes?: string; elements?: unknown };
+          }>;
+          const sentinel = raw.find(
+            (n) => n?.id === "__excalidraw_scene__" || n?.data?.label === "__excalidraw_scene__",
+          );
+          if (!sentinel?.data) return [];
+          if (Array.isArray(sentinel.data.elements)) {
+            return sentinel.data.elements as import("@excalidraw/excalidraw/element/types").ExcalidrawElement[];
+          }
+          const payload = sentinel.data.text ?? sentinel.data.notes;
+          if (typeof payload === "string" && payload.trim()) {
+            try {
+              const parsed = JSON.parse(payload) as unknown;
+              return Array.isArray(parsed)
+                ? (parsed as import("@excalidraw/excalidraw/element/types").ExcalidrawElement[])
+                : [];
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        })();
     set({
       graphId: graph.id,
-      projectId: graph.project_id ?? null, // NEW: track project association
+      projectId: graph.project_id ?? null,
       name: graph.name,
       context: graph.context ?? "",
       nfr: normalizeNfr(graph.nfr),
@@ -1467,6 +1519,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       analysis: graph.analysis,
       dirty: false,
       lastSavedAt: graph.updated_at,
+      lastEtag: graph.etag ?? null,
       selectedNodeId: null,
       selectedNodeIds: [],
       selectedEdgeId: null,
@@ -1479,6 +1532,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       parentGraphId: graph.parent_graph_id ?? null,
       c4ParentNodeId: graph.c4_parent_node_id ?? null,
       sequenceMode: graph.diagram_kind === "sequence",
+      excalidrawElements: freeScene,
+      selectedExcalidrawElementId: null,
     });
   },
 
@@ -1495,18 +1550,22 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         selectedNodeId: null,
         selectedNodeIds: [],
         uiNotice: null,
+        // 关键修复：加载快照时清空 Excalidraw 元素
+        excalidrawElements: [],
+        selectedExcalidrawElementId: null,
       });
     });
   },
 
   reset: () => {
+    console.log("[GraphStore] reset() called");
     withHistory(get, set, () => {
       set({
         name: "Nova arquitetura",
         context: "",
         nfr: emptyNfr(),
         graphId: null,
-        projectId: null, // NEW: reset project association
+        projectId: null,
         nodes: [],
         edges: [],
         selectedNodeId: null,
@@ -1518,8 +1577,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         uiNotice: null,
         dirty: false,
         lastSavedAt: null,
+        // Critical: clear free-diagram scene so projects never share Excalidraw state
+        excalidrawElements: [],
+        selectedExcalidrawElementId: null,
+        diagramKind: null,
+        parentGraphId: null,
+        c4ParentNodeId: null,
+        sequenceMode: false,
+        past: [],
+        future: [],
+        saveStatus: "saved",
       });
     });
+    console.log("[GraphStore] reset() complete — excalidrawElements cleared");
   },
 
   markSaved: (id, etag = null) =>
@@ -1528,6 +1598,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       dirty: false,
       lastSavedAt: new Date().toISOString(),
       lastEtag: etag,
+      saveStatus: "saved",
     }),
 }));
 

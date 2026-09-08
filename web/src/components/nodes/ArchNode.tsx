@@ -34,9 +34,9 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
   const opacity = nodeOpacityForView(data, architectureView);
   const meta = KIND_META[data.kind];
   const subtitle =
-    data.config.framework ||
-    data.config.engine ||
-    [data.config.provider, data.config.service].filter(Boolean).join(" · ") ||
+    data.config?.framework ||
+    data.config?.engine ||
+    [data.config?.provider, data.config?.service].filter(Boolean).join(" · ") ||
     data.tech;
 
   return (

@@ -10,6 +10,7 @@ __pycache__/
 venv/
 backend/data/*.db
 backend/data/playwright.db
+backend/data.db
 .env
 .env.local
 backend/.env

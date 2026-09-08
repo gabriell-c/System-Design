@@ -85,6 +85,7 @@ def to_out(graph: Graph) -> GraphOut:
         diagram_kind=getattr(graph, "diagram_kind", None),
         parent_graph_id=getattr(graph, "parent_graph_id", None),
         c4_parent_node_id=getattr(graph, "c4_parent_node_id", None),
+        excalidraw_elements=_parse_json_list(graph.excalidraw_elements_json),
         created_at=graph.created_at,
         updated_at=graph.updated_at,
     )
@@ -141,6 +142,8 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db), current_u
         diagram_kind=payload.diagram_kind,
         parent_graph_id=payload.parent_graph_id,
         c4_parent_node_id=payload.c4_parent_node_id,
+        # 关键修复：保存 Excalidraw 元素
+        excalidraw_elements_json=json.dumps(payload.excalidraw_elements or []),
         review_status="draft",
     )
     with sqlite_write_guard():
@@ -212,6 +215,8 @@ def update_graph(
         graph.parent_graph_id = payload.parent_graph_id
     if payload.c4_parent_node_id is not None:
         graph.c4_parent_node_id = payload.c4_parent_node_id
+    if payload.excalidraw_elements is not None:
+        graph.excalidraw_elements_json = json.dumps(payload.excalidraw_elements)
     graph.updated_at = datetime.now(timezone.utc)
     with sqlite_write_guard():
         _snapshot(db, graph)

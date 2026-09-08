@@ -2,13 +2,15 @@
 
 /**
  * Diagrama Livre = Excalidraw oficial, sem chrome Archia.
- * API mínima da lib — igual ao exemplo dos docs.
+ * Isolation: remounts when graphId changes so the scene never leaks across projects.
  */
 import "@excalidraw/excalidraw/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { useGraphStore } from "@/lib/graph-store";
+import { api } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Cloud, CloudCheck, CloudOff } from "lucide-react";
 
 function elementsFingerprint(elements: readonly ExcalidrawElement[]): string {
   let h = 2166136261;
@@ -35,16 +37,19 @@ function elementsFingerprint(elements: readonly ExcalidrawElement[]): string {
 }
 
 function hideSocialLinks() {
-  // Hide "Excalidraw links" section and social items
   document.querySelectorAll<HTMLElement>('[class*="dropdown-menu-group"]').forEach((group) => {
     const title = group.querySelector<HTMLElement>('[class*="dropdown-menu-group-title"]');
     if (title && title.textContent?.includes("Excalidraw")) {
       group.style.display = "none";
     }
   });
-  document.querySelectorAll<HTMLElement>('[aria-label="GitHub"], [title="GitHub"], [aria-label="Discord"], [title="Discord"]').forEach((el) => {
-    if (el.parentElement) el.parentElement.style.display = "none";
-  });
+  document
+    .querySelectorAll<HTMLElement>(
+      '[aria-label="GitHub"], [title="GitHub"], [aria-label="Discord"], [title="Discord"]',
+    )
+    .forEach((el) => {
+      if (el.parentElement) el.parentElement.style.display = "none";
+    });
   document.querySelectorAll<HTMLElement>('[class*="dropdown-menu-item"]').forEach((item) => {
     const text = item.textContent?.trim() || "";
     if (text === "GitHub" || text === "Discord" || text === "Follow us") {
@@ -54,15 +59,34 @@ function hideSocialLinks() {
 }
 
 export default function ExcalidrawWrapper() {
+  const graphId = useGraphStore((s) => s.graphId);
+  const projectId = useGraphStore((s) => s.projectId);
   const elements = useGraphStore((s) => s.excalidrawElements ?? []);
+  const dirty = useGraphStore((s) => s.dirty);
+  const saveStatus = useGraphStore((s) => s.saveStatus);
+  const setSaveStatus = useGraphStore((s) => s.setSaveStatus);
+  const markSaved = useGraphStore((s) => s.markSaved);
+  const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
+  const name = useGraphStore((s) => s.name);
+  const context = useGraphStore((s) => s.context);
+  const nfr = useGraphStore((s) => s.nfr);
+  const nodes = useGraphStore((s) => s.nodes);
+  const edges = useGraphStore((s) => s.edges);
+  const diagramKind = useGraphStore((s) => s.diagramKind);
+  const parentGraphId = useGraphStore((s) => s.parentGraphId);
+  const c4ParentNodeId = useGraphStore((s) => s.c4ParentNodeId);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
+  const lastEtag = useGraphStore((s) => s.lastEtag);
   const setElements = useGraphStore((s) => s.setExcalidrawElements);
   const lastFpRef = useRef(elementsFingerprint(elements));
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const initialDataRef = useRef({
-    elements: elements as ExcalidrawElement[],
-  });
+  // Keep fingerprint aligned when store resets / another graph loads.
+  useEffect(() => {
+    lastFpRef.current = elementsFingerprint(elements);
+  }, [graphId, elements]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -83,6 +107,61 @@ export default function ExcalidrawWrapper() {
     return () => ro.disconnect();
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!graphId || !projectId) {
+      pushUiNotice({ type: "error", text: "Nenhum projeto ou diagrama selecionado." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    setSaveStatus("saving");
+    try {
+      const payload = {
+        name,
+        context,
+        nfr,
+        nodes,
+        edges,
+        project_id: projectId,
+        owner_team: ownerTeam || null,
+        diagram_kind: diagramKind,
+        parent_graph_id: parentGraphId,
+        c4_parent_node_id: c4ParentNodeId,
+        excalidraw_elements: elements,
+      };
+      const saved = await api.updateGraph(graphId, payload, { ifMatch: lastEtag });
+      markSaved(saved.id, saved.etag ?? null);
+      pushUiNotice({ type: "success", text: "Diagrama salvo com sucesso!" });
+    } catch (err) {
+      console.error("[ExcalidrawWrapper] Save error:", err);
+      setSaveStatus("error");
+      pushUiNotice({
+        type: "error",
+        text: err instanceof Error ? err.message : "Falha ao salvar. Verifique a conexão.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    graphId,
+    projectId,
+    saving,
+    setSaveStatus,
+    markSaved,
+    pushUiNotice,
+    name,
+    context,
+    nfr,
+    nodes,
+    edges,
+    diagramKind,
+    parentGraphId,
+    c4ParentNodeId,
+    ownerTeam,
+    lastEtag,
+    elements,
+  ]);
+
   const onChange = useCallback(
     (next: readonly ExcalidrawElement[]) => {
       const fp = elementsFingerprint(next);
@@ -93,7 +172,6 @@ export default function ExcalidrawWrapper() {
     [setElements],
   );
 
-  // Hide social links when menu opens
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setTimeout(hideSocialLinks, 50);
@@ -103,19 +181,80 @@ export default function ExcalidrawWrapper() {
     return () => observer.disconnect();
   }, []);
 
+  // Fresh instance per graphId — initialData from THIS render's store slice only.
+  const mountKey = graphId ?? "empty";
+
+  const statusIcon =
+    saveStatus === "saved" ? (
+      <CloudCheck size={14} />
+    ) : saveStatus === "saving" ? (
+      <Cloud size={14} className="animate-pulse" />
+    ) : dirty ? (
+      <CloudOff size={14} />
+    ) : (
+      <CloudOff size={14} />
+    );
+
   return (
     <div
       ref={containerRef}
       data-testid="excalidraw-container"
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "100%", width: "100%", position: "relative" }}
     >
       {ready ? (
-        <Excalidraw
-          initialData={initialDataRef.current}
-          onChange={onChange}
-          langCode="pt-BR"
-          theme="light"
-        />
+        <>
+          <Excalidraw
+            key={mountKey}
+            initialData={{ elements: elements as ExcalidrawElement[] }}
+            onChange={onChange}
+            langCode="pt-BR"
+            theme="light"
+          />
+          {/* Save button — fixed top-right */}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!graphId || !projectId || saving}
+            title={saving ? "Salvando…" : dirty ? "Salvar diagrama (Ctrl+S)" : "Salvo"}
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 72,
+              zIndex: 200,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "none",
+              cursor: dirty && graphId && projectId ? "pointer" : "not-allowed",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              background:
+                saving
+                  ? "rgba(59,130,246,0.9)"
+                  : dirty && graphId && projectId
+                    ? "rgba(34,197,94,0.9)"
+                    : "rgba(100,116,139,0.6)",
+              color: "#fff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+              transition: "background 0.2s",
+              pointerEvents: saving ? "none" : "auto",
+            }}
+          >
+            {statusIcon}
+            <span>
+              {saving
+                ? "Salvando…"
+                : saveStatus === "saved"
+                  ? "Salvo"
+                  : dirty
+                    ? "Salvar"
+                    : "Sem projeto"}
+            </span>
+          </button>
+        </>
       ) : null}
     </div>
   );
