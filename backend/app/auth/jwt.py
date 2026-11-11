@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from pydantic import BaseModel
@@ -15,14 +15,21 @@ class TokenPayload(BaseModel):
     exp: datetime
     type: str = "access"
     remember_me: bool = False
+    tv: int = 0
 
 
 def create_access_token(
     user_id: int,
     expires_delta: timedelta = timedelta(days=7),
-    remember_me: bool = False
+    remember_me: bool = False,
+    token_version: int = 0,
 ) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token.
+
+    `token_version` is embedded as the `tv` claim so that bumping the user's
+    stored token_version (password change / session revocation) invalidates
+    every previously issued token.
+    """
     if remember_me:
         expires_delta = timedelta(days=7)
     else:
@@ -30,10 +37,11 @@ def create_access_token(
 
     payload = {
         "sub": str(user_id),
-        "exp": datetime.now(timezone.utc) + expires_delta,
+        "exp": datetime.now(UTC) + expires_delta,
         "type": "access",
         "jti": str(uuid.uuid4()),
-        "remember_me": remember_me
+        "remember_me": remember_me,
+        "tv": int(token_version),
     }
 
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -58,6 +66,6 @@ def get_token_expiry(token: str) -> datetime | None:
         if isinstance(exp, datetime):
             return exp
         if isinstance(exp, (int, float)):
-            return datetime.fromtimestamp(exp, tz=timezone.utc)
+            return datetime.fromtimestamp(exp, tz=UTC)
         return datetime.fromisoformat(exp)
     return None

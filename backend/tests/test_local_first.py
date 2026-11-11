@@ -69,12 +69,13 @@ def test_embed_allows_public_project(client, anonymous_client):
     assert client.get(f"/api/v1/embed/{gid}/token").status_code == 200
 
 
-def test_embed_orphan_graph_is_public(client, anonymous_client):
+def test_embed_orphan_graph_is_denied(client, anonymous_client):
+    """P1.6 — default-deny: grafo órfão (sem projeto) não tem embed público."""
     graph = client.post(
         "/api/v1/graphs",
         json={"name": "Orphan", "nodes": [], "edges": []},
     ).json()
-    assert anonymous_client.get(f"/api/v1/embed/{graph['id']}").status_code == 200
+    assert anonymous_client.get(f"/api/v1/embed/{graph['id']}").status_code == 403
 
 
 def test_auto_init_returns_existing_primary(client):
@@ -91,12 +92,16 @@ def test_auto_init_returns_existing_primary(client):
 def test_auto_init_creates_when_project_has_no_diagrams(client):
     """Simula projeto legado sem diagramas: auto-init cria um associado."""
     from app.database import SessionLocal
-    from app.models.graph import Graph, Project, new_uuid
+    from app.models.graph import Project, new_uuid
+    from app.models.user import User
 
     with SessionLocal() as db:
+        # P1.2 — owner_id agora é obrigatório; projeto legado é atribuído ao SENIOR.
+        senior = db.query(User).filter(User.role == "senior").first()
         project = Project(
             id=new_uuid(),
             name="Empty Legacy",
+            owner_id=senior.id,
             description="",
             context="",
             nfr_json="{}",

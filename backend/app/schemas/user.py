@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 _EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 _PHONE_RE = re.compile(r'^\+?[0-9]{7,15}$')
+_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+_RECOVER_CODE_RE = re.compile(r'^\d{8}$')
 
 
 def _check_password_complexity(v: str) -> str:
@@ -133,7 +135,7 @@ class UserProfileUpdate(BaseModel):
 
 
 class PasswordRecoveryRequest(BaseModel):
-    username: str
+    """P1.3 — passo 1 do fluxo 2-passos: valida identidade e emite um código."""
     phone: str
     birth_date: str  # YYYY-MM-DD
 
@@ -144,15 +146,47 @@ class PasswordRecoveryRequest(BaseModel):
             raise ValueError('Phone must be 7-15 digits, optionally starting with +')
         return v
 
+    @field_validator('birth_date')
+    @classmethod
+    def validate_birth_date(cls, v: str) -> str:
+        if not _DATE_RE.match(v):
+            raise ValueError('Birth date must be in YYYY-MM-DD format')
+        return v
 
-class PasswordReset(BaseModel):
-    token: str
+
+class PasswordRecoveryConfirmRequest(BaseModel):
+    """P1.3 — passo 2: código de 8 dígitos + nova senha."""
+    phone: str
+    birth_date: str  # YYYY-MM-DD
+    code: str
     new_password: str
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if not _PHONE_RE.match(v):
+            raise ValueError('Phone must be 7-15 digits, optionally starting with +')
+        return v
+
+    @field_validator('birth_date')
+    @classmethod
+    def validate_birth_date(cls, v: str) -> str:
+        if not _DATE_RE.match(v):
+            raise ValueError('Birth date must be in YYYY-MM-DD format')
+        return v
+
+    @field_validator('code')
+    @classmethod
+    def validate_code(cls, v: str) -> str:
+        if not _RECOVER_CODE_RE.match(v):
+            raise ValueError('Recovery code must be exactly 8 digits')
+        return v
 
     @field_validator('new_password')
     @classmethod
-    def validate_password(cls, v: str) -> str:
+    def validate_new_password(cls, v: str) -> str:
         return _check_password_complexity(v)
+
 
 
 class UserResponse(BaseModel):

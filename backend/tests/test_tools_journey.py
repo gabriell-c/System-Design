@@ -27,7 +27,8 @@ def test_user_journey_all_tool_surfaces(client, no_omniroute):
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
     assert client.get("/api/v1/auth/sso/config").status_code == 200
 
-    proj = client.post("/api/v1/projects", json={"name": "Journey Proj", "context": "e2e"})
+    # P1.6 — embed só é liberado para grafos de projeto PÚBLICO.
+    proj = client.post("/api/v1/projects", json={"name": "Journey Proj", "context": "e2e", "is_public": True})
     assert proj.status_code == 201, proj.text
     pid = proj.json()["id"]
     assert client.get(f"/api/v1/projects/{pid}/diagrams").status_code == 200
@@ -36,6 +37,7 @@ def test_user_journey_all_tool_surfaces(client, no_omniroute):
         "/api/v1/graphs",
         json={
             "name": "Journey Graph",
+            "project_id": pid,
             "nodes": [
                 {
                     "id": "n1",

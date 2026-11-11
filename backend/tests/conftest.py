@@ -12,15 +12,17 @@ from fastapi.testclient import TestClient
 from app.database import Base, engine
 from app.main import app
 from app.models import AiSettings, Session, User  # noqa: F401
-from app.rate_limit import _buckets
+from app.rate_limit import _buckets, _llm_daily
 
 
 @pytest.fixture(autouse=True)
 def _clear_rate_limiter():
-    """Reset in-memory rate limiter between tests."""
+    """Reset in-memory rate limiter (incl. daily LLM budget) between tests."""
     _buckets.clear()
+    _llm_daily.clear()
     yield
     _buckets.clear()
+    _llm_daily.clear()
 
 
 @pytest.fixture()

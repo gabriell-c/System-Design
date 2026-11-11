@@ -28,12 +28,21 @@ class EmbedPayload(BaseModel):
 
 
 def _assert_embed_allowed(db: Session, graph: Graph) -> None:
-    """Public embeds only for projects marked is_public (or orphan graphs)."""
+    """P1.6 — default-deny: embed só é permitido para grafos de projeto PÚBLICO
+    (com share-token). Grafos órfãos (sem projeto) e de projeto privado são negados.
+    O caminho de share-token público (is_public + share_token) continua liberado."""
     if not graph.project_id:
-        return
+        # P1.6 — grafo sem projeto: nega (antes era liberado por omissão).
+        raise HTTPException(
+            status_code=403,
+            detail="Embed indisponível: o grafo não pertence a um projeto público.",
+        )
     project = db.get(Project, graph.project_id)
     if project is None:
-        return
+        raise HTTPException(
+            status_code=403,
+            detail="Embed indisponível: projeto do grafo não encontrado.",
+        )
     if not project.is_public:
         raise HTTPException(
             status_code=403,

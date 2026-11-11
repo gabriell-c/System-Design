@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings as env_settings
 from app.models.settings import AiSettings
+from app.services.secret_crypto import decrypt_secret, encrypt_secret
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ def get_or_create_settings(db: Session) -> AiSettings:
         id="default",
         provider="omniroute",
         base_url=env_settings.omniroute_base_url,
-        api_key=env_settings.omniroute_api_key,
+        api_key=encrypt_secret(env_settings.omniroute_api_key),  # P1.5 — cifra em repouso
         model=env_settings.omniroute_model,
         enabled="true",
     )
@@ -45,13 +46,22 @@ def get_or_create_settings(db: Session) -> AiSettings:
 
 
 def to_runtime(row: AiSettings) -> RuntimeAiConfig:
+    # P1.5 — api_key é lida em claro apenas em memória (decifra o valor cifrado).
     return RuntimeAiConfig(
         provider=row.provider,
         base_url=row.base_url or env_settings.omniroute_base_url,
-        api_key=row.api_key or env_settings.omniroute_api_key,
+        api_key=decrypt_secret(row.api_key or "") or env_settings.omniroute_api_key,
         model=row.model or env_settings.omniroute_model,
         enabled=row.enabled == "true",
     )
+
+
+def plaintext_api_key(row: AiSettings) -> str:
+    """P1.5 — api_key decifrada para mask/uso; vazio se nunca definida."""
+    try:
+        return decrypt_secret(row.api_key or "")
+    except ValueError:
+        return ""
 
 
 def load_runtime(db: Session) -> RuntimeAiConfig:

@@ -1,4 +1,8 @@
-"""P1 routes — polyglot map, lineage, simulation scenarios, capacity."""
+"""P1 routes — polyglot map, lineage, simulation scenarios, capacity.
+
+P1.13 — módulo renomeado de p1.py; checagens de ownership (P1.2) via helpers
+compartilhados em app.routes._graph_helpers.
+"""
 
 from __future__ import annotations
 
@@ -9,10 +13,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.graph import Graph, SimulationScenario, new_uuid
+from app.models.graph import SimulationScenario, new_uuid
 from app.models.user import User
+from app.routes._graph_helpers import _nfr_out, _parse_json_list, get_graph_or_404
 from app.routes.auth import get_current_user
-from app.routes.graphs import _nfr_out, _parse_json_list
 from app.services.capacity import estimate_capacity
 from app.services.lineage import build_lineage
 from app.services.polyglot_map import build_polyglot_map
@@ -36,9 +40,7 @@ class SimulationScenarioOut(BaseModel):
 
 @router.get("/graphs/{graph_id}/polyglot-map")
 def polyglot_map(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    graph = get_graph_or_404(db, current_user, graph_id)
     nodes = _parse_json_list(graph.nodes_json)
     edges = _parse_json_list(graph.edges_json)
     return build_polyglot_map(nodes, edges)
@@ -46,9 +48,7 @@ def polyglot_map(graph_id: str, db: Session = Depends(get_db), current_user: Use
 
 @router.get("/graphs/{graph_id}/lineage")
 def lineage(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    graph = get_graph_or_404(db, current_user, graph_id)
     nodes = _parse_json_list(graph.nodes_json)
     edges = _parse_json_list(graph.edges_json)
     nfr = _nfr_out(graph)
@@ -57,9 +57,7 @@ def lineage(graph_id: str, db: Session = Depends(get_db), current_user: User = D
 
 @router.get("/graphs/{graph_id}/capacity-estimate")
 def capacity_estimate(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    graph = get_graph_or_404(db, current_user, graph_id)
     nodes = _parse_json_list(graph.nodes_json)
     nfr = _nfr_out(graph)
     return estimate_capacity(nodes, nfr.model_dump() if nfr else None)
@@ -67,9 +65,7 @@ def capacity_estimate(graph_id: str, db: Session = Depends(get_db), current_user
 
 @router.get("/graphs/{graph_id}/simulation-scenarios", response_model=list[SimulationScenarioOut])
 def list_scenarios(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[SimulationScenarioOut]:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    get_graph_or_404(db, current_user, graph_id)
     rows = (
         db.query(SimulationScenario)
         .filter(SimulationScenario.graph_id == graph_id)
@@ -83,9 +79,8 @@ def list_scenarios(graph_id: str, db: Session = Depends(get_db), current_user: U
 def create_scenario(
     graph_id: str, payload: SimulationScenarioCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> SimulationScenarioOut:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    # P1.2 — escrita exige acesso de escrita no grafo.
+    get_graph_or_404(db, current_user, graph_id, write=True)
     row = SimulationScenario(
         id=new_uuid(),
         graph_id=graph_id,
@@ -100,6 +95,8 @@ def create_scenario(
 
 @router.delete("/graphs/{graph_id}/simulation-scenarios/{scenario_id}")
 def delete_scenario(graph_id: str, scenario_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
+    # P1.2 — remoção exige acesso de escrita no grafo.
+    get_graph_or_404(db, current_user, graph_id, write=True)
     row = (
         db.query(SimulationScenario)
         .filter(SimulationScenario.id == scenario_id, SimulationScenario.graph_id == graph_id)

@@ -35,6 +35,7 @@ def test_graph_crud(client):
 
 
 def test_review_other_profile(client):
+    """P1.7 — o role declarado pelo cliente é ignorado: persiste o role do usuário autenticado."""
     created = client.post("/api/v1/graphs", json={"name": "Rev", "nodes": [], "edges": []})
     graph_id = created.json()["id"]
     reviewed = client.post(
@@ -43,4 +44,4 @@ def test_review_other_profile(client):
     )
     assert reviewed.status_code == 200
     assert reviewed.json()["review_status"] == "approved"
-    assert reviewed.json()["reviewer_role"] == "other"
+    assert reviewed.json()["reviewer_role"] == "senior"

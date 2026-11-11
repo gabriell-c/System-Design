@@ -1,27 +1,54 @@
+import hashlib
+import logging
 import os
-from datetime import datetime, timedelta, timezone
+import secrets
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.auth import create_access_token, decode_token, hash_password, verify_password
 from app.database import get_db
+from app.models.recover import PasswordResetCode
 from app.models.session import Session as UserSession
 from app.models.user import User
-from app.rate_limit import rate_limit_login, rate_limit_recover
+from app.rate_limit import (
+    rate_limit_login,
+    rate_limit_recover_confirm_ip,
+    rate_limit_recover_ip,
+)
 from app.schemas.user import (
+    PasswordRecoveryConfirmRequest,
     PasswordRecoveryRequest,
-    PasswordReset,
     UserCreate,
     UserLogin,
     UserResponse,
 )
+
+logger = logging.getLogger("archia.auth")
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 SESSION_COOKIE_NAME = "archia_session"
 SESSION_EXPIRY_DAYS = 7
 _IS_PRODUCTION = os.environ.get("ARCHIA_ENV", "development").lower() == "production"
+# P1.3 — TTL do código de recuperação (8 dígitos, SHA-256 no banco).
+RECOVERY_CODE_TTL_MINUTES = 15
+
+
+def _parse_birth_date(raw: str) -> datetime:
+    """'YYYY-MM-DD' -> datetime UTC (mesma forma em que users.birth_date é guardado)."""
+    return datetime.strptime(raw, "%Y-%m-%d").replace(tzinfo=UTC)
+
+
+def generate_recovery_code() -> str:
+    """Código numérico de 8 dígitos (fácil de ler/teclar) — criptograficamente seguro."""
+    return "".join(secrets.choice("0123456789") for _ in range(8))
+
+
+def hash_recovery_code(code: str) -> str:
+    """SHA-256 hex do código — só o hash é persistido, nunca o código em claro."""
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 
 def get_current_user(
@@ -58,6 +85,16 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    # P1.4 — session invalidation: the token's "tv" claim must match the
+    # user's stored token_version (bumped on password change / revocation).
+    token_version = int(payload.get("tv", 0) or 0)
+    stored_version = int(user.token_version or 0)
+    if token_version != stored_version:
+        raise HTTPException(
+            status_code=401,
+            detail="Sessão revogada. Faça login novamente.",
+        )
 
     return user
 
@@ -98,9 +135,9 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         password_hash=hash_password(user_data.password),
         role="user",  # New users always get "user" role
         phone=user_data.phone,
-        birth_date=datetime.strptime(user_data.birth_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) if user_data.birth_date else None,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        birth_date=datetime.strptime(user_data.birth_date, "%Y-%m-%d").replace(tzinfo=UTC) if user_data.birth_date else None,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
     db.add(new_user)
@@ -127,10 +164,11 @@ def login(login_data: UserLogin, request: Request, response: Response, db: Sessi
     if not verify_password(login_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    # Create access token
+    # Create access token (embeds token_version so revocation works — P1.4)
     access_token = create_access_token(
         user_id=user.id,
-        remember_me=login_data.remember_me
+        remember_me=login_data.remember_me,
+        token_version=int(user.token_version or 0),
     )
 
     # Set session cookie
@@ -139,7 +177,7 @@ def login(login_data: UserLogin, request: Request, response: Response, db: Sessi
         key=SESSION_COOKIE_NAME,
         value=access_token,
         max_age=max_age,
-        expires=datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRY_DAYS) if login_data.remember_me else None,
+        expires=datetime.now(UTC) + timedelta(days=SESSION_EXPIRY_DAYS) if login_data.remember_me else None,
         httponly=True,
         secure=_IS_PRODUCTION,
         samesite="lax"
@@ -149,8 +187,8 @@ def login(login_data: UserLogin, request: Request, response: Response, db: Sessi
     session_record = UserSession(
         user_id=user.id,
         token=access_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRY_DAYS),
-        created_at=datetime.now(timezone.utc)
+        expires_at=datetime.now(UTC) + timedelta(days=SESSION_EXPIRY_DAYS),
+        created_at=datetime.now(UTC)
     )
     db.add(session_record)
     db.commit()
@@ -194,85 +232,114 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.post("/recover")
 def recover_password(recovery_data: PasswordRecoveryRequest, request: Request, db: Session = Depends(get_db)):
-    """Initiate password recovery with username, phone, and birth date."""
-    rate_limit_recover(request, recovery_data.username)
+    """P1.3 — passo 1 da recuperação em 2 tempos.
 
-    user = db.query(User).filter(
-        User.username == recovery_data.username.upper()
-    ).first()
+    Valida phone+birth_date, gera um código numérico de 8 dígitos (armazenado
+    como SHA-256, TTL 15 min) e NUNCA expõe o código na resposta — sempre
+    {"sent": true}, inclusive quando não há usuário correspondente, para
+    dificultar enumeração de telefones.
+    """
+    rate_limit_recover_ip(request)
 
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    birth_date = _parse_birth_date(recovery_data.birth_date)
+    user = (
+        db.query(User)
+        .filter(User.phone == recovery_data.phone, User.birth_date == birth_date)
+        .first()
+    )
+    if user:
+        code = generate_recovery_code()
+        # Códigos anteriores deste usuário deixam de ser válidos.
+        db.query(PasswordResetCode).filter(
+            PasswordResetCode.user_id == user.id,
+            PasswordResetCode.used.is_(False),
+        ).update({"used": True}, synchronize_session=False)
+        db.add(
+            PasswordResetCode(
+                user_id=user.id,
+                phone=recovery_data.phone,
+                code_hash=hash_recovery_code(code),
+                used=False,
+                created_at=datetime.now(UTC),
+                expires_at=datetime.now(UTC) + timedelta(minutes=RECOVERY_CODE_TTL_MINUTES),
+            )
+        )
+        db.commit()
+        if _IS_PRODUCTION:
+            logger.info("recover_code_dispatched phone=%s", user.phone)
+        else:
+            # Em dev não há canal de SMS: o código só vai para o log de servidor.
+            logger.info("recover_code dev_only phone=%s code=%s", user.phone, code)
 
-    # Verify phone and birth date
-    if user.phone != recovery_data.phone:
-        raise HTTPException(status_code=400, detail="Invalid phone number")
+    return {"sent": True}
 
-    if user.birth_date:
-        user_birth_date = user.birth_date.strftime("%Y-%m-%d")
-        if user_birth_date != recovery_data.birth_date:
-            raise HTTPException(status_code=400, detail="Invalid birth date")
-    else:
-        raise HTTPException(status_code=400, detail="Birth date not configured")
 
-    # Generate reset token
-    reset_token = create_access_token(
-        user_id=user.id,
-        expires_delta=timedelta(hours=24),  # Reset token valid for 24 hours
-        remember_me=False
+@router.post("/recover/confirm")
+def confirm_recovery(
+    payload: PasswordRecoveryConfirmRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """P1.3 — passo 2: código de 8 dígitos + nova senha.
+
+    Verifica código inusado/não expirado, define a nova senha bcrypt, marca o
+    código como usado e incrementa token_version — revogando todas as sessões
+    ativas do usuário (P1.4).
+    """
+    rate_limit_recover_confirm_ip(request)
+
+    birth_date = _parse_birth_date(payload.birth_date)
+    user = (
+        db.query(User)
+        .filter(User.phone == payload.phone, User.birth_date == birth_date)
+        .first()
+    )
+    code_row = (
+        db.query(PasswordResetCode)
+        .filter(
+            PasswordResetCode.phone == payload.phone,
+            PasswordResetCode.used.is_(False),
+        )
+        .order_by(PasswordResetCode.created_at.desc())
+        .first()
     )
 
-    # Store reset token in session (in a real app, send via SMS/email)
-    session_record = UserSession(
-        user_id=user.id,
-        token=reset_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        created_at=datetime.now(timezone.utc)
+    now = datetime.now(UTC)
+    expires_at = code_row.expires_at if code_row is not None else None
+    if expires_at is not None and expires_at.tzinfo is None:
+        # SQLite devolve datetime sem tz; normaliza para UTC antes do comparativo.
+        expires_at = expires_at.replace(tzinfo=UTC)
+    valid = (
+        user is not None
+        and code_row is not None
+        and code_row.user_id == user.id
+        and expires_at > now
+        and code_row.code_hash == hash_recovery_code(payload.code)
     )
-    db.add(session_record)
+    if not valid:
+        # Mensagem genérica — não distingue usuário inexistente, código usado
+        # ou expirado (evita enumeração).
+        raise HTTPException(status_code=400, detail="Código inválido, expirado ou já utilizado.")
+
+    user.password_hash = hash_password(payload.new_password)
+    user.token_version = int(user.token_version or 0) + 1  # revoga tokens antigos
+    code_row.used = True
+    db.query(PasswordResetCode).filter(
+        PasswordResetCode.user_id == user.id,
+        PasswordResetCode.used.is_(False),
+    ).update({"used": True}, synchronize_session=False)
+    db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
     db.commit()
-
-    # For demo purposes, return token (in production, send via SMS/email)
-    return {
-        "message": "Password recovery initiated",
-        "reset_token": reset_token,  # In production, this would be sent via SMS/email
-        "expires_in": 86400  # 24 hours
-    }
+    return {"detail": "Senha redefinida com sucesso. Faça login novamente."}
 
 
-@router.post("/reset-password")
-def reset_password(reset_data: PasswordReset, db: Session = Depends(get_db)):
-    """Reset password using the recovery token."""
-    # Decode the reset token
-    payload = decode_token(reset_data.token)
-    if not payload:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
-
-    user_id = int(payload["sub"])
-
-    # Verify the token exists in sessions (and hasn't been used)
-    session_record = db.query(UserSession).filter(
-        UserSession.token == reset_data.token,
-        UserSession.user_id == user_id
-    ).first()
-
-    if not session_record:
-        raise HTTPException(status_code=400, detail="Invalid reset token")
-
-    # Update password
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user.password_hash = hash_password(reset_data.new_password)
-    user.updated_at = datetime.now(timezone.utc)
-
-    # Invalidate ALL sessions for this user (security: old tokens become useless)
-    db.query(UserSession).filter(UserSession.user_id == user_id).delete()
-
+@router.post("/sessions/invalidate")
+def invalidate_all_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """P1.4 — revoga todas as sessões ativas (bump de token_version + limpeza)."""
+    current_user.token_version = int(current_user.token_version or 0) + 1
+    db.query(UserSession).filter(UserSession.user_id == current_user.id).delete(synchronize_session=False)
     db.commit()
-
-    return {"message": "Password reset successfully"}
+    return {"detail": "Todas as sessões foram revogadas."}
 
 
 @router.get("/sso/config")

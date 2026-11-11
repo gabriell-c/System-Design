@@ -19,6 +19,9 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="user")  # "user" or "senior"
 
+    # Incrementado ao trocar/revogar sessões — tokens antigos (claim "tv") ficam inválidos.
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
+
     phone = Column(String(20), nullable=True)
     birth_date = Column(DateTime, nullable=True)
 

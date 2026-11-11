@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from sqlalchemy import select
@@ -11,7 +12,18 @@ from app.agents.runner import analyze_architecture
 from app.database import get_db, sqlite_write_guard
 from app.models.graph import Graph, GraphVersion, new_uuid
 from app.models.user import User
-from app.rate_limit import rate_limit_analyze
+from app.rate_limit import rate_limit_analyze, rate_limit_llm_budget
+from app.routes._graph_helpers import (
+    _apply_etag,
+    _nfr_out,
+    _parse_json_list,
+    _parse_json_obj,
+    get_graph_or_404,
+    get_project_or_404,
+    graph_etag,
+    to_out,
+    viewable_graph_ids,
+)
 from app.routes.auth import get_current_user
 from app.schemas.analysis import AnalysisResult, ComparisonResult
 from app.schemas.graph import (
@@ -28,67 +40,58 @@ from app.services.heuristic import analyze_graph, compare_analyses
 
 router = APIRouter(prefix="/api/v1")
 
+# Limites de entrada do pipeline de análise IA (P1.9a): grafos acima disso
+# não são enviados ao LLM — a rota responde 413 explicando o teto.
+MAX_ANALYZE_NODES = 400
+MAX_ANALYZE_EDGES = 800
+MAX_ANALYZE_CONTEXT_CHARS = 20_000
 
-def graph_etag(graph: Graph) -> str:
-    """Weak ETag from updated_at — used for optimistic concurrency (If-Match)."""
-    ts = graph.updated_at.isoformat() if graph.updated_at else "0"
-    return f'W/"{graph.id}:{ts}"'
+
+def analyze_input_error(nodes: list[dict], edges: list[dict], context: str) -> str | None:
+    """Mensagem de erro quando a entrada excede os tetos de análise (ou None)."""
+    if len(nodes) > MAX_ANALYZE_NODES:
+        return (
+            f"Graph too large for AI analysis: {len(nodes)} nodes (cap {MAX_ANALYZE_NODES}). "
+            "Split the graph or remove detail nodes."
+        )
+    if len(edges) > MAX_ANALYZE_EDGES:
+        return (
+            f"Graph too large for AI analysis: {len(edges)} edges (cap {MAX_ANALYZE_EDGES}). "
+            "Split the graph or remove detail nodes."
+        )
+    if len(context or "") > MAX_ANALYZE_CONTEXT_CHARS:
+        return (
+            f"Context too large for AI analysis: {len(context)} chars "
+            f"(cap {MAX_ANALYZE_CONTEXT_CHARS}). Shorten the context text."
+        )
+    return None
 
 
-def _apply_etag(response: Response, graph: Graph) -> None:
-    response.headers["ETag"] = graph_etag(graph)
-    response.headers["Cache-Control"] = "no-cache"
+def graph_fingerprint(nodes: list[dict], edges: list[dict], nfr_json: str) -> str:
+    """SHA-256 de um snapshot normalizado (nodes+edges+nfr) — cache de LLM (P1.9b)."""
+    def _norm_nodes(items: list[dict]) -> list[dict]:
+        slim = [{"id": n.get("id"), "data": n.get("data") or {}} for n in items]
+        slim.sort(key=lambda n: str(n.get("id")))
+        return slim
 
-def _parse_json_list(raw: str) -> list:
+    def _norm_edges(items: list[dict]) -> list[dict]:
+        slim = [
+            {k: e.get(k) for k in ("id", "source", "target", "data") if e.get(k) is not None}
+            for e in items
+        ]
+        slim.sort(key=lambda e: json.dumps(e, sort_keys=True, default=str))
+        return slim
+
     try:
-        data = json.loads(raw or "[]")
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=500, detail="Grafo corrompido no banco") from exc
-    return data if isinstance(data, list) else []
-
-
-def _parse_json_obj(raw: str | None) -> dict | None:
-    if not raw:
-        return None
-    try:
-        data = json.loads(raw)
+        nfr = json.loads(nfr_json or "{}")
     except json.JSONDecodeError:
-        return None
-    return data if isinstance(data, dict) else None
-
-
-def _nfr_out(graph: Graph) -> ProjectNfr | None:
-    raw = getattr(graph, "nfr_json", None) or "{}"
-    data = _parse_json_obj(raw)
-    if not data:
-        return ProjectNfr()
-    try:
-        return ProjectNfr.model_validate(data)
-    except Exception:  # noqa: BLE001 — fallback to defaults on malformed NFR data
-        return ProjectNfr()
-
-
-def to_out(graph: Graph) -> GraphOut:
-    return GraphOut(
-        id=graph.id,
-        name=graph.name,
-        context=getattr(graph, "context_text", None) or "",
-        nfr=_nfr_out(graph),
-        nodes=_parse_json_list(graph.nodes_json),
-        edges=_parse_json_list(graph.edges_json),
-        analysis=_parse_json_obj(graph.analysis_json),
-        review_status=graph.review_status,
-        review_comment=graph.review_comment,
-        reviewer_role=graph.reviewer_role,
-        project_id=getattr(graph, "project_id", None),
-        owner_team=getattr(graph, "owner_team", None),
-        diagram_kind=getattr(graph, "diagram_kind", None),
-        parent_graph_id=getattr(graph, "parent_graph_id", None),
-        c4_parent_node_id=getattr(graph, "c4_parent_node_id", None),
-        excalidraw_elements=_parse_json_list(graph.excalidraw_elements_json),
-        created_at=graph.created_at,
-        updated_at=graph.updated_at,
+        nfr = {}
+    blob = json.dumps(
+        {"nodes": _norm_nodes(nodes), "edges": _norm_edges(edges), "nfr": nfr},
+        sort_keys=True,
+        default=str,
     )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
 def _snapshot(db: Session, graph: Graph) -> None:
@@ -110,15 +113,17 @@ def list_graphs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    stmt = select(Graph).order_by(Graph.updated_at.desc())
+    # P1.2 — IDOR: só grafos do dono, liberados por ACL, ou de projeto visível.
+    visible_ids = viewable_graph_ids(db, current_user)
+    base = select(Graph).where(Graph.id.in_(list(visible_ids) or ["__none__"])).order_by(Graph.updated_at.desc())
 
     # Count total for pagination metadata
     from sqlalchemy import func
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+    count_stmt = select(func.count()).select_from(base.subquery())
     total = db.scalar(count_stmt) or 0
 
     # Apply pagination
-    rows = list(db.scalars(stmt.offset(offset).limit(limit)).all())
+    rows = list(db.scalars(base.offset(offset).limit(limit)).all())
     return {
         "items": [to_out(row) for row in rows],
         "total": total,
@@ -130,9 +135,14 @@ def list_graphs(
 
 @router.post("/graphs", response_model=GraphOut, status_code=201)
 def create_graph(payload: GraphPayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> GraphOut:
+    project_id = payload.project_id
+    if project_id:
+        # Só pode anexar o grafo a projeto do qual o usuário tem acesso.
+        get_project_or_404(db, current_user, project_id)
     graph = Graph(
         id=new_uuid(),
-        project_id=payload.project_id,
+        owner_id=current_user.id,
+        project_id=project_id,
         owner_team=payload.owner_team,
         name=payload.name.strip(),
         context_text=(payload.context or "").strip(),
@@ -142,7 +152,7 @@ def create_graph(payload: GraphPayload, db: Session = Depends(get_db), current_u
         diagram_kind=payload.diagram_kind,
         parent_graph_id=payload.parent_graph_id,
         c4_parent_node_id=payload.c4_parent_node_id,
-        # 关键修复：保存 Excalidraw 元素
+        # P1.13 — comentário fixado: persistir os elementos Excalidraw do editor
         excalidraw_elements_json=json.dumps(payload.excalidraw_elements or []),
         review_status="draft",
     )
@@ -162,9 +172,7 @@ def get_graph(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> GraphOut:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id)
     _apply_etag(response, graph)
     return to_out(graph)
 
@@ -178,9 +186,7 @@ def update_graph(
     current_user: User = Depends(get_current_user),
     if_match: str | None = Header(default=None, alias="If-Match"),
 ) -> GraphOut:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id, write=True)
     current = graph_etag(graph)
     # Optimistic lock: when client sends If-Match, reject stale writes
     if if_match is not None and if_match.strip() and if_match.strip() != current:
@@ -203,9 +209,11 @@ def update_graph(
         graph.nodes_json = json.dumps(payload.nodes)
     if payload.edges is not None:
         graph.edges_json = json.dumps(payload.edges)
-    if payload.analysis is not None:
-        graph.analysis_json = json.dumps(payload.analysis)
+    # P1.7 — análise NÃO vem do cliente: analysis_json só é escrita pelo
+    # pipeline /analyze (server-side). payload.analysis agora é ignorado.
     if payload.project_id is not None:
+        if payload.project_id:
+            get_project_or_404(db, current_user, payload.project_id, write=True)
         graph.project_id = payload.project_id
     if payload.owner_team is not None:
         graph.owner_team = payload.owner_team.strip() or None
@@ -217,7 +225,7 @@ def update_graph(
         graph.c4_parent_node_id = payload.c4_parent_node_id
     if payload.excalidraw_elements is not None:
         graph.excalidraw_elements_json = json.dumps(payload.excalidraw_elements)
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     with sqlite_write_guard():
         _snapshot(db, graph)
         db.commit()
@@ -228,9 +236,8 @@ def update_graph(
 
 @router.delete("/graphs/{graph_id}", status_code=204)
 def delete_graph(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Response:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    # P1.2 — remoção exige acesso de escrita; gráfico de terceiro → 404.
+    graph = get_graph_or_404(db, current_user, graph_id, write=True)
     with sqlite_write_guard():
         db.delete(graph)
         db.commit()
@@ -239,9 +246,7 @@ def delete_graph(graph_id: str, db: Session = Depends(get_db), current_user: Use
 
 @router.get("/graphs/{graph_id}/versions", response_model=list[GraphVersionOut])
 def list_versions(graph_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[GraphVersionOut]:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id)
     return [
         GraphVersionOut(
             id=version.id,
@@ -257,16 +262,14 @@ def list_versions(graph_id: str, db: Session = Depends(get_db), current_user: Us
 
 @router.post("/graphs/{graph_id}/versions/{version_id}/restore", response_model=GraphOut)
 def restore_version(graph_id: str, version_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> GraphOut:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id, write=True)
     version = db.get(GraphVersion, version_id)
     if not version or version.graph_id != graph_id:
         raise HTTPException(status_code=404, detail="Versão não encontrada")
     graph.name = version.name
     graph.nodes_json = version.nodes_json
     graph.edges_json = version.edges_json
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     with sqlite_write_guard():
         _snapshot(db, graph)
         db.commit()
@@ -278,9 +281,7 @@ def restore_version(graph_id: str, version_id: str, db: Session = Depends(get_db
 def diff_graph_version(graph_id: str, version_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     from app.services.diff import semantic_diff
 
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id)
     version = db.get(GraphVersion, version_id)
     if not version or version.graph_id != graph_id:
         raise HTTPException(status_code=404, detail="Versão não encontrada")
@@ -294,18 +295,19 @@ def diff_graph_version(graph_id: str, version_id: str, db: Session = Depends(get
 
 @router.post("/graphs/{graph_id}/review", response_model=GraphOut)
 def review_graph(graph_id: str, payload: ReviewRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> GraphOut:
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
-    if payload.role == "senior":
+    graph = get_graph_or_404(db, current_user, graph_id, write=True)
+    # P1.7 — o role do cliente é IGNORADO: a auto-approvação só ocorre quando
+    # o usuário autenticado REALMENTE tem papel senior/admin.
+    real_role = getattr(current_user, "role", None) or "other"
+    if real_role in ("senior", "admin"):
         graph.review_status = "approved"
         graph.review_comment = payload.comment
-        graph.reviewer_role = "senior"
+        graph.reviewer_role = real_role
     else:
         graph.review_status = payload.status
         graph.review_comment = payload.comment
         graph.reviewer_role = "other"
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(graph)
     return to_out(graph)
@@ -319,6 +321,12 @@ async def analyze_live(
     current_user: User = Depends(get_current_user),
 ) -> AnalysisResult:
     rate_limit_analyze(request, current_user.email or str(current_user.id))
+    # P1.9a — teto de entrada: não enviamos grafos acima do limite ao LLM.
+    oversize = analyze_input_error(payload.nodes, payload.edges, payload.context or "")
+    if oversize:
+        raise HTTPException(status_code=413, detail=oversize)
+    # P1.9c — orçamento diário de análises por usuário (429 ao exceder).
+    rate_limit_llm_budget(current_user.id)
     nfr_dict = payload.nfr.model_dump() if payload.nfr else None
     result = await analyze_architecture(
         payload.nodes,
@@ -334,8 +342,12 @@ async def analyze_live(
                 graph.context_text = payload.context.strip()
             if payload.nfr is not None:
                 graph.nfr_json = payload.nfr.model_dump_json()
+            # P1.9b — registra a fingerprint do snapshot analisado para o cache.
+            graph.analysis_fingerprint = graph_fingerprint(
+                payload.nodes, payload.edges, graph.nfr_json or "{}"
+            )
             graph.review_status = "analyzed" if graph.review_status == "draft" else graph.review_status
-            graph.updated_at = datetime.now(timezone.utc)
+            graph.updated_at = datetime.now(UTC)
             db.commit()
     return result
 
@@ -348,19 +360,35 @@ async def analyze_saved(
     current_user: User = Depends(get_current_user),
 ) -> AnalysisResult:
     rate_limit_analyze(request, current_user.email or str(current_user.id))
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Grafo não encontrado")
+    graph = get_graph_or_404(db, current_user, graph_id, write=True)
+    nodes = _parse_json_list(graph.nodes_json)
+    edges = _parse_json_list(graph.edges_json)
+    context = getattr(graph, "context_text", None) or ""
+    # P1.9a — teto de entrada.
+    oversize = analyze_input_error(nodes, edges, context)
+    if oversize:
+        raise HTTPException(status_code=413, detail=oversize)
+
+    # P1.9b — cache: se o snapshot não mudou desde a última análise, reutiliza.
+    fp = graph_fingerprint(nodes, edges, graph.nfr_json or "{}")
+    if graph.analysis_fingerprint == fp and graph.analysis_json:
+        cached = _parse_json_obj(graph.analysis_json)
+        if cached:
+            return AnalysisResult.model_validate(cached)
+
+    # P1.9c — orçamento diário (só consumido quando realmente chamamos o LLM).
+    rate_limit_llm_budget(current_user.id)
     nfr = _nfr_out(graph)
     result = await analyze_architecture(
-        _parse_json_list(graph.nodes_json),
-        _parse_json_list(graph.edges_json),
-        context=getattr(graph, "context_text", None) or "",
+        nodes,
+        edges,
+        context=context,
         nfr=nfr.model_dump() if nfr else None,
     )
     graph.analysis_json = result.model_dump_json()
+    graph.analysis_fingerprint = fp
     graph.review_status = "analyzed" if graph.review_status == "draft" else graph.review_status
-    graph.updated_at = datetime.now(timezone.utc)
+    graph.updated_at = datetime.now(UTC)
     db.commit()
     return result
 

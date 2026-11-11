@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     log_json: bool = True
     archia_env: str = "development"
     archia_jwt_secret: str = "archia-secret-key-change-in-production"
+    # P1.5 — chave (secreta) de cifra em repouso para segredos (ai_settings.api_key).
+    # Vazio em dev => fallback de chave insegura + warning; em produção DEVE ser definido.
+    archia_encryption_secret: str = ""
 
     @property
     def origin_list(self) -> list[str]:

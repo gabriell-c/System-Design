@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -16,6 +16,7 @@ class Graph(Base):
     __tablename__ = "graphs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     project_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
     )
@@ -25,6 +26,8 @@ class Graph(Base):
     nodes_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     edges_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     analysis_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # SHA-256 do snapshot (nodes+edges+nfr) da última análise — cache de LLM (P1.9b).
+    analysis_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
     review_status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft")
     review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewer_role: Mapped[str | None] = mapped_column(String(16), nullable=True)
@@ -62,6 +65,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     context: Mapped[str] = mapped_column(Text, nullable=False, default="")
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")

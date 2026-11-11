@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 
 import httpx
@@ -9,19 +10,28 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.settings import AiSettings
 from app.models.user import User
-from app.routes.auth import get_current_user
+from app.routes.auth import get_current_senior_user, get_current_user
 from app.schemas.settings import AiSettingsOut, AiSettingsTestResult, AiSettingsUpdate
-from app.services.ai_settings import get_or_create_settings, mask_key, to_runtime
+from app.services.ai_settings import (
+    get_or_create_settings,
+    mask_key,
+    plaintext_api_key,
+    to_runtime,
+)
+from app.services.secret_crypto import encrypt_secret
+
+logger = logging.getLogger("archia.settings")
 
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 
 
 def _out(row: AiSettings) -> AiSettingsOut:
+    plain = plaintext_api_key(row)
     return AiSettingsOut(
         provider=row.provider,  # type: ignore[arg-type]
         base_url=row.base_url,
-        api_key_set=bool(row.api_key and row.api_key.strip()),
-        api_key_masked=mask_key(row.api_key or ""),
+        api_key_set=bool(plain and plain.strip()),
+        api_key_masked=mask_key(plain),
         model=row.model,
         enabled=row.enabled == "true",
         updated_at=row.updated_at,
@@ -34,14 +44,21 @@ def get_ai_settings(db: Session = Depends(get_db), current_user: User = Depends(
 
 
 @router.put("/ai", response_model=AiSettingsOut)
-def put_ai_settings(payload: AiSettingsUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> AiSettingsOut:
+def put_ai_settings(
+    payload: AiSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_senior_user),
+) -> AiSettingsOut:
+    # P1.5 — só senior/admin altera configurações de IA (a chave é um segredo global).
     row = get_or_create_settings(db)
     row.provider = payload.provider
     row.base_url = payload.base_url.rstrip("/")
     row.model = payload.model
     row.enabled = "true" if payload.enabled else "false"
     if payload.api_key is not None and payload.api_key.strip():
-        row.api_key = payload.api_key.strip()
+        row.api_key = encrypt_secret(payload.api_key.strip())
+        # P1.5 — rotação registrada em log estruturado (auditoria, sem expor a chave).
+        logger.info("ai_settings.api_key_rotated user=%s", current_user.username)
     db.commit()
     db.refresh(row)
     return _out(row)

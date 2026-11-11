@@ -53,6 +53,7 @@ def _get_org_catalog(db: Session, user: User) -> Graph:
         catalog = Graph(
             id=new_uuid(),
             name=f"private-catalog-{org_id}",
+            owner_id=user.id,  # P1.2 — ownership obrigatória
             context_text="Private organization catalog",
             nodes_json="[]",
             edges_json="[]",

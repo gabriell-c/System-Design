@@ -1,6 +1,7 @@
-import logging
-from contextlib import asynccontextmanager
 import asyncio
+import logging
+import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,7 +37,8 @@ from app.routes.governance import router as governance_router
 from app.routes.graphs import router as graphs_router
 from app.routes.health import router as health_router
 from app.routes.network import router as network_router
-from app.routes.p1 import router as p1_router
+from app.routes.insights import router as insights_router
+from app.routes.diagrams import router as diagrams_router
 from app.routes.private_catalog import router as private_catalog_router
 from app.routes.profile import router as profile_router
 from app.routes.projects import router as projects_router
@@ -56,7 +58,14 @@ async def lifespan(_app: FastAPI):
     # Tests / SQLite local: create_all. Postgres prod: prefer `alembic upgrade head`.
     Base.metadata.create_all(bind=engine)
     _ensure_sqlite_columns()
-    seed_default_users()
+    # P1.8 — seed do usuário default SÓ em desenvolvimento, ou com opt-in
+    # explícito SEED_DEFAULT_USER=1. Em produção a conta SENIOR/CHANGEPASSWORD
+    # jamais é criada implicitamente.
+    _seed_enabled = os.environ.get("SEED_DEFAULT_USER", "").strip() == "1" or settings.archia_env.lower() != "production"
+    if _seed_enabled:
+        seed_default_users()
+    else:
+        logger.info("archia_seed_skipped (production, sem SEED_DEFAULT_USER=1)")
     set_main_loop(asyncio.get_running_loop())
     logger.info(
         "archia_started cors=%s db=%s env=%s",
@@ -210,10 +219,11 @@ app.include_router(acl_router)
 app.include_router(boundary_router)
 app.include_router(governance_router)
 app.include_router(graphs_router)
+app.include_router(diagrams_router)
 app.include_router(comments_router)
 app.include_router(annotation_router)
 app.include_router(audit_router)
-app.include_router(p1_router)
+app.include_router(insights_router)
 app.include_router(embed_router)
 app.include_router(share_router)
 app.include_router(private_catalog_router)

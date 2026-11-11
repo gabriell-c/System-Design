@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.user import (
+    PasswordRecoveryConfirmRequest,
     PasswordRecoveryRequest,
-    PasswordReset,
     UserCreate,
     UserLogin,
     UserProfileUpdate,
@@ -187,27 +187,54 @@ class TestLoginEdgeCases:
 
 class TestPasswordRecoveryEdgeCases:
     def test_valid_recovery(self):
-        r = PasswordRecoveryRequest(
-            username="test", phone="+5511999999999", birth_date="1990-01-01"
-        )
-        assert r.username == "test"
+        # P1.3 — schema 2-passos: phone + birth_date (sem username).
+        r = PasswordRecoveryRequest(phone="+5511999999999", birth_date="1990-01-01")
+        assert r.phone == "+5511999999999"
 
     def test_empty_fields_rejected(self):
         with pytest.raises(ValidationError):
-            PasswordRecoveryRequest(username="", phone="", birth_date="")
+            PasswordRecoveryRequest(phone="", birth_date="")
 
     def test_invalid_phone_rejected(self):
         with pytest.raises(ValidationError):
-            PasswordRecoveryRequest(
-                username="test", phone="abc", birth_date="1990-01-01"
-            )
+            PasswordRecoveryRequest(phone="abc", birth_date="1990-01-01")
 
-class TestPasswordResetEdgeCases:
-    def test_valid_reset(self):
-        r = PasswordReset(token="abc.def.ghi", new_password="NewPassword1")
-        assert r.token == "abc.def.ghi"
+    def test_invalid_birth_date_rejected(self):
+        with pytest.raises(ValidationError):
+            PasswordRecoveryRequest(phone="+5511999999999", birth_date="01/01/1990")
+
+    def test_confirm_code_must_be_8_digits(self):
+        with pytest.raises(ValidationError):
+            PasswordRecoveryConfirmRequest(
+                phone="+5511999999999",
+                birth_date="1990-01-01",
+                code="12345",
+                new_password="NewPassword1",
+            )
+        ok = PasswordRecoveryConfirmRequest(
+            phone="+5511999999999",
+            birth_date="1990-01-01",
+            code="12345678",
+            new_password="NewPassword1",
+        )
+        assert ok.code == "12345678"
+
+class TestRecoverConfirmEdgeCases:
+    def test_valid_confirm(self):
+        r = PasswordRecoveryConfirmRequest(
+            phone="+5511999998888",
+            birth_date="1990-01-01",
+            code="12345678",
+            new_password="NewPassword1",
+        )
+        assert r.code == "12345678"
         assert r.new_password == "NewPassword1"
 
-    def test_empty_token(self):
-        r = PasswordReset(token="", new_password="NewPassword1")
-        assert r.token == ""
+    def test_weak_password_rejected(self):
+        with pytest.raises(ValidationError):
+            PasswordRecoveryConfirmRequest(
+                phone="+5511999998888",
+                birth_date="1990-01-01",
+                code="12345678",
+                new_password="123",
+            )

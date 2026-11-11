@@ -1,13 +1,15 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.graph import Comment, Graph, new_uuid
+from app.models.graph import Comment, new_uuid
+from app.models.user import User
+from app.routes._graph_helpers import get_graph_or_404
 from app.routes.auth import get_current_user
 from app.schemas.comment import CommentCreate, CommentOut, CommentUpdate
-from app.services.comments import extract_mentions, notify_mentions
+from app.services.comments import can_moderate_comment, extract_mentions, notify_mentions
 from app.routes.ws import broadcast_comment_event
 
 router = APIRouter(prefix="/api/v1/graphs", tags=["comments"])
@@ -34,20 +36,32 @@ def _comment_out(comment: Comment) -> CommentOut:
     )
 
 
-@router.get("/{graph_id}/comments", response_model=list[CommentOut])
-def list_comments(graph_id: str, db: Session = Depends(get_db)):
-    graph = db.query(Graph).filter(Graph.id == graph_id).first()
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
-    rows = db.query(Comment).filter(Comment.graph_id == graph_id).order_by(Comment.created_at.desc()).all()
-    return [_comment_out(c) for c in rows]
+@router.get("/{graph_id}/comments", response_model=dict)
+def list_comments(
+    graph_id: str,
+    limit: int = Query(default=50, ge=1, le=200, description="Máximo de resultados"),
+    offset: int = Query(default=0, ge=0, description="Offset para paginação"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """P1.11 — leitura autenticada (grafo visível para o usuário) + paginação."""
+    get_graph_or_404(db, user, graph_id)
+    base = db.query(Comment).filter(Comment.graph_id == graph_id).order_by(Comment.created_at.desc())
+    total = base.count()
+    rows = base.offset(offset).limit(limit).all()
+    return {
+        "items": [_comment_out(c) for c in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(rows) < total,
+    }
 
 
 @router.post("/{graph_id}/comments", response_model=CommentOut)
 def create_comment(graph_id: str, payload: CommentCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    graph = db.query(Graph).filter(Graph.id == graph_id).first()
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    # P1.11 — comentário só em grafo visível para o usuário (404 senão).
+    get_graph_or_404(db, user, graph_id)
     text = payload.text.strip()
     mentions = payload.mentions or extract_mentions(text)
     comment = Comment(
@@ -79,8 +93,12 @@ def update_comment(
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
+    graph = get_graph_or_404(db, user, graph_id)
     comment = db.query(Comment).filter(Comment.id == comment_id, Comment.graph_id == graph_id).first()
     if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    # P1.11 — edição: autor, dono do grafo ou senior (regra compartilhada).
+    if not can_moderate_comment(db, user, graph, comment):
         raise HTTPException(status_code=404, detail="Comment not found")
     if payload.text is not None:
         comment.text = payload.text.strip()
@@ -98,11 +116,13 @@ def update_comment(
 
 @router.delete("/{graph_id}/comments/{comment_id}")
 def delete_comment(graph_id: str, comment_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    graph = get_graph_or_404(db, user, graph_id)
     comment = db.query(Comment).filter(Comment.id == comment_id, Comment.graph_id == graph_id).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
-    if comment.author != user.email and getattr(user, "role", "") != "senior":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # P1.11 — remoção: autor, dono do grafo ou senior (regra compartilhada).
+    if not can_moderate_comment(db, user, graph, comment):
+        raise HTTPException(status_code=404, detail="Comment not found")
     cid = comment.id
     db.delete(comment)
     db.commit()

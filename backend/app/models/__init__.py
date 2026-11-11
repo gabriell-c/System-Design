@@ -9,6 +9,7 @@ from app.models.graph import (
     ProjectAccess,
     SimulationScenario,
 )
+from app.models.recover import PasswordResetCode
 from app.models.session import Session
 from app.models.settings import AiSettings
 from app.models.user import User
@@ -21,6 +22,7 @@ __all__ = [
     "GraphAccess",
     "GraphBoundaryContract",
     "GraphVersion",
+    "PasswordResetCode",
     "Project",
     "ProjectAccess",
     "Session",

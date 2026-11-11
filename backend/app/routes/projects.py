@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db, sqlite_write_guard
 from app.models.graph import Graph, Project, ProjectAccess, new_uuid
 from app.models.user import User
+from app.routes._graph_helpers import get_project_or_404
 from app.routes.auth import get_current_user
 from app.routes.graphs import to_out
 from app.schemas.graph import GraphOut, GraphPayload, ProjectNfr
@@ -116,17 +117,6 @@ def _replace_access(db: Session, project: Project, entries: list[ProjectAccessEn
         )
 
 
-def _get_project(db: Session, project_id: str) -> Project:
-    project = db.scalar(
-        select(Project)
-        .where(Project.id == project_id)
-        .options(selectinload(Project.diagrams), selectinload(Project.access_entries))
-    )
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
-
-
 @router.get("/subsystems")
 def list_subsystem_catalog():
     return catalog_subsystems()
@@ -143,14 +133,43 @@ def list_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
+    """P1.2/P1.12 — só lista projetos visíveis (dono, ACL por e-mail ou público).
+
+    Filtro e ORDER BY ficam no SQL; contagem de nós usa a carga selectin de
+    diagramas (uma consulta agregada), sem re-consulta por projeto.
+    """
     stmt = (
         select(Project)
         .options(selectinload(Project.diagrams), selectinload(Project.access_entries))
         .where(Project.archived.is_(archived))
     )
+    # P1.2 — default-deny: visível quando é do usuário, público, ou tem entrada
+    # ACL (subquery no SQL — não materializa a lista de IDs em Python).
+    stmt = stmt.where(
+        or_(
+            Project.owner_id == current_user.id,
+            Project.is_public.is_(True),
+            Project.id.in_(
+                select(ProjectAccess.project_id).where(
+                    ProjectAccess.email == current_user.email,
+                    ProjectAccess.role.in_(("read", "full")),
+                )
+            ),
+        )
+    )
     if search and search.strip():
         q = f"%{search.strip()}%"
         stmt = stmt.where(or_(Project.name.ilike(q), Project.description.ilike(q)))
+
+    # P1.12 — ORDER BY no SQL (antes era sort em memória pós-LIMIT, que
+    # "truncava" a ordenação). "heaviest" continua ordenando a página em
+    # memória (nó-count exige JSON) — mesmo comportamento anterior.
+    if pinned_first:
+        stmt = stmt.order_by(Project.pinned.desc())
+    if sort_by == "name":
+        stmt = stmt.order_by(func.lower(Project.name).asc())
+    elif sort_by != "heaviest":
+        stmt = stmt.order_by(Project.updated_at.desc())
 
     # Count total for pagination metadata
     count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -159,15 +178,12 @@ def list_projects(
     # Apply pagination
     projects = list(db.scalars(stmt.offset(offset).limit(limit)).all())
 
-    def sort_key(p: Project):
-        pin = 0 if (pinned_first and p.pinned) else 1
-        if sort_by == "name":
-            return (pin, (p.name or "").lower())
-        if sort_by == "heaviest":
+    if sort_by == "heaviest":
+        def sort_key(p: Project):
+            pin = 0 if (pinned_first and p.pinned) else 1
             return (pin, -_node_count(p), -(p.updated_at.timestamp() if p.updated_at else 0))
-        return (pin, -(p.updated_at.timestamp() if p.updated_at else 0))
 
-    projects.sort(key=sort_key)
+        projects.sort(key=sort_key)
     return {
         "items": [_to_out(p) for p in projects],
         "total": total,
@@ -196,6 +212,7 @@ def create_project(
         share_token=share_token,
         archived=False,
         pinned=False,
+        owner_id=current_user.id,  # P1.2 — owner do registro é o criador
     )
     db.add(project)
     db.flush()
@@ -205,6 +222,7 @@ def create_project(
             Graph(
                 id=new_uuid(),
                 project_id=project.id,
+                owner_id=current_user.id,
                 name=f"{body.name.strip()} — Diagrama Livre",
                 context_text=body.context or "",
                 nfr_json=body.nfr_json or "{}",
@@ -221,6 +239,7 @@ def create_project(
                 Graph(
                     id=new_uuid(),
                     project_id=project.id,
+                    owner_id=current_user.id,
                     name=f"{body.name.strip()} — {label}",
                     context_text=body.context or "",
                     nfr_json=body.nfr_json or "{}",
@@ -231,7 +250,7 @@ def create_project(
                 )
             )
     db.commit()
-    return _to_out(_get_project(db, project.id))
+    return _to_out(project)
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
@@ -240,7 +259,18 @@ def get_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
-    return _to_out(_get_project(db, project_id))
+    project = get_project_or_404(db, current_user, project_id)
+    project = _eager_project(db, project)
+    return _to_out(project)
+
+
+def _eager_project(db: Session, project: Project) -> Project:
+    """Recarrega com relações eager — evita N+1 no _to_out após commit."""
+    return db.scalar(
+        select(Project)
+        .where(Project.id == project.id)
+        .options(selectinload(Project.diagrams), selectinload(Project.access_entries))
+    )
 
 
 @router.put("/{project_id}", response_model=ProjectOut)
@@ -250,7 +280,8 @@ def update_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
-    project = _get_project(db, project_id)
+    # P1.2 — escrita exige ownership/ACL/senior; 404 para terceiro.
+    project = get_project_or_404(db, current_user, project_id, write=True)
     data = body.model_dump(exclude_unset=True)
     access_list = data.pop("access_list", None)
 
@@ -272,16 +303,15 @@ def update_project(
         project.pinned = data["pinned"]
     if "archived" in data and data["archived"] is not None:
         project.archived = data["archived"]
-    if "project_kind" in data and data["project_kind"] is not None:
-        if data["project_kind"] in ("architecture", "free"):
-            project.project_kind = data["project_kind"]
+    if data.get("project_kind") in ("architecture", "free"):
+        project.project_kind = data["project_kind"]
 
     if access_list is not None:
         entries = [ProjectAccessEntry.model_validate(e) for e in access_list]
         _replace_access(db, project, entries)
 
     db.commit()
-    return _to_out(_get_project(db, project_id))
+    return _to_out(project)
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -290,7 +320,7 @@ def delete_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id, write=True)
     db.delete(project)
     db.commit()
     return Response(status_code=204)
@@ -302,10 +332,10 @@ def toggle_archive(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id, write=True)
     project.archived = not bool(project.archived)
     db.commit()
-    return _to_out(_get_project(db, project_id))
+    return _to_out(_eager_project(db, project.id))
 
 
 @router.patch("/{project_id}/pin", response_model=ProjectOut)
@@ -314,10 +344,10 @@ def toggle_pin(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id, write=True)
     project.pinned = not bool(project.pinned)
     db.commit()
-    return _to_out(_get_project(db, project_id))
+    return _to_out(_eager_project(db, project.id))
 
 
 @router.get("/{project_id}/share-url", response_model=ShareUrlOut)
@@ -326,7 +356,7 @@ def get_share_url(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ShareUrlOut:
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id)
     if not project.is_public:
         raise HTTPException(status_code=400, detail="Project is private; enable is_public first")
     if not project.share_token:
@@ -346,7 +376,7 @@ def list_diagrams(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id)
     return [to_out(g) for g in project.diagrams]
 
 
@@ -357,10 +387,11 @@ def create_diagram(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _get_project(db, project_id)
+    get_project_or_404(db, current_user, project_id, write=True)
     diagram = Graph(
         id=new_uuid(),
         project_id=project_id,
+        owner_id=current_user.id,
         name=payload.name.strip(),
         context_text=(payload.context or "").strip(),
         nfr_json=(payload.nfr or ProjectNfr()).model_dump_json(),
@@ -391,7 +422,7 @@ def auto_init_diagram(
     Se já existir diagrama, devolve o primario (free > application > context > primeiro).
     Caso contrario, cria um diagrama vazio associado ao projeto.
     """
-    project = _get_project(db, project_id)
+    project = get_project_or_404(db, current_user, project_id, write=True)
     existing = list(project.diagrams or [])
     if existing:
         kind = getattr(project, "project_kind", None) or "architecture"
@@ -411,6 +442,7 @@ def auto_init_diagram(
     diagram = Graph(
         id=new_uuid(),
         project_id=project_id,
+        owner_id=current_user.id,
         name=f"{project.name} — {label}",
         context_text=project.context or "",
         nfr_json=project.nfr_json or "{}",
@@ -434,7 +466,7 @@ def import_subsystem(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _get_project(db, project_id)
+    get_project_or_404(db, current_user, project_id, write=True)
     try:
         spec = get_subsystem(payload.subsystem_id)
     except KeyError:
@@ -467,6 +499,7 @@ def import_subsystem(
     diagram = Graph(
         id=new_uuid(),
         project_id=project_id,
+        owner_id=current_user.id,
         name=name,
         context_text=f"Subsystem {payload.subsystem_id}",
         nfr_json="{}",

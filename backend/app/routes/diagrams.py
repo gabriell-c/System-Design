@@ -28,14 +28,17 @@ def create_diagram_from_text(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from app.routes.projects import _get_project
-    _get_project(db, project_id)
+    from app.routes._graph_helpers import get_project_or_404
+
+    # P1.2 — escrita em projeto exige ownership/ACL/senior.
+    get_project_or_404(db, current_user, project_id, write=True)
 
     diagram_type, mermaid_code = parse_text_to_mermaid(payload.text)
 
     graph = Graph(
         id=new_uuid(),
         project_id=project_id,
+        owner_id=current_user.id,  # P1.2
         name=payload.name,
         context_text=mermaid_code,
         nfr_json="{}",

@@ -61,7 +61,8 @@ def test_annotations_crud(client, auth_headers):
 
     listed = client.get(f"/api/v1/graphs/{graph_id}/annotations?node_id=node-1")
     assert listed.status_code == 200
-    assert any(a["id"] == ann_id for a in listed.json())
+    # P1.11 — GET agora autenticado + paginado (dict com "items").
+    assert any(a["id"] == ann_id for a in listed.json()["items"])
 
     deleted = client.delete(
         f"/api/v1/graphs/{graph_id}/annotations/{ann_id}",

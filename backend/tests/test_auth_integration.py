@@ -119,66 +119,90 @@ class TestMe:
         assert resp.status_code == 200
         assert resp.json()["role"] == "senior"
 
+def _request_recovery(client, monkeypatch, phone="+5511988887777"):
+    """P1.3 passo 1, com código determinístico para o teste (impl. real usa secrets)."""
+    monkeypatch.setattr("app.routes.auth.generate_recovery_code", lambda: "12345678")
+    return client.post(
+        "/api/v1/auth/recover",
+        json={"phone": phone, "birth_date": "1995-05-15"},
+    )
+
+def _confirm_recovery(client, phone="+5511988887777", code="12345678", new_password="NewSecurePass1"):
+    """P1.3 passo 2: código de 8 dígitos + nova senha."""
+    return client.post(
+        "/api/v1/auth/recover/confirm",
+        json={"phone": phone, "birth_date": "1995-05-15", "code": code, "new_password": new_password},
+    )
+
 class TestRecover:
-    def test_recover_success(self, client):
+    """P1.3 — recuperação em 2 tempos; /recover nunca vaza o código (enumeração-safe)."""
+
+    def test_recover_success(self, client, monkeypatch):
         _register(client)
-        resp = client.post("/api/v1/auth/recover", json={
-            "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
-        })
+        resp = _request_recovery(client, monkeypatch)
         assert resp.status_code == 200
-        data = resp.json()
-        assert "reset_token" in data
-        assert data["expires_in"] == 86400
+        # Sempre {"sent": true} — o código só vai para o log (dev), nunca para a resposta.
+        assert resp.json() == {"sent": True}
+        assert "12345678" not in resp.text
 
-    def test_recover_wrong_phone(self, client):
+        confirm = _confirm_recovery(client)
+        assert confirm.status_code == 200
+        # A nova senha funciona; a antiga é rejeitada.
+        assert _login(client, password="NewSecurePass1").status_code == 200
+        assert _login(client, password="SecurePass1").status_code == 401
+
+    def test_recover_confirm_invalidates_sessions(self, client, monkeypatch):
         _register(client)
-        resp = client.post("/api/v1/auth/recover", json={
-            "username": "alice", "phone": "+5511000000000", "birth_date": "1995-05-15"
-        })
-        assert resp.status_code == 400
+        old_token = _login(client).json()["access_token"]
+        assert _request_recovery(client, monkeypatch).status_code == 200
+        assert _confirm_recovery(client).status_code == 200
+        # P1.4 — bump de token_version revoga sessões já ativas.
+        assert client.get("/api/v1/auth/me", headers=_auth_header(old_token)).status_code == 401
 
-    def test_recover_wrong_birth_date(self, client):
+    def test_recover_wrong_phone(self, client, monkeypatch):
         _register(client)
-        resp = client.post("/api/v1/auth/recover", json={
-            "username": "alice", "phone": "+5511988887777", "birth_date": "2000-01-01"
-        })
-        assert resp.status_code == 400
-
-    def test_recover_nonexistent_user(self, client):
-        resp = client.post("/api/v1/auth/recover", json={
-            "username": "nobody", "phone": "+5511000000000", "birth_date": "1990-01-01"
-        })
-        assert resp.status_code == 404
-
-class TestResetPassword:
-    def test_reset_password_success(self, client):
-        _register(client)
-        recover_resp = client.post("/api/v1/auth/recover", json={
-            "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
-        })
-        reset_token = recover_resp.json()["reset_token"]
-        resp = client.post("/api/v1/auth/reset-password", json={
-            "token": reset_token, "new_password": "NewSecurePass1"
-        })
+        # Telefone sem usuário: MESMA resposta de sucesso (sem enumeração), e confirm falha.
+        resp = _request_recovery(client, monkeypatch, phone="+5511900000000")
         assert resp.status_code == 200
-        assert "successfully" in resp.json()["message"].lower()
-        login_resp = _login(client, password="NewSecurePass1")
-        assert login_resp.status_code == 200
+        assert resp.json() == {"sent": True}
+        assert _confirm_recovery(client, phone="+5511900000000").status_code == 400
 
-    def test_reset_password_invalid_token(self, client):
-        resp = client.post("/api/v1/auth/reset-password", json={
-            "token": "invalid.token.here", "new_password": "NewSecurePass1"
-        })
-        assert resp.status_code == 400
-
-    def test_reset_password_old_password_fails(self, client):
+    def test_recover_wrong_birth_date(self, client, monkeypatch):
         _register(client)
-        recover_resp = client.post("/api/v1/auth/recover", json={
-            "username": "alice", "phone": "+5511988887777", "birth_date": "1995-05-15"
-        })
-        reset_token = recover_resp.json()["reset_token"]
-        client.post("/api/v1/auth/reset-password", json={
-            "token": reset_token, "new_password": "newsecurepass1"
-        })
-        resp = _login(client, password="securepass1")
-        assert resp.status_code == 401
+        # birth_date errada não corresponde a nenhum usuário → resposta idêntica à de sucesso.
+        resp = client.post(
+            "/api/v1/auth/recover",
+            json={"phone": "+5511988887777", "birth_date": "1996-01-01"},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"sent": True}
+
+    def test_recover_nonexistent_user(self, client, monkeypatch):
+        resp = _request_recovery(client, monkeypatch, phone="+558877665544")
+        assert resp.status_code == 200
+        assert resp.json() == {"sent": True}
+
+    def test_recover_confirm_wrong_code(self, client, monkeypatch):
+        _register(client)
+        assert _request_recovery(client, monkeypatch).status_code == 200
+        assert _confirm_recovery(client, code="00000000").status_code == 400
+        # A senha não mudou.
+        assert _login(client, password="SecurePass1").status_code == 200
+
+
+class TestRecoverConfirmFlow:
+    def test_reset_password_success(self, client, monkeypatch):
+        """Fluxo 2-passos completo: código válido troca a senha."""
+        _register(client)
+        assert _request_recovery(client, monkeypatch).status_code == 200
+        assert _confirm_recovery(client).status_code == 200
+        assert _login(client, password="NewSecurePass1").status_code == 200
+
+    def test_reset_password_old_password_fails(self, client, monkeypatch):
+        """Confirm com código inválido NÃO troca a senha: a antiga continua válida."""
+        _register(client)
+        assert _request_recovery(client, monkeypatch).status_code == 200
+        assert _confirm_recovery(client, code="00000000").status_code == 400
+        # Login com a senha antiga ainda funciona
+        resp = _login(client, password="SecurePass1")
+        assert resp.status_code == 200

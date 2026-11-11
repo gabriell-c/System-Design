@@ -44,6 +44,7 @@ class ProjectOut(BaseModel):
     pinned: bool = False
     project_kind: str = "architecture"
     share_token: str | None = None
+    owner_id: int | None = None
     created_at: datetime
     updated_at: datetime
     access_list: list[ProjectAccessEntry] = Field(default_factory=list)

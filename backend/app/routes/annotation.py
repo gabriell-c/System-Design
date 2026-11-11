@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.graph import Comment, Graph, new_uuid
+from app.models.graph import Comment, new_uuid
 from app.models.user import User
+from app.routes._graph_helpers import get_graph_or_404
 from app.routes.auth import get_current_user
+from app.services.comments import can_moderate_comment
 
 router = APIRouter(prefix="/api/v1/graphs", tags=["annotations"])
 
@@ -41,16 +43,30 @@ def _out(c: Comment) -> AnnotationOut:
     )
 
 
-@router.get("/{graph_id}/annotations", response_model=list[AnnotationOut])
-def list_annotations(graph_id: str, node_id: str | None = None, db: Session = Depends(get_db)):
-    graph = db.query(Graph).filter(Graph.id == graph_id).first()
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+@router.get("/{graph_id}/annotations", response_model=dict)
+def list_annotations(
+    graph_id: str,
+    node_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=200, description="Máximo de resultados"),
+    offset: int = Query(default=0, ge=0, description="Offset para paginação"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """P1.11 — leitura autenticada (grafo visível para o usuário) + paginação."""
+    get_graph_or_404(db, user, graph_id)
     q = db.query(Comment).filter(Comment.graph_id == graph_id, Comment.node_id.isnot(None))
     if node_id:
         q = q.filter(Comment.node_id == node_id)
-    rows = q.order_by(Comment.created_at.desc()).all()
-    return [_out(c) for c in rows]
+    base = q.order_by(Comment.created_at.desc())
+    total = base.count()
+    rows = base.offset(offset).limit(limit).all()
+    return {
+        "items": [_out(c) for c in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(rows) < total,
+    }
 
 
 @router.post("/{graph_id}/annotations", response_model=AnnotationOut, status_code=201)
@@ -60,9 +76,8 @@ def create_annotation(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    graph = db.query(Graph).filter(Graph.id == graph_id).first()
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    # P1.11 — anotação só em grafo visível para o usuário (404 senão).
+    get_graph_or_404(db, user, graph_id)
     text = payload.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Empty annotation")
@@ -87,6 +102,8 @@ def delete_annotation(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Response:
+    # P1.11 — remoção: autor, dono do grafo ou senior (regra compartilhada).
+    graph = get_graph_or_404(db, user, graph_id)
     comment = (
         db.query(Comment)
         .filter(Comment.id == annotation_id, Comment.graph_id == graph_id, Comment.node_id.isnot(None))
@@ -94,8 +111,8 @@ def delete_annotation(
     )
     if not comment:
         raise HTTPException(status_code=404, detail="Annotation not found")
-    if comment.author != user.email and getattr(user, "role", "") != "senior":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    if not can_moderate_comment(db, user, graph, comment):
+        raise HTTPException(status_code=404, detail="Annotation not found")
     db.delete(comment)
     db.commit()
     return Response(status_code=204)

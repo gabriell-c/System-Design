@@ -6,12 +6,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.database import SessionLocal, sqlite_write_guard
 from app.models.graph import Graph, GraphVersion, new_uuid
+from app.models.user import User
 from app.schemas.graph import ProjectNfr
 
 
 def test_parallel_graph_creates_are_consistent(client):
     """N creates concorrentes devem persistir N graphs distintos (sem FlushError)."""
     # client fixture sobe schema + seed; o race é no ORM (mesmo caminho do create_graph).
+    # P1.2 — owner_id agora é obrigatório; usa o usuário SENIOR do seed.
+    with SessionLocal() as db:
+        owner_id = db.query(User).filter(User.role == "senior").first().id
     n = 12
 
     def create_one(i: int) -> str:
@@ -20,6 +24,7 @@ def test_parallel_graph_creates_are_consistent(client):
             graph_id = new_uuid()
             graph = Graph(
                 id=graph_id,
+                owner_id=owner_id,
                 name=f"race-{i}",
                 context_text="",
                 nfr_json=ProjectNfr().model_dump_json(),

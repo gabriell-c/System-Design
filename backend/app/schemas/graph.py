@@ -100,6 +100,7 @@ class GraphOut(BaseModel):
     review_comment: str | None
     reviewer_role: str | None
     project_id: str | None = None
+    owner_id: int | None = None
     owner_team: str | None = None
     diagram_kind: str | None = None
     parent_graph_id: str | None = None
