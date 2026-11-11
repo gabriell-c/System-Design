@@ -7,8 +7,6 @@ import AuthGuard from "../auth/AuthGuard";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
-  const projects = useProjectStore((s) => s.projects);
-  const activeProjectId = useProjectStore((s) => s.activeProjectId);
 
   // Load projects once
   useEffect(() => {

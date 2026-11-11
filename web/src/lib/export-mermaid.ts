@@ -7,7 +7,7 @@ import type { Edge, Node } from "@xyflow/react";
 import type { CanvasNodeData, ZoneNodeData } from "./types";
 import { isZoneData, isArchData } from "./types";
 
-export function exportToMermaid(nodes: Node<CanvasNodeData>[], edges: Edge[], projectName = "Architecture"): string {
+export function exportToMermaid(nodes: Node<CanvasNodeData>[], edges: Edge[], _projectName = "Architecture"): string {
   const lines: string[] = [];
   lines.push("flowchart TB");
   lines.push("    subgraph nodes [Nodes]");
@@ -28,7 +28,6 @@ export function exportToMermaid(nodes: Node<CanvasNodeData>[], edges: Edge[], pr
       lines.push(`            class ${zoneId} zone`);
       lines.push("        end");
     } else if (isArchData(data)) {
-      const config = data.config || {};
       const tech = data.tech || "";
       const label = data.label || node.id;
       const displayName = tech ? `${label}<br/><sub>${tech}</sub>` : label;

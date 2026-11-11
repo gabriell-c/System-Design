@@ -1,5 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import { isArchData, isBlockData, isZoneData, type CanvasNodeData } from "./types";
+import { isArchData, isZoneData, type CanvasNodeData } from "./types";
 
 /** P1.5.4 — C4-PlantUML export (Context/Container level). */
 export function exportToC4Plantuml(
@@ -41,9 +41,9 @@ export function exportToC4Plantuml(
     );
   }
 
-  for (const z of zones) {
+  zones.forEach(() => {
     lines.push("}");
-  }
+  });
 
   lines.push("");
   for (const e of edges) {

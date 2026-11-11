@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { findGlossaryTerm, type GlossaryTerm } from "@/lib/glossary";
+import { findGlossaryTerm } from "@/lib/glossary";
 
 interface Props {
   nodeId: string;
@@ -13,7 +13,7 @@ interface Props {
 /**
  * P3.1.3 — Tooltip de glossário ao hover em nós do canvas.
  */
-export default function NodeGlossaryTooltip({ nodeId, nodeLabel, nodeTech, children }: Props) {
+export default function NodeGlossaryTooltip({ nodeId, nodeLabel, children }: Props) {
   const [show, setShow] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const term = useMemo(() => findGlossaryTerm(nodeId) ?? findGlossaryTerm(nodeLabel), [nodeId, nodeLabel]);

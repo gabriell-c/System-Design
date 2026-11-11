@@ -3,7 +3,7 @@
 import {
   BookOpen, Check, ChevronDown, ChevronRight, Pin, RotateCcw,
   Search, Star, X, CheckSquare, Square, Layout, Server, Database,
-  Cloud, Workflow, Plug, Smartphone, Boxes, Monitor, Shield,
+  Cloud, Plug, Smartphone, Boxes, Monitor, Shield,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { KIND_META, CATALOG } from "@/lib/catalog";

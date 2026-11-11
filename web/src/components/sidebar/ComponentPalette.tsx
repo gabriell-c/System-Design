@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Boxes, BookOpen, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Network, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
+import { Activity, Boxes, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Network, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -58,7 +58,7 @@ const KIND_ICONS: Record<NodeKind, typeof Layout> = {
 export default function ComponentPalette() {
   const [paletteTab, setPaletteTab] = useState<PaletteTab>("componentes");
   const [query, setQuery] = useState("");
-  const [providerFilter, setProviderFilter] = useState<CloudProvider | "all">("all");
+  const [providerFilter] = useState<CloudProvider | "all">("all");
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
   const addSwimlane = useGraphStore((s) => s.addSwimlane);
@@ -71,7 +71,7 @@ export default function ComponentPalette() {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
 
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const { visibleCatalog, hasCustomPrefs, prefs, pinnedItems } = useCatalogPrefs();
+  const { visibleCatalog, pinnedItems } = useCatalogPrefs();
   const recommendations = useGraphStore((s) => s.recommendations);
   const dismissRecommendations = useGraphStore((s) => s.dismissRecommendations);
 
@@ -469,7 +469,7 @@ export default function ComponentPalette() {
           </section>
         )}
 
-        {filteredByKind.map(({ kind, items }, index) => {
+        {filteredByKind.map(({ kind, items }) => {
           if (items.length === 0) return null;
           const meta = KIND_META[kind];
           const SectionIcon = KIND_ICONS[kind];

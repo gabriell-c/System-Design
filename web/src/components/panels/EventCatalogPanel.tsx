@@ -18,7 +18,6 @@ export default function EventCatalogPanel() {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
 
   const [newItem, setNewItem] = useState("");
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
   const topics: EventTopic[] = nfr?.event_topics ?? [];
 

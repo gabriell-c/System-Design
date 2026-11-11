@@ -103,8 +103,7 @@ const MORE: TabItem[] = [
   { id: "togaf", label: "TOGAF", icon: Layers, hint: "Cobertura ADM" },
 ];
 
-const ALL_TABS = [...PRIMARY, ...MORE];
-type TabId = (typeof ALL_TABS)[number]["id"];
+type TabId = TabItem["id"];
 
 const HINTS: Record<string, string> = {
   analysis: "A arquitetura faz sentido para contexto + NFRs?",

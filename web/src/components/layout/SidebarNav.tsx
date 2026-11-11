@@ -4,7 +4,6 @@ import Image from "next/image";
 import {
   Archive,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Command,
   FileText,
@@ -30,7 +29,6 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -41,8 +39,6 @@ import { useProjectStore } from "@/lib/project-store";
 import { useTheme } from "@/lib/theme-store";
 import NewProjectModal from "../dashboard/NewProjectModal";
 import DiagramGeneratorModal from "./DiagramGeneratorModal";
-
-const COLLAPSED_KEY = "archia-sidebar-collapsed";
 
 // ─── Context ───────────────────────────────────────────────────────────────────
 interface SidebarCtx {
@@ -56,29 +52,11 @@ function ProjectIcon({ project }: { project: { pinned?: boolean; is_public?: boo
   return <Lock className="h-3 w-3 shrink-0 text-[var(--muted)]" />;
 }
 
-function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
-      {children}
-      {show && (
-        <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface-3)] px-2 py-1 text-xs font-medium shadow-lg text-[var(--foreground)]">
-          {text}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, setAvatarUrl } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const avatarUrl = user?.avatar_url ?? null;
   const { theme, toggleTheme } = useTheme();
   const { projects, createProject, loadProjects } = useProjectStore();
@@ -96,19 +74,6 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
   useEffect(() => {
     void loadProjects();
   }, [loadProjects]);
-
-  const toggle = useCallback(() => {
-    if (forceExpanded) return;
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, [forceExpanded]);
 
   const currentProject = useMemo(() => {
     const match = pathname.match(/^\/project\/([^/]+)(\/.*)?$/);

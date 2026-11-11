@@ -19,7 +19,7 @@ type SnapResult = {
   guidelines: GuideLine[];
 };
 
-function nodeBounds(node: Node<CanvasNodeData>, allNodes: Node<CanvasNodeData>[]) {
+function nodeBounds(node: Node<CanvasNodeData>) {
   const w = Number(node.width ?? (node.style as Record<string, unknown>)?.width ?? (isBlockNode(node) ? 420 : 220));
   const h = Number(node.height ?? (node.style as Record<string, unknown>)?.height ?? (isBlockNode(node) ? 280 : 78));
   return {
@@ -64,7 +64,7 @@ export function computeSnap(
     // Skip cards nested in the dragged block
     if (other.parentId === draggedId) continue;
 
-    const o = nodeBounds(other, allNodes);
+    const o = nodeBounds(other);
 
     // Vertical guidelines (X alignment)
     const xChecks: [number, number, string][] = [
@@ -74,7 +74,7 @@ export function computeSnap(
       [dRight, o.right, "right-right"],
       [dCenterX, o.centerX, "center-center"],
     ];
-    for (const [dVal, oVal, label] of xChecks) {
+    for (const [dVal, oVal] of xChecks) {
       const diff = Math.abs(dVal - oVal);
       if (diff < bestDx && diff <= SNAP_THRESHOLD) {
         bestDx = diff;
@@ -101,7 +101,7 @@ export function computeSnap(
       [dBottom, o.bottom, "bottom-bottom"],
       [dCenterY, o.centerY, "center-center"],
     ];
-    for (const [dVal, oVal, label] of yChecks) {
+    for (const [dVal, oVal] of yChecks) {
       const diff = Math.abs(dVal - oVal);
       if (diff < bestDy && diff <= SNAP_THRESHOLD) {
         bestDy = diff;

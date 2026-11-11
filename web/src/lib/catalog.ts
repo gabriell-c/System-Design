@@ -1,4 +1,4 @@
-import type { CatalogCategory, CatalogItem, NodeKind } from "./types";
+import type { CatalogItem, NodeKind } from "./types";
 import { MULTI_CLOUD_CATALOG } from "./catalog-multicloud";
 import { PATTERNS_CATALOG } from "./catalog-patterns";
 import { NETWORK_CATALOG } from "./catalog-network";

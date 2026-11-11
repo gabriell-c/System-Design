@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardDismissed, setWizardDismissed] = useState(() => {
+  const [, setWizardDismissed] = useState(() => {
     // Initialize from localStorage to avoid hydration mismatch
     try {
       const onboarded = localStorage.getItem("archia-onboarded");

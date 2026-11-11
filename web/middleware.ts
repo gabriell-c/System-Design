@@ -6,9 +6,6 @@ const PUBLIC_ROUTES = ['/login', '/register', '/recover', '/embed', '/share'];
 // Rotas que precisam autenticação
 const PROTECTED_ROUTES = ['/profile', '/graphs', '/compare', '/admin', '/project', '/'];
 
-// Rotas que permitem acesso público (leitura) se projeto for público
-const PUBLIC_READ_ROUTES = ['/project'];
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

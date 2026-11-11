@@ -29,7 +29,6 @@ export function exportToPlantuml(nodes: Node<CanvasNodeData>[], edges: Edge[], p
       lines.push(`  [${zoneData.zoneKind.toUpperCase()}]`);
       lines.push("}");
     } else if (isArchData(data)) {
-      const config = data.config || {};
       const tech = data.tech || "";
       const label = data.label || node.id;
       const description = tech ? `\\n(${tech})` : "";

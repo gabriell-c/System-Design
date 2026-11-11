@@ -4,7 +4,6 @@ import type { ProjectAccessEntry, ProjectAccessRole } from "@/lib/types";
 import {
   Eye,
   Mail,
-  Plus,
   Shield,
   Trash2,
   UserPlus,

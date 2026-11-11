@@ -20,10 +20,6 @@ const ThemeContext = createContext<ThemeContextType>({
 
 const THEME_ORDER: Theme[] = ["dark", "light", "high-contrast"];
 
-function isTheme(v: string | null): v is Theme {
-  return v === "dark" || v === "light" || v === "high-contrast";
-}
-
 function getInitialTheme(): Theme {
   return "dark";
 }

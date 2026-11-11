@@ -55,5 +55,5 @@ export function analyzeDiagramConsistency(snapshots: DiagramSnapshot[]): Consist
     });
   }
 
-  return issues.sort((a, b) => (a.severity === "critical" ? -1 : 1));
+  return issues.sort((a) => (a.severity === "critical" ? -1 : 1));
 }

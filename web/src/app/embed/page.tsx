@@ -11,7 +11,7 @@ import type { Edge, Node } from "@xyflow/react";
 type Theme = "light" | "dark";
 
 export default function EmbedPage() {
-  const [graphId, setGraphId] = useState<string | null>(null);
+  const [graphId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node<CanvasNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [name, setName] = useState("");
@@ -23,8 +23,6 @@ export default function EmbedPage() {
   // Initialize from URL params without setState in effect
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const initialGraphId = params?.get("graph");
-  const initialTheme = params?.get("theme");
-  const resolvedTheme = initialTheme === "light" ? "light" : initialTheme === "dark" ? "dark" : "dark";
   const hasInitialId = !!initialGraphId;
 
   // Use useEffect only for side effects, not state initialization

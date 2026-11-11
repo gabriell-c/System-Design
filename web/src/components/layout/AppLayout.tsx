@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import SidebarNav from "./SidebarNav";
 

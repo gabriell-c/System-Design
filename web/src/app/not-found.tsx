@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 export default function NotFoundPage() {
   const [countdown, setCountdown] = useState(10);
-  const [isDark, setIsDark] = useState(true); // Default matches SSR
+  const [isDark] = useState(true); // Default matches SSR
 
   useEffect(() => {
     // Theme is already applied by layout.tsx inline script before React hydrates

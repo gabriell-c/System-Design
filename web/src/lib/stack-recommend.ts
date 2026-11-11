@@ -1,4 +1,4 @@
-import { CATALOG, findCatalog } from "./catalog";
+import { findCatalog } from "./catalog";
 
 export interface StackRecommendation {
   id: string;

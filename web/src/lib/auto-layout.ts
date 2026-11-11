@@ -2,7 +2,6 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { CanvasNodeData, ZoneKind } from "./types";
-import { isZoneData } from "./types";
 import { isSwimlaneNode } from "./swimlanes";
 import { isZoneNode, zoneKindOf, ZONE_DEFAULT_SIZE } from "./zones";
 import { swimlaneSize } from "./swimlanes";

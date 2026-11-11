@@ -2,8 +2,6 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { CanvasNodeData } from "./types";
-import type { BoardExportMeta } from "./export-board";
-import { renderLegendHtml, renderTitleBlockHtml } from "./export-board";
 
 const NS = "http://www.w3.org/2000/svg";
 

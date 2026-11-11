@@ -69,7 +69,6 @@ export default function LayerHierarchyPanel() {
           const isFree = isFreeData(data);
           if (!isFree) return null;
 
-          const layerOrder = freeLayerOrder(data, node.id);
           const isSelected = selectedNodeId === node.id;
 
           return (

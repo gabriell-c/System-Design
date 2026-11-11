@@ -1,14 +1,13 @@
 "use client";
 
 import { LAYER_VIEWS } from "@/lib/canvas-filter";
-import { ARCHITECTURE_VIEWS, type ArchitectureView } from "@/lib/architecture-view";
+import { ARCHITECTURE_VIEWS } from "@/lib/architecture-view";
 import { useGraphStore } from "@/lib/graph-store";
 
 export default function ViewTabs() {
   const canvasFilter = useGraphStore((s) => s.canvasFilter);
   const setCanvasFilter = useGraphStore((s) => s.setCanvasFilter);
   const architectureView = useGraphStore((s) => s.architectureView);
-  const setArchitectureView = useGraphStore((s) => s.setArchitectureView);
   const drillDownToView = useGraphStore((s) => s.drillDownToView);
 
   return (

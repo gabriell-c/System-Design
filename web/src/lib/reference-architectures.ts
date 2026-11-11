@@ -2,7 +2,6 @@
  * P1.3.3 — Deep reference architectures (Well-Architected templates)
  */
 
-import type { Node } from "@xyflow/react";
 import type { CanvasNodeData } from "@/lib/types";
 
 export type ReferenceEdge = {

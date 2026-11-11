@@ -22,7 +22,6 @@ export type SvgEmbedResult = {
 
 const NODE_WIDTH = 210;
 const NODE_HEIGHT = 80;
-const ZONE_PADDING = 20;
 
 function getDefaultColor(kind: string): { bg: string; border: string; text: string } {
   const colors: Record<string, { bg: string; border: string; text: string }> = {

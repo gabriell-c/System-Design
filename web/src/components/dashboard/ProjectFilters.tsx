@@ -4,7 +4,6 @@ import type { ProjectListFilters } from "@/lib/types";
 import {
   Archive,
   ArrowDownAZ,
-  ArrowUpDown,
   FolderOpen,
   Pin,
   Scale,
