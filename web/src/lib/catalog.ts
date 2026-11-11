@@ -1,4 +1,4 @@
-import type { CatalogItem, NodeKind } from "./types";
+import type { CatalogItem, CloudProvider, NodeKind } from "./types";
 import { MULTI_CLOUD_CATALOG } from "./catalog-multicloud";
 import { PATTERNS_CATALOG } from "./catalog-patterns";
 import { NETWORK_CATALOG } from "./catalog-network";
@@ -379,12 +379,6 @@ export const CATALOG: CatalogItem[] = [
     category: "database",
     popularity: 10,
     defaults: { engine: "PostgreSQL" },
-    ha_model: "multi-az",
-    pricing_tier: "standard",
-    regions: ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"],
-    sla_pct: 99.99,
-    rps_guidance: "10k+ RPS para workloads OLTP",
-    limits: { max_rps: 50000, max_connections: 10000, max_throughput_mbps: 1000 },
   },
   {
     id: "db-mysql",
@@ -535,6 +529,19 @@ export const CATALOG: CatalogItem[] = [
     category: "platform",
     popularity: 5,
     defaults: { engine: "Neon" },
+  },
+  {
+    id: "db-redshift",
+    kind: "database",
+    label: "Redshift",
+    tech: "AWS Redshift",
+    description: "Data warehouse SQL (MPP) AWS",
+    category: "database",
+    popularity: 7,
+    provider: "aws",
+    layer: "data",
+    tags: ["warehouse", "olap", "sql", "aws"],
+    defaults: { provider: "AWS", service: "Redshift", engine: "Redshift" },
   },
   {
     id: "cloud-aws-ec2",
@@ -1765,14 +1772,48 @@ export const CATALOG: CatalogItem[] = [
   ...NETWORK_CATALOG,
 ];
 
+/** Índice por id para lookup O(1) (findCatalog) — evita varrer ~400 itens a cada uso. */
+export const CATALOG_INDEX: ReadonlyMap<string, CatalogItem> = new Map(
+  CATALOG.map((item) => [item.id, item]),
+);
+
+/** Índice por kind para catalogByKind — evita filtrar o array inteiro por chamada. */
+export const CATALOG_INDEX_BY_KIND: Partial<Record<NodeKind, CatalogItem[]>> = (() => {
+  const by = new Map<NodeKind, CatalogItem[]>();
+  for (const item of CATALOG) {
+    const arr = by.get(item.kind) ?? [];
+    arr.push(item);
+    by.set(item.kind, arr);
+  }
+  return Object.fromEntries(by) as Partial<Record<NodeKind, CatalogItem[]>>;
+})();
+
 export const UI_LIBS = ["Tailwind", "Material UI", "Chakra UI", "Design System próprio"];
 export const STATE_LIBS = ["Redux", "Zustand", "Context API"];
 export const RENDER_MODES = ["SSR", "CSR", "SSG"];
 
 export function catalogByKind(kind: NodeKind): CatalogItem[] {
-  return CATALOG.filter((item) => item.kind === kind);
+  return CATALOG_INDEX_BY_KIND[kind] ?? [];
 }
 
 export function findCatalog(id: string): CatalogItem | undefined {
-  return CATALOG.find((item) => item.id === id);
+  return CATALOG_INDEX.get(id);
+}
+
+/**
+ * Provider efetivo de um item: o campo enum `provider` tem precedência; senão,
+ * normaliza `defaults.provider` (que pode vir como nome de exibição) para o enum.
+ * Vendor fora do big-3 → "generic".
+ */
+const PROVIDER_ALIAS: Record<string, CloudProvider> = {
+  aws: "aws",
+  "google cloud": "gcp",
+  google: "gcp",
+  azure: "azure",
+};
+
+export function providerOf(item: CatalogItem): CloudProvider {
+  if (item.provider) return item.provider;
+  const raw = String(item.defaults?.provider ?? "").trim().toLowerCase();
+  return PROVIDER_ALIAS[raw] ?? "generic";
 }

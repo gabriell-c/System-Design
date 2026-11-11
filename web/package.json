@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start -p 3015",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts src/lib/local-draft.test.ts src/lib/auto-save.contract.test.ts src/lib/stores/graph-store.test.ts src/lib/critical-path.test.ts src/lib/auto-layout.test.ts src/lib/history-store.test.ts src/lib/export.formats.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/export.roundtrip.test.ts src/lib/blocks.test.ts src/lib/canvas-pro.test.ts src/lib/zones-edges.test.ts src/lib/review-ready.test.ts src/lib/canvas-filter.test.ts src/lib/saved-views.test.ts src/lib/local-draft.test.ts src/lib/auto-save.contract.test.ts src/lib/stores/graph-store.test.ts src/lib/critical-path.test.ts src/lib/auto-layout.test.ts src/lib/history-store.test.ts src/lib/export.formats.test.ts src/lib/catalog.integrity.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots"
   },

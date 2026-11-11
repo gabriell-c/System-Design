@@ -26,12 +26,27 @@ const AWS: Record<string, OfficialIconSpec> = {
 };
 
 const AZURE: Record<string, OfficialIconSpec> = {
-  "cloud-az-apim": { provider: "azure", service: "API-Management", color: "#0078D4" },
-  "cloud-az-func": { provider: "azure", service: "Function-Apps", color: "#0078D4" },
-  "cloud-az-eventhub": { provider: "azure", service: "Event-Hubs", color: "#0078D4" },
+  "mc-azure-apim": { provider: "azure", service: "API-Management", color: "#0078D4" },
+  "mc-azure-functions": { provider: "azure", service: "Function-Apps", color: "#0078D4" },
+  "mc-azure-eventhubs": { provider: "azure", service: "Event-Hubs", color: "#0078D4" },
 };
 
-const OFFICIAL_MAP: Record<string, OfficialIconSpec> = { ...AWS, ...AZURE };
+const GCP: Record<string, OfficialIconSpec> = {
+  "mc-gcp-gcs": { provider: "gcp", service: "Cloud-Storage", color: "#4285F4" },
+  "mc-gcp-cloudrun": { provider: "gcp", service: "Cloud-Run", color: "#4285F4" },
+  "mc-gcp-functions": { provider: "gcp", service: "Cloud-Functions", color: "#4285F4" },
+  "mc-gcp-pubsub": { provider: "gcp", service: "Pub-Sub", color: "#4285F4" },
+  "mc-gcp-cloudsql": { provider: "gcp", service: "Cloud-SQL", color: "#4285F4" },
+  "mc-gcp-dns": { provider: "gcp", service: "Cloud-DNS", color: "#4285F4" },
+  "mc-gcp-armor": { provider: "gcp", service: "Cloud-Armor", color: "#EA4335" },
+  "mc-gcp-identity": { provider: "gcp", service: "Identity-Platform", color: "#EA4335" },
+  "mc-gcp-secret": { provider: "gcp", service: "Secret-Manager", color: "#EA4335" },
+};
+
+const OFFICIAL_MAP: Record<string, OfficialIconSpec> = { ...AWS, ...AZURE, ...GCP };
+
+/** Todos os catalogIds com ícone oficial — usado para validar integridade. */
+export const OFFICIAL_ICON_IDS: string[] = Object.keys(OFFICIAL_MAP);
 
 export function getOfficialIcon(catalogId: string): OfficialIconSpec | null {
   return OFFICIAL_MAP[catalogId] ?? null;

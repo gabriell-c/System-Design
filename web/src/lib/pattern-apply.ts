@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import { PATTERNS_CATALOG } from "./catalog-patterns";
-import { findCatalog } from "./catalog";
+import { nextId } from "./stores/helpers";
 import type { CanvasNodeData, NodeKind } from "./types";
 import { createZoneNode, ZONE_DEFAULT_SIZE } from "./zones";
 
@@ -9,6 +9,12 @@ export type PatternApplyParams = {
   participantCount?: number;
   queueName?: string;
 };
+
+// Passos do layout dos padrões (mesma grade do snap do canvas)
+const SAGA_STEP_X = 220;
+const SAGA_STEP_Y = 80;
+const OUTBOX_RELAY_X = 240;
+const BUNDLE_ROW_Y = 120;
 
 /** P1.3.2 — Apply architecture pattern as canvas nodes. */
 export function applyPattern(
@@ -20,7 +26,7 @@ export function applyPattern(
   if (!pattern) return [];
 
   const nodes: Node<CanvasNodeData>[] = [];
-  const baseId = `pat-${Date.now()}`;
+  const baseId = nextId("pat");
 
   if (patternId === "pat-saga") {
     const orchId = `${baseId}-orch`;
@@ -42,7 +48,7 @@ export function applyPattern(
       nodes.push({
         id: `${baseId}-step-${i}`,
         type: "arch",
-        position: { x: position.x + 220 * (i + 1), y: position.y + 80 },
+        position: { x: position.x + SAGA_STEP_X * (i + 1), y: position.y + SAGA_STEP_Y },
         data: {
           kind: "backend",
           label: `Saga Step ${i + 1}`,
@@ -73,7 +79,7 @@ export function applyPattern(
     nodes.push({
       id: `${baseId}-relay`,
       type: "arch",
-      position: { x: position.x + 240, y: position.y },
+      position: { x: position.x + OUTBOX_RELAY_X, y: position.y },
       data: {
         kind: "integration",
         label: params?.queueName ?? "Event Relay",
@@ -86,17 +92,16 @@ export function applyPattern(
     return nodes;
   }
 
-  const item = findCatalog(patternId) ?? pattern;
   nodes.push({
     id: baseId,
     type: "arch",
     position,
     data: {
-      kind: item.kind as NodeKind,
-      label: item.label,
+      kind: pattern.kind as NodeKind,
+      label: pattern.label,
       catalogId: patternId,
-      tech: item.tech,
-      config: { ...item.defaults },
+      tech: pattern.tech,
+      config: { ...pattern.defaults },
       score: null,
     },
   });
@@ -111,7 +116,7 @@ export function applyPatternBundle(
   const all: Node<CanvasNodeData>[] = [];
   for (const id of patternIds) {
     all.push(...applyPattern(id, { x: origin.x, y: origin.y + offset }));
-    offset += 120;
+    offset += BUNDLE_ROW_Y;
   }
   return all;
 }

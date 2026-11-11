@@ -9,76 +9,82 @@ export interface StackRecommendation {
   category: string;
 }
 
-const RECOMMENDATION_RULES: Record<string, { techId: string; reason: string }[]> = {
-  "react-native": [
-    { techId: "typescript", reason: "TypeScript is strongly recommended with React Native for better type safety and DX." },
-    { techId: "expo", reason: "Expo simplifies React Native development with managed workflows." },
+/** Regras de stack: chave = id real adicionado ao canvas; techId = id real sugerido. */
+export const RECOMMENDATION_RULES: Record<string, { techId: string; reason: string }[]> = {
+  "fe-react": [
+    { techId: "lang-typescript", reason: "TypeScript dá segurança de tipo e DX a React." },
+    { techId: "lib-tailwind", reason: "Tailwind é o padrão de estilo para projetos React." },
+    { techId: "lib-zustand", reason: "Zustand é um estado leve e comum em React." },
   ],
-  "flutter": [
-    { techId: "dart", reason: "Flutter uses Dart as its primary language." },
+  "fe-next": [
+    { techId: "lang-typescript", reason: "TypeScript é a linguagem recomendada no Next.js." },
+    { techId: "lib-tailwind", reason: "Tailwind é o estilo mais usado com Next.js." },
   ],
-  "nextjs": [
-    { techId: "typescript", reason: "TypeScript is the recommended language for Next.js projects." },
-    { techId: "tailwind", reason: "Tailwind CSS is the most popular styling solution for Next.js." },
+  "fe-astro": [
+    { techId: "lang-typescript", reason: "Astro é fortemente voltado a TypeScript." },
   ],
-  "nuxtjs": [
-    { techId: "typescript", reason: "TypeScript improves type safety in Nuxt.js applications." },
-    { techId: "vue", reason: "Vue.js is the underlying framework for Nuxt.js." },
+  "be-django": [
+    { techId: "lang-python", reason: "Django é um framework Python." },
+    { techId: "db-postgres", reason: "PostgreSQL é o banco recomendado para Django em produção." },
   ],
-  "django": [
-    { techId: "python", reason: "Django is a Python web framework." },
-    { techId: "postgresql", reason: "PostgreSQL is the recommended database for Django production use." },
+  "be-flask": [
+    { techId: "lang-python", reason: "Flask é um microframework Python." },
   ],
-  "flask": [
-    { techId: "python", reason: "Flask is a Python micro-framework." },
+  "be-fastapi": [
+    { techId: "lang-python", reason: "FastAPI é um framework Python async." },
   ],
-  "express": [
-    { techId: "typescript", reason: "TypeScript with Express provides better maintainability." },
-    { techId: "nodejs", reason: "Express runs on Node.js." },
+  "be-express": [
+    { techId: "lang-typescript", reason: "TypeScript com Express melhora a manutenibilidade." },
+    { techId: "lang-javascript", reason: "Express roda em Node.js." },
   ],
-  "nestjs": [
-    { techId: "typescript", reason: "NestJS is designed for TypeScript." },
-    { techId: "nodejs", reason: "NestJS runs on Node.js." },
+  "be-nest": [
+    { techId: "lang-typescript", reason: "NestJS foi desenhado para TypeScript." },
   ],
-  "postgresql": [
-    { techId: "prisma", reason: "Prisma is a popular ORM for PostgreSQL in TypeScript projects." },
+  "be-graphql": [
+    { techId: "lang-typescript", reason: "TypeScript dá segurança de tipo ponta a ponta com GraphQL." },
+    { techId: "lib-trpc", reason: "tRPC é uma alternativa tipada para APIs de backend." },
   ],
-  "mongodb": [
-    { techId: "mongoose", reason: "Mongoose is the standard ODM for MongoDB in Node.js." },
+  "db-postgres": [
+    { techId: "lib-prisma", reason: "Prisma é um ORM popular para PostgreSQL." },
+    { techId: "lib-drizzle", reason: "Drizzle é um ORM leve e tipado para PostgreSQL." },
   ],
-  "redis": [
-    { techId: "nodejs", reason: "Redis commonly pairs with Node.js for caching and sessions." },
+  "db-mongo": [
+    { techId: "lang-typescript", reason: "MongoDB costuma ser consumido via Node/TS." },
   ],
-  "aws": [
-    { techId: "docker", reason: "Docker is commonly used for deploying to AWS services like ECS and EKS." },
+  "db-redis": [
+    { techId: "int-redis-streams", reason: "Redis Streams estende o Redis para filas/eventos." },
   ],
-  "docker": [
-    { techId: "kubernetes", reason: "Kubernetes orchestrates Docker containers in production." },
+  "db-supabase": [
+    { techId: "id-supabase-auth", reason: "Supabase Auth é o auth integrado ao Supabase." },
+    { techId: "db-postgres", reason: "Supabase é construído sobre PostgreSQL." },
   ],
-  "kubernetes": [
-    { techId: "docker", reason: "Kubernetes requires containerized applications." },
+  "id-firebase": [
+    { techId: "lang-typescript", reason: "O SDK JS do Firebase funciona melhor com TypeScript." },
   ],
-  "graphql": [
-    { techId: "typescript", reason: "TypeScript with GraphQL provides end-to-end type safety." },
+  "cloud-aws-lambda": [
+    { techId: "cloud-aws-s3", reason: "S3 é o armazenamento padrão para dados de Lambda." },
+    { techId: "int-sqs", reason: "SQS decouple eventos para processamento assíncrono." },
   ],
-  "supabase": [
-    { techId: "postgresql", reason: "Supabase is built on PostgreSQL." },
-    { techId: "typescript", reason: "Supabase has excellent TypeScript support." },
+  "cloud-docker": [
+    { techId: "dep-compose", reason: "Docker Compose orquestra múltiplos containers localmente." },
+    { techId: "dep-k8s", reason: "Kubernetes orquestra containers em produção." },
   ],
-  "firebase": [
-    { techId: "typescript", reason: "Firebase JavaScript SDK works best with TypeScript." },
+  "dep-docker": [
+    { techId: "dep-k8s", reason: "Kubernetes orquestra containers em produção." },
+    { techId: "dep-compose", reason: "Compose para ambientes locais de desenvolvimento." },
   ],
-  "tailwind": [
-    { techId: "react", reason: "Tailwind CSS pairs excellently with React for utility-first styling." },
+  "dep-k8s": [
+    { techId: "dep-docker", reason: "Kubernetes exige aplicações containerizadas." },
   ],
-  "sass": [
-    { techId: "react", reason: "SASS is a popular CSS preprocessor for React projects." },
+  "cloud-vercel": [
+    { techId: "fe-next", reason: "Vercel é a plataforma de home para Next.js." },
   ],
-  "webpack": [
-    { techId: "typescript", reason: "Webpack bundles TypeScript projects with appropriate loaders." },
+  "obs-prometheus": [
+    { techId: "obs-grafana", reason: "Grafana é o painel padrão para métricas do Prometheus." },
+    { techId: "obs-otel", reason: "OpenTelemetry alimenta traços para o mesmo stack de observabilidade." },
   ],
-  "vite": [
-    { techId: "typescript", reason: "Vite has excellent TypeScript support out of the box." },
+  "int-kafka": [
+    { techId: "obs-otel", reason: "Instrumentar o pipeline com OpenTelemetry rastreia eventos ponta a ponta." },
   ],
 };
 

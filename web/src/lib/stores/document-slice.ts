@@ -433,10 +433,11 @@ export function documentSlice(
     });
     if (notice) scheduleClearNotice(set);
 
-    const existingTechs = get().nodes
+    const existingCatalogIds = get().nodes
       .filter((n) => !isContainerNode(n) && n.id !== id)
-      .map((n) => (n.data as ArchNodeData).tech);
-    const recs = checkRecommendations(catalogId, existingTechs);
+      .map((n) => (n.data as ArchNodeData).catalogId)
+      .filter((cid): cid is string => Boolean(cid));
+    const recs = checkRecommendations(catalogId, existingCatalogIds);
     if (recs.length > 0) {
       set({ recommendations: recs });
     }

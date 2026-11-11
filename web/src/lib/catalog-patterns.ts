@@ -310,17 +310,6 @@ export const PATTERNS_CATALOG: CatalogItem[] = [
     defaults: { service: "Event Sourcing" },
   },
   {
-    id: "pat-cdc-pat",
-    kind: "database",
-    label: "CDC Pattern",
-    tech: "CDC",
-    description: "Capture database changes for downstream consumers.",
-    category: "framework",
-    popularity: 6,
-    tags: ["pattern", "cdc", "streaming"],
-    defaults: { service: "CDC" },
-  },
-  {
     id: "pat-materialized-view",
     kind: "database",
     label: "Materialized View",
@@ -330,17 +319,6 @@ export const PATTERNS_CATALOG: CatalogItem[] = [
     popularity: 6,
     tags: ["pattern", "performance", "read-optimization"],
     defaults: { service: "Materialized View" },
-  },
-  {
-    id: "pat-cqrs-pat",
-    kind: "database",
-    label: "CQRS Pattern",
-    tech: "CQRS",
-    description: "Separate read and write models.",
-    category: "framework",
-    popularity: 6,
-    tags: ["pattern", "cqrs", "scaling"],
-    defaults: { service: "CQRS" },
   },
 
   // === DEPLOY PATTERNS ===

@@ -746,24 +746,6 @@ export type CatalogItem = {
   provider?: CloudProvider;
   /** Capability para paridade AWS/Azure/GCP */
   capability?: string;
-  /** Limites de capacidade (RPS, conexões, throughput) */
-  limits?: {
-    max_rps?: number;
-    max_connections?: number;
-    max_throughput_mbps?: number;
-  };
-  /** Modelo de alta disponibilidade */
-  ha_model?: "single-az" | "multi-az" | "multi-region" | "global";
-  /** Regiões disponíveis */
-  regions?: string[];
-  /** Tier de pricing (free, basic, standard, premium, enterprise) */
-  pricing_tier?: "free" | "basic" | "standard" | "premium" | "enterprise";
-  /** Recomendação de RPS baseada em benchmarks */
-  rps_guidance?: string;
-  /** SLA garantido (%) */
-  sla_pct?: number;
-  /** Tempo médio de recuperação (minutos) */
-  mttr_minutes?: number;
 };
 
 /** Preferências do usuário sobre quais componentes aparecem na paleta */
