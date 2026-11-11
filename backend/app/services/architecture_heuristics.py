@@ -830,6 +830,16 @@ def analyze_domain_benchmarks(
     nfr = nfr or ProjectNfr()
     cards = [n for n in nodes if _node_data(n).get("kind") not in {"zone", "block", None}]
 
+    node_by_id = {str(n.get("id")): n for n in nodes}
+
+    def endpoint_card(e: dict, key: str) -> dict:
+        # Edge endpoints are node ids (strings); resolve them to card dicts
+        # before matching. An embedded dict passes through unchanged.
+        ref = e.get(key)
+        if isinstance(ref, str):
+            ref = node_by_id.get(ref)
+        return ref if isinstance(ref, dict) else {}
+
     def blob(n: dict) -> str:
         return _card_blob(n)
 
@@ -845,7 +855,11 @@ def analyze_domain_benchmarks(
     is_fintech = any(matches(n, "fintech", "banking", "payment", "stripe", "checkout", "ledger", "pci") for n in cards)
     if is_fintech:
         # Check for idempotency on payment edges
-        payment_edges = [e for e in edges if matches(e.get("source") or {}, "payment", "checkout") and matches(e.get("target") or {}, "payment", "ledger")]
+        payment_edges = [
+            e for e in edges
+            if matches(endpoint_card(e, "source"), "payment", "checkout")
+            and matches(endpoint_card(e, "target"), "payment", "ledger")
+        ]
         if payment_edges:
             for edge in payment_edges:
                 ed = edge.get("data") or {}
@@ -854,7 +868,11 @@ def analyze_domain_benchmarks(
                         node_id=str(edge.get("source")),
                         severity="warning",
                         title="Payment edge sem failure behavior",
-                        detail=f"Pagamento de {label(nodes[0])} para {label(nodes[1])} sem retry/fallback. Transações financeiras exigem idempotência.",
+                        detail=(
+                            f"Pagamento de {label(endpoint_card(edge, 'source'))} "
+                            f"para {label(endpoint_card(edge, 'target'))} sem retry/fallback. "
+                            "Transações financeiras exigem idempotência."
+                        ),
                     ))
         # Check for audit trail
         has_audit = any(matches(n, "audit", "log", "immutable", "ledger") for n in cards)
@@ -901,7 +919,9 @@ def analyze_domain_benchmarks(
             ))
 
     # === IoT benchmarks ===
-    is_iot = any(matches(n, "iot", "mqtt", "sensor", "device", "edge", " Things") for n in cards)
+    # "edge" alone is dropped from the trigger list: "ledger" and other words
+    # contain it as a substring, firing IoT rules on fintech graphs.
+    is_iot = any(matches(n, "iot", "mqtt", "sensor", "device", "edge processing", "edge computing") for n in cards)
     if is_iot:
         has_mqtt = any(matches(n, "mqtt", "mosquitto", "emqx") for n in cards)
         if not has_mqtt:

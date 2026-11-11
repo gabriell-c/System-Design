@@ -53,3 +53,21 @@ def test_compare_prefers_cheaper_when_costs_differ():
     cmp_ = compare_analyses(left, right)
     assert cmp_["cheaper"] in {"left", "right", "tie"}
     assert "score_delta" in cmp_
+
+
+def test_fintech_payment_edge_uses_string_endpoint_ids():
+    # Edge endpoints carry node-id strings; the domain-benchmark matcher must
+    # resolve them to node dicts, not call .get on the string (crash).
+    from app.services.architecture_heuristics import analyze_domain_benchmarks
+
+    nodes = [
+        _node("be", "backend", "FastAPI", service="Stripe Payment API"),
+        _node("ledger", "database", "PostgreSQL ledger store", engine="PostgreSQL"),
+    ]
+    findings = analyze_domain_benchmarks(nodes, [{"source": "be", "target": "ledger", "data": {}}])
+    titles = [f.title for f in findings]
+    assert "Payment edge sem failure behavior" in titles
+    payment = next(f for f in findings if f.title == "Payment edge sem failure behavior")
+    assert "FastAPI" in payment.detail and "PostgreSQL ledger store" in payment.detail
+    # 'ledger' contains the substring 'edge' — the IoT rule must not fire here.
+    assert "IoT sem protocolo MQTT" not in titles
