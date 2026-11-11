@@ -16,6 +16,7 @@ from app.logging_config import (
 from app.middleware.audit import AuditMiddleware
 from app.models import (  # noqa: F401 — register metadata
     AiSettings,
+    AiUsage,
     AuditEntry,
     Comment,
     Graph,
@@ -199,6 +200,10 @@ def _ensure_sqlite_columns() -> None:
                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
             """))
+        if "ai_settings" in existing and "llm_data_consent" not in {
+            c["name"] for c in inspector.get_columns("ai_settings")
+        }:
+            conn.execute(text("ALTER TABLE ai_settings ADD COLUMN llm_data_consent VARCHAR(8) NOT NULL DEFAULT 'false'"))
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan, strict_slashes=False)

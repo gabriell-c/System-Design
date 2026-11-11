@@ -1,3 +1,4 @@
+from app.models.ai_usage import AiUsage
 from app.models.graph import (
     AuditEntry,
     Comment,
@@ -16,6 +17,7 @@ from app.models.user import User
 
 __all__ = [
     "AiSettings",
+    "AiUsage",
     "AuditEntry",
     "Comment",
     "Graph",

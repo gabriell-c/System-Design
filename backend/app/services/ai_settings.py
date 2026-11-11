@@ -2,11 +2,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings as env_settings
 from app.models.settings import AiSettings
+from app.models.user import User
+from app.schemas.settings import AiSettingsUpdate
 from app.services.secret_crypto import decrypt_secret, encrypt_secret
+
+# Provedores locais (gateway OmniRoute embutido): não exigem consentimento
+# de envio de dados (DLP) — os dados não saem da máquina do usuário.
+LOCAL_AI_PROVIDERS: frozenset[str] = frozenset({"omniroute"})
+
+# Item 37 — mensagem exata (a UI reage a ela) quando falta o consentimento.
+LLM_CONSENT_REQUIRED_DETAIL = (
+    "Ative o consentimento de envio de dados para IA externa em "
+    "Configurações → Análise por IA antes de analisar"
+)
 
 
 @dataclass(frozen=True)
@@ -27,12 +40,18 @@ def mask_key(raw: str) -> str:
     return f"{value[:4]}…{value[-4:]}"
 
 
-def get_or_create_settings(db: Session) -> AiSettings:
-    row = db.get(AiSettings, "default")
+def get_user_settings(db: Session, user: User) -> AiSettings:
+    """Linha de IA do usuário (id = str(user.id)); criada na primeira leitura.
+
+    Item 29 — uma linha por usuário: nunca há fallback para uma linha
+    global compartilhada.
+    """
+    row_id = str(user.id)
+    row = db.get(AiSettings, row_id)
     if row:
         return row
     row = AiSettings(
-        id="default",
+        id=row_id,
         provider="omniroute",
         base_url=env_settings.omniroute_base_url,
         api_key=encrypt_secret(env_settings.omniroute_api_key),  # P1.5 — cifra em repouso
@@ -40,6 +59,21 @@ def get_or_create_settings(db: Session) -> AiSettings:
         enabled="true",
     )
     db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def update_user_settings(db: Session, user: User, payload: AiSettingsUpdate) -> AiSettings:
+    """Aplica o payload nas configurações do usuário (api_key cifrada em repouso)."""
+    row = get_user_settings(db, user)
+    row.provider = payload.provider
+    row.base_url = payload.base_url.rstrip("/")
+    row.model = payload.model
+    row.enabled = "true" if payload.enabled else "false"
+    row.llm_data_consent = "true" if payload.llm_data_consent else "false"
+    if payload.api_key is not None and payload.api_key.strip():
+        row.api_key = encrypt_secret(payload.api_key.strip())
     db.commit()
     db.refresh(row)
     return row
@@ -64,8 +98,31 @@ def plaintext_api_key(row: AiSettings) -> str:
         return ""
 
 
-def load_runtime(db: Session) -> RuntimeAiConfig:
-    return to_runtime(get_or_create_settings(db))
+def load_runtime(db: Session, user: User | None = None) -> RuntimeAiConfig:
+    """Runtime de IA para uma execução.
+
+    Com `user`: configurações do próprio usuário. Sem `user` (o runner de
+    agentes ainda não carrega contexto de usuário — wave 2): só ambiente,
+    sem linha global compartilhada (item 29).
+    """
+    if user is not None:
+        return to_runtime(get_user_settings(db, user))
+    return RuntimeAiConfig(
+        provider="omniroute",
+        base_url=env_settings.omniroute_base_url,
+        api_key=env_settings.omniroute_api_key,
+        model=env_settings.omniroute_model,
+        enabled=True,
+    )
+
+
+def require_llm_consent(db: Session, user: User, settings: AiSettings) -> None:
+    """Item 37 — DLP: provedor externo exige consentimento explícito (senão 403)."""
+    if settings.provider in LOCAL_AI_PROVIDERS:
+        return
+    if settings.llm_data_consent == "true":
+        return
+    raise HTTPException(status_code=403, detail=LLM_CONSENT_REQUIRED_DETAIL)
 
 
 PROVIDER_PRESETS: dict[str, dict[str, str]] = {

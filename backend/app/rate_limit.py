@@ -3,7 +3,8 @@
 Hardening (P1.10):
 - `_buckets` is bounded (~10k keys) and swept lazily + periodically, so a
   flood of unique IPs cannot exhaust memory.
-- Per-user daily LLM analyze budget (P1.9c) with day-key + TTL sweep.
+- Named daily LLM analyze budgets (P1.9c / item 30); enforcement is durable
+  in SQLite via `app.services.ai_usage`.
 """
 
 from __future__ import annotations
@@ -60,7 +61,6 @@ def reset_rate_limiter() -> None:
     global _last_sweep
     with _lock:
         _buckets.clear()
-        _llm_daily.clear()
         _last_sweep = 0.0
 
 
@@ -98,7 +98,12 @@ def rate_limit_recover_confirm_ip(request: Request) -> None:
 
 
 def rate_limit_analyze(request: Request, user_key: str) -> None:
-    """Rate limit: 10 analysis requests per 60 seconds per IP+user."""
+    """Rate limit: 10 analysis requests per 60 seconds per IP+user.
+
+    Mantido em memória de propósito: janela curta de anti-abuso — barato e
+    per-processo, não precisa sobreviver a restart/workers (o teto DIÁRIO,
+    já, é durável em SQLite: ver app.services.ai_usage).
+    """
     ip = request.client.host if request.client else "unknown"
     _rate_limit(f"analyze:{ip}:{user_key}", max_attempts=10, window_seconds=60)
 
@@ -110,62 +115,11 @@ def rate_limit_simulation(request: Request, user_key: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Per-user daily LLM analyze budget (P1.9c)
-# In-memory counter keyed by (user, UTC day) with a TTL sweep of stale days.
+# Per-user daily LLM analyze budget (P1.9c / item 30)
+# Os tetos são constantes nomeadas; o enforcement é DURÁVEL em SQLite
+# (tabela ai_usage — ver app.services.ai_usage), porque contador em memória
+# resetava no restart e quebrava com múltiplos workers.
 # ---------------------------------------------------------------------------
 
 LLM_DAILY_ANALYZE_BUDGET = 50
-_llm_daily: dict[str, int] = {}
-_llm_day_key = ""
-
-
-def _current_llm_day() -> str:
-    """UTC calendar day — the key under which the budget counter lives."""
-    return time.strftime("%Y-%m-%d", time.gmtime())
-
-
-def rate_limit_llm_budget(user_id: int, limit: int | None = None) -> None:
-    """Raise 429 with a retry-after style message when the daily budget is spent.
-
-    Only called when a real LLM run will happen (cache hits are free), so the
-    counter increments once per actual analyze-run.
-    """
-    budget = LLM_DAILY_ANALYZE_BUDGET if limit is None else limit
-    day = _current_llm_day()
-    global _llm_day_key
-    key = f"llm:{user_id}:{day}"
-    with _lock:
-        # TTL sweep: drop counters from previous days (consistent lazy style).
-        if day != _llm_day_key:
-            _llm_day_key = day
-            _llm_daily.clear()
-        used = _llm_daily.get(key, 0)
-        if used >= budget:
-            # Hours (rounded up) until the UTC day rolls over.
-            now_utc = time.gmtime()
-            secs_left = 24 * 3600 - (
-                now_utc.tm_hour * 3600 + now_utc.tm_min * 60 + now_utc.tm_sec
-            )
-            hours_left = max(1, (secs_left + 3599) // 3600)
-            raise HTTPException(
-                status_code=429,
-                detail=(
-                    f"Daily LLM analyze budget ({budget}/day) exhausted for this user. "
-                    f"Retry in about {hours_left}h (resets at UTC midnight)."
-                ),
-            )
-        _llm_daily[key] = used + 1
-
-
-def llm_budget_used(user_id: int) -> int:
-    """Number of analyze-runs consumed today (tests / observability)."""
-    with _lock:
-        return _llm_daily.get(f"llm:{user_id}:{_current_llm_day()}", 0)
-
-
-def reset_llm_daily_budget() -> None:
-    """Clear the per-user daily LLM budget counters (tests)."""
-    global _llm_day_key
-    with _lock:
-        _llm_daily.clear()
-        _llm_day_key = ""
+AUTO_ANALYZE_DAILY_BUDGET = 20
