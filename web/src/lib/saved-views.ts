@@ -1,5 +1,5 @@
-import type { CanvasFilter } from "./canvas-filter";
-import type { SavedView } from "./types";
+import type { CanvasFilter } from "./canvas-filter.ts";
+import type { SavedView } from "./types.ts";
 
 const DEFAULT_FILTER: CanvasFilter = {
   query: "",

@@ -7,14 +7,82 @@
  * - Periodicamente (a cada N minutos do perfil): salva se dirty.
  * - Ao perder foco da janela: salva se dirty.
  * - Botão manual: salva na hora.
+ *
+ * Conflito 409 (versão stale): em vez de travar em "error", re-basou da
+ * versão do servidor e mescla local (LWW por elemento — local-tocado vence,
+ * adições do servidor preservadas) sem descartar o rascunho. Tenta salvar
+ * de novo uma vez; em nova falha, mantém dirty + etag rebasado para o
+ * próximo ciclo refazer sem loop infinito.
  */
 import { useEffect, useRef } from "react";
+import type { Edge, Node } from "@xyflow/react";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { useGraphStore } from "@/lib/graph-store";
 import { useAuthStore } from "@/lib/auth-store";
-import { api } from "@/lib/api";
+import { api, ApiConflictError } from "@/lib/api";
+import type { CanvasNodeData } from "@/lib/types";
+import { mergeGraphSnapshots } from "@/lib/collab";
 
 const CHECK_INTERVAL_MS = 10000; // Verifica a cada 10s se precisa salvar
 const MAX_SAVE_INTERVAL_MS = 15 * 60 * 1000; // Teto: máximo 15 min
+
+function buildPayload(state: ReturnType<typeof useGraphStore.getState>) {
+  return {
+    name: state.name,
+    context: state.context,
+    nfr: state.nfr,
+    nodes: state.nodes,
+    edges: state.edges,
+    project_id: state.projectId,
+    owner_team: state.ownerTeam ?? null,
+    diagram_kind: state.diagramKind,
+    parent_graph_id: state.parentGraphId,
+    c4_parent_node_id: state.c4ParentNodeId,
+    excalidraw_elements: state.excalidrawElements ?? [],
+  };
+}
+
+/**
+ * Recuperação não-destrutiva de 409: puxa a versão atual do servidor e aplica
+ * um merge LWW element-wise (local-tocado vence; adições/edições do servidor
+ * em outros elementos entram) sem tocar no undo. Retorna true se rebasou.
+ */
+async function recoverFromConflict(graphId: string): Promise<boolean> {
+  const state = useGraphStore.getState();
+  try {
+    const server = await api.getGraph(graphId); // sem If-Match → versão vigente
+    const merged = mergeGraphSnapshots(
+      {
+        nodes: state.nodes as unknown[],
+        edges: state.edges as unknown[],
+        excalidrawElements: state.excalidrawElements as unknown[],
+      },
+      {
+        nodes: (server.nodes as unknown[]) ?? [],
+        edges: (server.edges as unknown[]) ?? [],
+        excalidrawElements: server.excalidraw_elements ?? undefined,
+      },
+      {
+        // local-tocado vence: todo id local é "tocado"; server-only entra por união
+        nodes: new Set(state.nodes.map((n) => n.id)),
+        edges: new Set(state.edges.map((e) => e.id)),
+      },
+    );
+    state.applyRemote({
+      nodes: merged.nodes as unknown as Node<CanvasNodeData>[],
+      edges: merged.edges as unknown as Edge[],
+      excalidrawElements: merged.excalidrawElements as unknown as ExcalidrawElement[],
+      name: server.name,
+      context: server.context ?? "",
+      nfr: server.nfr ?? undefined,
+      analysis: server.analysis ?? null,
+    });
+    state.setLastEtag(server.etag ?? null);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function saveGraph(): Promise<boolean> {
   const state = useGraphStore.getState();
@@ -29,21 +97,7 @@ async function saveGraph(): Promise<boolean> {
   state.setSaveStatus("saving");
 
   try {
-    const payload = {
-      name: state.name,
-      context: state.context,
-      nfr: state.nfr,
-      nodes: state.nodes,
-      edges: state.edges,
-      project_id: state.projectId,
-      owner_team: state.ownerTeam ?? null,
-      diagram_kind: state.diagramKind,
-      parent_graph_id: state.parentGraphId,
-      c4_parent_node_id: state.c4ParentNodeId,
-      excalidraw_elements: state.excalidrawElements ?? [],
-    };
-
-    const saved = await api.updateGraph(state.graphId, payload, {
+    const saved = await api.updateGraph(state.graphId, buildPayload(state), {
       ifMatch: state.lastEtag,
     });
 
@@ -51,13 +105,36 @@ async function saveGraph(): Promise<boolean> {
     state.pushUiNotice({ type: "success", text: "Salvo automaticamente" });
     return true;
   } catch (error) {
-    console.error("[AutoSave] erro:", error);
-    const err = error as { status?: number };
-    if (err.status === 409) {
-      state.pushUiNotice({ type: "error", text: "Conflito de versão. Salve manualmente." });
-    } else {
-      state.pushUiNotice({ type: "error", text: "Erro ao salvar. Rascunho local mantido." });
+    if (error instanceof ApiConflictError) {
+      const recovered = await recoverFromConflict(state.graphId);
+      if (recovered) {
+        // Re-salva uma vez com o etag freso agora no store.
+        const s2 = useGraphStore.getState();
+        try {
+          const saved2 = await api.updateGraph(state.graphId, buildPayload(s2), {
+            ifMatch: s2.lastEtag,
+          });
+          s2.markSaved(state.graphId, saved2.etag ?? null);
+          s2.pushUiNotice({ type: "success", text: "Salvo automaticamente (conflito resolvido)" });
+          return true;
+        } catch {
+          // Ainda em conflito neste instante: etag já rebasado + dirty; o
+          // próximo ciclo refaz sem travar em "error".
+          s2.pushUiNotice({
+            type: "info",
+            text: "Conflito de versão: mesclado com o servidor. Será re-salvo em instantes.",
+          });
+          s2.setSaveStatus("dirty");
+          return false;
+        }
+      }
+      state.pushUiNotice({ type: "error", text: "Conflito de versão. Salve manualmente para resolver." });
+      state.setSaveStatus("error");
+      return false;
     }
+
+    console.error("[AutoSave] erro:", error);
+    state.pushUiNotice({ type: "error", text: "Erro ao salvar. Rascunho local mantido." });
     state.setSaveStatus("error");
     return false;
   }

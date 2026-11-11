@@ -24,6 +24,8 @@ import { exportToC4Plantuml } from "@/lib/export-c4-plantuml";
 import { prepareCleanExport } from "@/lib/export-quality";
 import { downloadSvg, renderSvg } from "@/lib/export-svg";
 import { api } from "@/lib/api";
+import { copyToClipboard } from "@/lib/clipboard";
+import { isFilterActive, visibleEdges, visibleNodes } from "@/lib/canvas-filter";
 import { useGraphStore } from "@/lib/graph-store";
 import ExportOptionsModal from "@/components/layout/ExportOptionsModal";
 
@@ -42,6 +44,8 @@ export default function ExportMenu({ onDone }: Props) {
   const nfr = useGraphStore((s) => s.nfr);
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
+  const canvasFilter = useGraphStore((s) => s.canvasFilter);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
   const analysis = useGraphStore((s) => s.analysis);
   const graphId = useGraphStore((s) => s.graphId);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
@@ -59,6 +63,12 @@ export default function ExportMenu({ onDone }: Props) {
   async function run(
     kind: "json" | "md" | "png" | "png-clean" | "png-board" | "pdf" | "svg" | "drawio" | "plantuml" | "mermaid" | "c4" | "embed",
   ) {
+    // Export visual (PNG/PDF) reflete a seleção visível do canvas quando há
+    // filtro ativo; os exports de dados (JSON/MD/SVG/…) continuam completos.
+    const filterActive = isFilterActive(canvasFilter);
+    const vNodes = visibleNodes(nodes, canvasFilter, ownerTeam);
+    const vEdges = visibleEdges(edges, nodes, canvasFilter, ownerTeam);
+    const filterNote = filterActive ? " (filtro ativo)" : "";
     try {
       if (kind === "json") {
         downloadJson(
@@ -72,19 +82,19 @@ export default function ExportMenu({ onDone }: Props) {
         pushUiNotice({ type: "success", text: "Architecture Package (Markdown) exportado." });
       } else if (kind === "png") {
         setBusy("png");
-        await exportArchitecturePng(`${base}.png`, nodes, {
+        await exportArchitecturePng(`${base}.png`, vNodes, {
           boardReady: false,
           meta: { title: name, nfr, provider: nfr?.arch_style ?? undefined },
         });
-        pushUiNotice({ type: "success", text: "Imagem PNG exportada." });
+        pushUiNotice({ type: "success", text: `Imagem PNG exportada${filterNote}.` });
       } else if (kind === "png-clean") {
         setBusy("png");
-        prepareCleanExport(nodes, { hideChrome: true });
-        await exportArchitecturePng(`${base}-clean.png`, nodes, { boardReady: false });
-        pushUiNotice({ type: "success", text: "PNG sem chrome exportado." });
+        prepareCleanExport(vNodes, { hideChrome: true });
+        await exportArchitecturePng(`${base}-clean.png`, vNodes, { boardReady: false });
+        pushUiNotice({ type: "success", text: `PNG sem chrome exportado${filterNote}.` });
       } else if (kind === "png-board") {
         setBusy("png");
-        await exportArchitecturePng(`${base}-board-ready.png`, nodes, {
+        await exportArchitecturePng(`${base}-board-ready.png`, vNodes, {
           boardReady: true,
           meta: {
             title: name,
@@ -95,10 +105,10 @@ export default function ExportMenu({ onDone }: Props) {
             provider: nfr?.arch_style ?? undefined,
           },
         });
-        pushUiNotice({ type: "success", text: "PNG board-ready (title block + legenda) exportado." });
+        pushUiNotice({ type: "success", text: `PNG board-ready (title block + legenda) exportado${filterNote}.` });
       } else if (kind === "pdf") {
         setBusy("pdf");
-        await exportArchitecturePdf(name, nodes, edges, {
+        await exportArchitecturePdf(name, vNodes, vEdges, {
           context,
           nfr,
           analysis,
@@ -107,7 +117,7 @@ export default function ExportMenu({ onDone }: Props) {
         });
         pushUiNotice({
           type: "success",
-          text: "PDF: escolha “Salvar como PDF” na impressão.",
+          text: `PDF: escolha "Salvar como PDF" na impressão${filterNote}.`,
         });
       } else if (kind === "svg") {
         const svg = renderSvg(nodes, edges, { title: name });
@@ -132,8 +142,11 @@ export default function ExportMenu({ onDone }: Props) {
       } else if (kind === "embed") {
         if (!graphId) throw new Error("Salve o diagrama antes de gerar embed.");
         const token = await api.getEmbedToken(graphId);
-        await navigator.clipboard.writeText(token.iframe_snippet);
-        pushUiNotice({ type: "success", text: "Snippet iframe copiado." });
+        const copied = await copyToClipboard(token.iframe_snippet);
+        pushUiNotice({
+          type: copied ? "success" : "error",
+          text: copied ? "Snippet iframe copiado." : "Não foi possível copiar o snippet.",
+        });
       }
       setOpen(false);
       onDone?.();

@@ -47,7 +47,7 @@ import { computeSnap, type GuideLine } from "@/lib/snap";
 import type { NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
 import { ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
-import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
+import { visibleNodes, descendantIds } from "@/lib/canvas-filter";
 import CanvasComments from "@/components/canvas/CanvasComments";
 import LineageView from "@/components/canvas/LineageView";
 import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
@@ -351,10 +351,10 @@ function CanvasInner() {
     );
   }, [edges, blastHighlightEdgeIds]);
 
-  const displayNodes = useMemo(() => {
-    const filtered = orderedNodes.filter((n) => filterVisibility(n, canvasFilter, ownerTeam));
-    return filtered;
-  }, [orderedNodes, canvasFilter, ownerTeam]);
+  const displayNodes = useMemo(
+    () => visibleNodes(orderedNodes, canvasFilter, ownerTeam),
+    [orderedNodes, canvasFilter, ownerTeam],
+  );
 
   // After applying a template (or loading nodes into an empty canvas), frame the graph.
   const prevNodeCountRef = useRef(0);

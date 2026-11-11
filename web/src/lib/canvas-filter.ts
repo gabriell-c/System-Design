@@ -1,6 +1,5 @@
-import type { Node } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 import type {
-  ArchNodeData,
   C4Level,
   CanvasNodeData,
   CloudProvider,
@@ -8,31 +7,7 @@ import type {
   PiiSensitivity,
   ZoneKind,
 } from "./types.ts";
-
-function isArchData(data: CanvasNodeData): data is ArchNodeData {
-  return (
-    data.kind !== "block" &&
-    data.kind !== "zone" &&
-    data.kind !== "swimlane" &&
-    data.kind !== "note" &&
-    data.kind !== "cidr" &&
-    data.kind !== "tenant_boundary" &&
-    data.kind !== "free-rectangle" &&
-    data.kind !== "free-circle" &&
-    data.kind !== "free-oval" &&
-    data.kind !== "free-diamond" &&
-    data.kind !== "free-triangle" &&
-    data.kind !== "free-hexagon" &&
-    data.kind !== "free-octagon" &&
-    data.kind !== "free-arrow-right" &&
-    data.kind !== "free-arrow-double" &&
-    data.kind !== "free-check" &&
-    data.kind !== "free-x" &&
-    data.kind !== "free-plus" &&
-    data.kind !== "free-text" &&
-    data.kind !== "free-edit"
-  );
-}
+import { isArchData } from "./types.ts";
 
 export type LayerView = "all" | "storage" | "auth" | "media" | "search" | "network" | "cicd";
 
@@ -195,6 +170,33 @@ export function filterVisibility(
 ): boolean {
   if (!isFilterActive(filter)) return true;
   return nodeMatchesFilter(node.data, filter, ownerTeam);
+}
+
+/**
+ * Seleção "nós visíveis" compartilhada entre o canvas e a exportação:
+ * quando não há filtro ativo, devolve tudo; com filtro ativo, só os nós que
+ * passam em `filterVisibility`. Comportamento idêntico ao que o canvas
+ * renderiza, para o export refletir o que o usuário vê.
+ */
+export function visibleNodes(
+  nodes: Node<CanvasNodeData>[],
+  filter: CanvasFilter,
+  ownerTeam?: string | null,
+): Node<CanvasNodeData>[] {
+  if (!isFilterActive(filter)) return nodes;
+  return nodes.filter((n) => filterVisibility(n, filter, ownerTeam));
+}
+
+/** Arestas cujos DOIS terminais estão visíveis — mantém o grafo coerente. */
+export function visibleEdges(
+  edges: Edge[],
+  nodes: Node<CanvasNodeData>[],
+  filter: CanvasFilter,
+  ownerTeam?: string | null,
+): Edge[] {
+  if (!isFilterActive(filter)) return edges;
+  const ids = new Set(visibleNodes(nodes, filter, ownerTeam).map((n) => n.id));
+  return edges.filter((e) => ids.has(e.source) && ids.has(e.target));
 }
 
 export function descendantIds(nodes: Node<CanvasNodeData>[], rootId: string): Set<string> {

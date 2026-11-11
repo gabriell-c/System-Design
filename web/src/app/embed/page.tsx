@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { API_BASE } from "@/lib/api-base";
 import { renderEmbedSvg } from "@/lib/embed-svg";
+import { copyToClipboard } from "@/lib/clipboard";
 import type { CanvasNodeData } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -129,7 +130,7 @@ export default function EmbedPage() {
               className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:opacity-50"
               disabled={!svgCode}
               onClick={() => {
-                void navigator.clipboard.writeText(svgCode);
+                void copyToClipboard(svgCode);
               }}
             >
               Copiar SVG

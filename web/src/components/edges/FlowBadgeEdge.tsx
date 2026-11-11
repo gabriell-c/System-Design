@@ -16,6 +16,7 @@ export default function FlowBadgeEdge({
   data,
   style,
   markerEnd,
+  animated,
 }: EdgeProps) {
   const edgeData = normalizeEdgeData(data);
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -30,9 +31,14 @@ export default function FlowBadgeEdge({
   const caption = edgeData.label?.trim();
   const showBadge = edgeData.flowNumber != null;
 
+  // Honra `animated` de forma autocontida: aplica a animação de traço direto no
+  // path, sem depender do seletor global `.react-flow__edge.animated` (que não
+  // existe em vistas sem o CSS do React Flow). Mantém o dash do próprio fluxo.
+  const edgeStyle = animated ? { ...style, animation: "dashdraw 0.5s linear infinite" } : style;
+
   return (
     <>
-      <BaseEdge id={id} path={edgePath} style={style} markerEnd={markerEnd} />
+      <BaseEdge id={id} path={edgePath} style={edgeStyle} markerEnd={markerEnd} />
       {(showBadge || caption) && (
         <EdgeLabelRenderer>
           <div

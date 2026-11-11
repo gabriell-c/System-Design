@@ -1,5 +1,5 @@
 import type { Node } from "@xyflow/react";
-import type { CanvasNodeData, CloudProvider, ZoneKind, ZoneNodeData } from "./types";
+import type { CanvasNodeData, CloudProvider, ZoneKind, ZoneNodeData } from "./types.ts";
 
 export const ZONE_DEFAULT_SIZE: Record<ZoneKind, { width: number; height: number }> = {
   region: { width: 920, height: 640 },

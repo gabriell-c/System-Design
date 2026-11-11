@@ -28,8 +28,8 @@ import CustomSelect from "@/components/ui/Select";
 import Tooltip from "@/components/ui/Tooltip";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { api, ApiConflictError } from "@/lib/api";
+import { copyToClipboard } from "@/lib/clipboard";
 import { parseImportPayload } from "@/lib/export";
-import { useAuthStore } from "@/lib/auth-store";
 import { useGraphStore } from "@/lib/graph-store";
 import { ARCHITECTURE_VIEWS, type ArchitectureView } from "@/lib/architecture-view";
 
@@ -85,7 +85,6 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
   const projectId = useGraphStore((s) => s.projectId);
   const excalidrawElements = useGraphStore((s) => s.excalidrawElements ?? []);
 
-  const user = useAuthStore((s) => s.user);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -494,8 +493,11 @@ export default function TopBar({ onAnalyze, onToggleFocus, focusMode, hideAnalys
                       try {
                         const share = await api.createGraphShare(graphId);
                         const url = `${window.location.origin}${share.share_url}`;
-                        await navigator.clipboard.writeText(url);
-                        pushUiNotice({ type: "success", text: "Link de compartilhamento copiado." });
+                        const copied = await copyToClipboard(url);
+                        pushUiNotice({
+                          type: copied ? "success" : "error",
+                          text: copied ? "Link de compartilhamento copiado." : "Não foi possível copiar o link.",
+                        });
                       } catch (err) {
                         pushUiNotice({
                           type: "error",

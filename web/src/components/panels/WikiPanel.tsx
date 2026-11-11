@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import { downloadText, slugifyFilename } from "@/lib/export";
+import { copyToClipboard } from "@/lib/clipboard";
 
 export default function WikiPanel() {
   const graphId = useGraphStore((s) => s.graphId);
@@ -34,7 +35,14 @@ export default function WikiPanel() {
   );
 
   async function copyMd() {
-    await navigator.clipboard.writeText(markdown);
+    const ok = await copyToClipboard(markdown);
+    if (!ok) {
+      useGraphStore.getState().pushUiNotice({
+        type: "error",
+        text: "Não foi possível copiar a wiki.",
+      });
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

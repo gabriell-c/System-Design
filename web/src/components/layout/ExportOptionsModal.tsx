@@ -10,6 +10,7 @@ import {
 } from "@/lib/export";
 import { exportArchitecturePdf, exportArchitecturePng, type CaptureCanvasOptions } from "@/lib/export-canvas";
 import { downloadSvg, renderSvg } from "@/lib/export-svg";
+import { isFilterActive, visibleEdges, visibleNodes } from "@/lib/canvas-filter";
 import { useGraphStore } from "@/lib/graph-store";
 
 export type ExportFormat = "png" | "svg" | "pdf" | "json" | "md";
@@ -48,6 +49,8 @@ export default function ExportOptionsModal({ open, onClose, initialFormat = "png
   const nfr = useGraphStore((s) => s.nfr);
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
+  const canvasFilter = useGraphStore((s) => s.canvasFilter);
+  const ownerTeam = useGraphStore((s) => s.ownerTeam);
   const analysis = useGraphStore((s) => s.analysis);
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
 
@@ -77,28 +80,34 @@ export default function ExportOptionsModal({ open, onClose, initialFormat = "png
       };
 
       if (opts.format === "png") {
-        await exportArchitecturePng(`${base}.png`, nodes, {
-          boardReady: opts.boardReady,
-          meta: capture.meta,
-          width: opts.width,
-          height: opts.height,
-          padding: opts.margin,
-          pixelRatio: opts.pixelRatio,
-        });
-        pushUiNotice({ type: "success", text: "PNG exportado com as opções escolhidas." });
+        const filterNote = isFilterActive(canvasFilter) ? " (filtro ativo)" : "";
+        await exportArchitecturePng(
+          `${base}.png`,
+          visibleNodes(nodes, canvasFilter, ownerTeam),
+          {
+            boardReady: opts.boardReady,
+            meta: capture.meta,
+            width: opts.width,
+            height: opts.height,
+            padding: opts.margin,
+            pixelRatio: opts.pixelRatio,
+          },
+        );
+        pushUiNotice({ type: "success", text: `PNG exportado com as opções escolhidas${filterNote}.` });
       } else if (opts.format === "svg") {
         const svg = renderSvg(nodes, edges, { title: name });
         downloadSvg(svg, `${base}.svg`);
         pushUiNotice({ type: "success", text: "SVG exportado." });
       } else if (opts.format === "pdf") {
-        await exportArchitecturePdf(name, nodes, edges, {
+        const filterNote = isFilterActive(canvasFilter) ? " (filtro ativo)" : "";
+        await exportArchitecturePdf(name, visibleNodes(nodes, canvasFilter, ownerTeam), visibleEdges(edges, nodes, canvasFilter, ownerTeam), {
           context,
           nfr,
           analysis,
           includeDiagram: true,
           meta: capture.meta,
         });
-        pushUiNotice({ type: "success", text: "PDF: use “Salvar como PDF” na impressão." });
+        pushUiNotice({ type: "success", text: `PDF: use "Salvar como PDF" na impressão${filterNote}.` });
       } else if (opts.format === "json") {
         downloadJson(
           `${base}.graph.json`,

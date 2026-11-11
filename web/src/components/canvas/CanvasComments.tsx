@@ -21,9 +21,11 @@ export default function CanvasComments() {
 
   useEffect(() => {
     if (!graphId) return;
+    let cancelled = false;
     void api
       .listComments(graphId)
-      .then((rows) =>
+      .then((rows) => {
+        if (cancelled) return;
         setCanvasComments(
           rows.map((r) => ({
             id: r.id,
@@ -37,10 +39,18 @@ export default function CanvasComments() {
             assignee: r.assignee,
             mentions: r.mentions,
           })),
-        ),
-      )
-      .catch(() => undefined);
-  }, [graphId, setCanvasComments]);
+        );
+      })
+      .catch((e) => {
+        // Falha de leitura não é crítica: avisa, mas não derruba o canvas.
+        if (cancelled) return;
+        console.error("[Comments] falha ao listar comentários:", e);
+        pushUiNotice({ type: "error", text: "Não foi possível carregar os comentários." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [graphId, setCanvasComments, pushUiNotice]);
 
   // Real-time comment sync via shared collab WebSocket room
   useEffect(() => {
@@ -168,6 +178,8 @@ export default function CanvasComments() {
         }`}
         onClick={() => setMode((v) => !v)}
         title="Comentários no canvas"
+        aria-pressed={mode}
+        aria-label="Comentários no canvas"
       >
         <MessageSquarePlus size={14} className="inline mr-1" />
         Comentar
@@ -213,6 +225,9 @@ export default function CanvasComments() {
 
 function CommentPin({ comment }: { comment: CanvasComment }) {
   const [open, setOpen] = useState(false);
+  const pinLabel = `Comentário de ${comment.author}${
+    comment.resolved ? " (resolvido)" : ""
+  }: ${comment.text}`;
   return (
     <div
       className="canvas-comment-pin absolute z-20"
@@ -228,11 +243,19 @@ function CommentPin({ comment }: { comment: CanvasComment }) {
           comment.resolved ? "border-slate-500 bg-slate-700 text-[var(--muted-fg)]" : "border-[var(--accent)] bg-[var(--accent)]/30 text-indigo-100"
         }`}
         onClick={() => setOpen((v) => !v)}
+        aria-label={pinLabel}
+        aria-expanded={open}
+        aria-haspopup="true"
       >
         !
       </button>
       {open && (
-        <div className="absolute left-8 top-0 w-52 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2 text-xs text-slate-200 elev-2">
+        <div
+          role="dialog"
+          aria-live="polite"
+          aria-label={`Comentário de ${comment.author}`}
+          className="absolute left-8 top-0 w-52 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2 text-xs text-slate-200 elev-2"
+        >
           <p className="text-sm text-[var(--muted)]">{comment.author}</p>
           <p className="mt-1">{comment.text}</p>
           {comment.assignee && <p className="mt-1 text-indigo-300">@{comment.assignee}</p>}

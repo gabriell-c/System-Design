@@ -352,7 +352,8 @@ export function isArchData(data: CanvasNodeData): data is ArchNodeData {
     data.kind !== "swimlane" &&
     data.kind !== "note" &&
     data.kind !== "cidr" &&
-    data.kind !== "tenant_boundary"
+    data.kind !== "tenant_boundary" &&
+    !isFreeData(data)
   );
 }
 

@@ -10,13 +10,7 @@ import { getOfficialIcon, useOfficialIconMode } from "@/lib/catalog-icons";
 import type { ArchNodeData } from "@/lib/types";
 import NodeGlossaryTooltip from "@/components/canvas/NodeGlossaryTooltip";
 import LinkButton from "@/components/nodes/LinkButton";
-
-function scoreTone(score?: number | null): string {
-  if (score == null) return "bg-slate-700 text-slate-300";
-  if (score >= 8) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
-  if (score >= 6) return "bg-amber-500/20 text-amber-200 border-amber-500/40";
-  return "bg-rose-500/20 text-rose-200 border-rose-500/40";
-}
+import { scoreTone } from "@/components/nodes/score-tone";
 
 export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);

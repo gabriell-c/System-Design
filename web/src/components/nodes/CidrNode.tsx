@@ -19,6 +19,7 @@ export default function CidrNode({ id, data, selected }: NodeProps<Node<CidrNode
       tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="in" type="target" position={Position.Top} />
+      <AnchorHandle nodeId={id} handleId="out" type="source" position={Position.Right} />
       <div className="flex items-center gap-2">
         <Network size={14} className="text-teal-300" />
         <div>

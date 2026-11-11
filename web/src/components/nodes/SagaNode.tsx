@@ -1,17 +1,11 @@
 "use client";
 
-import { NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Position, type Node, type NodeProps } from "@xyflow/react";
 import { Zap } from "lucide-react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
 import { useGraphStore } from "@/lib/graph-store";
 import type { ArchNodeData } from "@/lib/types";
-
-function scoreTone(score?: number | null): string {
-  if (score == null) return "bg-slate-700 text-slate-300";
-  if (score >= 8) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
-  if (score >= 6) return "bg-amber-500/20 text-amber-200 border-amber-500/40";
-  return "bg-rose-500/20 text-rose-200 border-rose-500/40";
-}
+import { scoreTone } from "@/components/nodes/score-tone";
 
 export default function SagaNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);

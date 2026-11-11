@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { BookMarked, Copy, ExternalLink } from "lucide-react";
 import { buildAdrs } from "@/lib/adr";
+import { copyToClipboard } from "@/lib/clipboard";
 import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
-import type { AdrEntry } from "@/lib/types";
 
 const LINKS_KEY = "archia-adr-links";
 
@@ -51,8 +51,11 @@ export default function AdrPanel() {
           `## ${a.id}: ${a.title}\n\nStatus: ${a.status}\n${a.jira_key ? `Jira: ${a.jira_key}\n` : ""}${a.confluence_url ? `Confluence: ${a.confluence_url}\n` : ""}\n### Contexto\n${a.context}\n\n### Decisão\n${a.decision}\n\n### Consequências\n${a.consequences.map((c) => `- ${c}`).join("\n")}\n`,
       )
       .join("\n");
-    void navigator.clipboard.writeText(md).then(() => {
-      pushUiNotice({ type: "success", text: "ADRs copiados em Markdown." });
+    void copyToClipboard(md).then((ok) => {
+      pushUiNotice({
+        type: ok ? "success" : "error",
+        text: ok ? "ADRs copiados em Markdown." : "Não foi possível copiar as ADRs.",
+      });
     });
   }
 
