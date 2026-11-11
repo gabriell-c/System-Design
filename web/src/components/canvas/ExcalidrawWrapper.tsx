@@ -12,6 +12,17 @@ import { api } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Cloud, CloudCheck, CloudOff } from "lucide-react";
 
+// Subset da API imperativa que usamos do Excalidraw (o tipo completo não é
+// re-exportado pela raiz do pacote). O parâmetro omite os campos opcionais
+// (appState/collaborators/captureUpdate); método bivariante permite a atribuição.
+type ExcalidrawLiveApi = {
+  updateScene: (sceneData: { elements?: readonly ExcalidrawElement[] }) => void;
+};
+
+// Janela de "edição local recente": o feed remoto não pisar no traço que o
+// usuário está desenhando agora — só aplica a cena remota quando parou.
+const REMOTE_FEED_IDLE_MS = 1200;
+
 function elementsFingerprint(elements: readonly ExcalidrawElement[]): string {
   let h = 2166136261;
   const mix = (s: string) => {
@@ -36,21 +47,21 @@ function elementsFingerprint(elements: readonly ExcalidrawElement[]): string {
   return (h >>> 0).toString(36);
 }
 
-function hideSocialLinks() {
-  document.querySelectorAll<HTMLElement>('[class*="dropdown-menu-group"]').forEach((group) => {
+function hideSocialLinks(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>('[class*="dropdown-menu-group"]').forEach((group) => {
     const title = group.querySelector<HTMLElement>('[class*="dropdown-menu-group-title"]');
     if (title && title.textContent?.includes("Excalidraw")) {
       group.style.display = "none";
     }
   });
-  document
+  root
     .querySelectorAll<HTMLElement>(
       '[aria-label="GitHub"], [title="GitHub"], [aria-label="Discord"], [title="Discord"]',
     )
     .forEach((el) => {
       if (el.parentElement) el.parentElement.style.display = "none";
     });
-  document.querySelectorAll<HTMLElement>('[class*="dropdown-menu-item"]').forEach((item) => {
+  root.querySelectorAll<HTMLElement>('[class*="dropdown-menu-item"]').forEach((item) => {
     const text = item.textContent?.trim() || "";
     if (text === "GitHub" || text === "Discord" || text === "Follow us") {
       item.style.display = "none";
@@ -80,6 +91,8 @@ export default function ExcalidrawWrapper() {
   const setElements = useGraphStore((s) => s.setExcalidrawElements);
   const lastFpRef = useRef(elementsFingerprint(elements));
   const containerRef = useRef<HTMLDivElement>(null);
+  const apiRef = useRef<ExcalidrawLiveApi | null>(null);
+  const lastLocalEditRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -167,32 +180,55 @@ export default function ExcalidrawWrapper() {
       const fp = elementsFingerprint(next);
       if (fp === lastFpRef.current) return;
       lastFpRef.current = fp;
+      lastLocalEditRef.current = Date.now();
       setElements([...next]);
     },
     [setElements],
   );
 
+  // Esconde os links sociais do Excalidraw. Observa o CONTAINER (não o
+  // document.body inteiro) — só a subtree desta instância re-renderiza os
+  // menus, então evita callbacks globais a cada mutação de DOM do app.
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const run = () => hideSocialLinks(el);
     const observer = new MutationObserver(() => {
-      setTimeout(hideSocialLinks, 50);
+      setTimeout(run, 50);
     });
-    observer.observe(document.body, { childList: true, subtree: true });
-    hideSocialLinks();
+    observer.observe(el, { childList: true, subtree: true });
+    run();
     return () => observer.disconnect();
   }, []);
+
+  // Feed remoto ao vivo: quando a cena no store muda por causa de um peer
+  // (fingerprint ≠ estado local do canvas), aplica via updateScene. Só se o
+  // usuário está ocioso (não em edição) pra não pisar no traço em curso.
+  useEffect(() => {
+    if (!ready) return; // feed remoto só aplica quando o Excalidraw montou
+    const api = apiRef.current;
+    if (!api) return;
+    const fp = elementsFingerprint(elements);
+    if (fp === lastFpRef.current) return; // já é o estado local, não remoto
+    if (Date.now() - lastLocalEditRef.current < REMOTE_FEED_IDLE_MS) return;
+    lastFpRef.current = fp;
+    api.updateScene({ elements: [...elements] });
+  }, [elements, ready]);
 
   // Fresh instance per graphId — initialData from THIS render's store slice only.
   const mountKey = graphId ?? "empty";
 
   const statusIcon =
-    saveStatus === "saved" ? (
+    saveStatus === "error" ? (
+      <CloudOff size={14} />
+    ) : saveStatus === "saved" ? (
       <CloudCheck size={14} />
     ) : saveStatus === "saving" ? (
       <Cloud size={14} className="animate-pulse" />
     ) : dirty ? (
-      <CloudOff size={14} />
+      <Cloud size={14} />
     ) : (
-      <CloudOff size={14} />
+      <Cloud size={14} />
     );
 
   return (
@@ -207,6 +243,9 @@ export default function ExcalidrawWrapper() {
             key={mountKey}
             initialData={{ elements: elements as ExcalidrawElement[] }}
             onChange={onChange}
+            excalidrawAPI={(api) => {
+              apiRef.current = api;
+            }}
             langCode="pt-BR"
             theme="light"
           />

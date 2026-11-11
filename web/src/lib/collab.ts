@@ -67,6 +67,9 @@ const COLLAB_PATH = "/api/v1/ws/collab";
 const PERMANENT_CLOSE_CODES = new Set([4001, 4003]);
 /** Coalescing de state-update: no máx. 1 mensagem de push a cada 300ms. */
 const PUSH_THROTTLE_MS = 300;
+/** Teto da fila offline: cada mensagem é um snapshot full (idempotente/LWW),
+ *  então as mais antigas são suplantadas — descarta as que estouram o teto. */
+const OFFLINE_QUEUE_MAX = 20;
 
 function hash(s: string): number {
   let h = 0;
@@ -190,6 +193,8 @@ export class CollabProvider {
   private touchedNodes = new Set<string>();
   private touchedEdges = new Set<string>();
   private offlineQueue: string[] = [];
+  /** Última baseURL em que connect() foi chamado — reconexão deriva dela (sem hardcode). */
+  private lastBaseURL: string | null = null;
   /** Coalesce push: no máximo uma state-update a cada PUSH_THROTTLE_MS. */
   private pushTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingPush: string | null = null;
@@ -253,6 +258,9 @@ export class CollabProvider {
       this.ws.send(message);
     } else {
       this.offlineQueue.push(message);
+      if (this.offlineQueue.length > OFFLINE_QUEUE_MAX) {
+        this.offlineQueue.shift();
+      }
     }
   }
 
@@ -404,14 +412,14 @@ export class CollabProvider {
       authError: permanent ? this.authError : this.session.authError,
     };
     this.emit();
-    if (!permanent) {
+    if (!permanent && this.lastBaseURL) {
       setTimeout(() => {
-        if (!this.closed && this.session.connected === false) this.connect(this.lastBaseURL ?? "http://localhost:4410");
+        if (!this.closed && this.session.connected === false && this.lastBaseURL) {
+          this.connect(this.lastBaseURL);
+        }
       }, 2000);
     }
   }
-
-  private lastBaseURL: string | null = null;
 
   close(): void {
     this.closed = true;
