@@ -2,22 +2,16 @@
 name = "archia-backend"
 version = "0.1.0"
 requires-python = ">=3.12"
+# Mirror of backend/requirements.txt for what the code actually imports.
+# Pinned sources of truth live in requirements.txt / requirements-dev.txt.
 dependencies = [
   "fastapi",
   "uvicorn",
   "sqlalchemy",
-  "aiosqlite",
   "pydantic-settings",
-  "passlib[bcrypt]",
-  "python-jose",
   "httpx",
-  "asyncpg",
-  "redis",
-  "celery",
-  "python-multipart",
   "pyjwt",
-  "boto3",
-  "sentry-sdk",
+  "bcrypt",
 ]
 
 [tool.pytest.ini_options]

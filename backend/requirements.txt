@@ -10,3 +10,6 @@ python-json-logger==3.3.0
 bcrypt==5.0.0
 pyjwt==2.13.0
 httpx==0.28.1
+
+# P1.5 — cifra em repouso de segredos (ai_settings.api_key via Fernet)
+cryptography==46.0.7

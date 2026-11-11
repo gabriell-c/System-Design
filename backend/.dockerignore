@@ -1,0 +1,11 @@
+# Docker build context is ./backend — keep the image slim and secret-free.
+data/
+.env
+.env.local
+.pytest_cache/
+.ruff_cache/
+tests/
+__pycache__/
+*.pyc
+.venv/
+venv/
