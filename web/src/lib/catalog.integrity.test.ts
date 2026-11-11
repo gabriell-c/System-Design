@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { register } from "node:module";
+import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // Reescreve importadores relativos sem extensão ("./catalog" → "./catalog.ts" e
 // seu grafo) para os imports dinâmicos abaixo.
@@ -84,4 +86,70 @@ test("multi-cloud: provider + capability obrigatórios; rede: id único e pesqui
       assert.ok(searchable, `${item.id} sem campo pesquisável (tags/capability/provider)`);
     }
   }
+});
+
+/**
+ * Snapshot do backend (fix actions P1): backend/app/services/catalog_snapshot.json.
+ * Guarda o conjunto autorizado de ids de catálogo + zone kinds para o backend
+ * validar `fix_action` sem depender do front.
+ *
+ * REGENERAÇÃO (catalogo cresceu / zone kinds mudaram):
+ *   cd web && UPDATE_CATALOG_SNAPSHOT=1 pnpm exec node --experimental-strip-types --test src/lib/catalog.integrity.test.ts
+ * O bloco abaixo reescreve o snapshot e volta — depois rode o mesmo comando
+ * sem a flag para validar o arquivo recém-gerado.
+ */
+const SNAPSHOT_PATH = fileURLToPath(
+  new URL("../../../backend/app/services/catalog_snapshot.json", import.meta.url),
+);
+
+test("catalog snapshot do backend casa com CATALOG e zone kinds (bidirecional)", async () => {
+  const { CATALOG } = await import("./catalog");
+  const { MULTI_CLOUD_CATALOG } = await import("./catalog-multicloud");
+  const { ZONE_DEFAULT_SIZE } = await import("./zones");
+  const catalogIds = new Set(CATALOG.map((i) => i.id));
+
+  if (process.env.UPDATE_CATALOG_SNAPSHOT === "1") {
+    writeFileSync(
+      SNAPSHOT_PATH,
+      JSON.stringify(
+        {
+          catalog_ids: [...catalogIds].sort(),
+          zone_kinds: Object.keys(ZONE_DEFAULT_SIZE).sort(),
+          generated_from:
+            "web/src/lib/catalog.ts (CATALOG = base + catalog-multicloud + catalog-patterns + catalog-network)",
+          generated_at: new Date().toISOString().slice(0, 10),
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    console.log(`snapshot reescrito em ${SNAPSHOT_PATH}`);
+    return;
+  }
+
+  const snapshot = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8")) as {
+    catalog_ids: string[];
+    zone_kinds: string[];
+  };
+  const snapshotIds = new Set(snapshot.catalog_ids);
+
+  // Direção 1: todo id do snapshot existe no CATALOG (nada fantasma no backend)
+  for (const id of snapshot.catalog_ids) {
+    assert.ok(catalogIds.has(id), `id fantasma no snapshot: ${id}`);
+  }
+  // Direção 2: todo id do CATALOG está no snapshot (backend pode validar todos)
+  for (const id of catalogIds) {
+    assert.ok(snapshotIds.has(id), `id ausente do snapshot: ${id}`);
+  }
+  // Contrato do item 13: ids de catalog-multicloud.ts ⊆ snapshot.catalog_ids
+  for (const item of MULTI_CLOUD_CATALOG) {
+    assert.ok(snapshotIds.has(item.id), `id multi-cloud ausente do snapshot: ${item.id}`);
+  }
+  // Zone kinds do snapshot casam com os ZoneKind reais (chave de ZONE_DEFAULT_SIZE)
+  assert.deepEqual(
+    [...snapshot.zone_kinds].sort(),
+    Object.keys(ZONE_DEFAULT_SIZE).sort(),
+    "zone_kinds do snapshot divergem do front",
+  );
 });

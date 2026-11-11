@@ -22,7 +22,7 @@ export default function RecommendationBanner({
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-          Recomendação da IA
+          Recomendação do catálogo (regras)
         </span>
         <button
           onClick={onDismiss}

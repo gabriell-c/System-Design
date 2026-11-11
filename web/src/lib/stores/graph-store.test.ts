@@ -175,3 +175,93 @@ test("undo/redo restauram excalidrawElements e selectedNodeIds", async () => {
   assert.deepEqual(store.getState().excalidrawElements, [exEl("ex-9")], "redo volta à cena corrente");
   assert.deepEqual(store.getState().selectedNodeIds, [], "redo volta à seleção corrente");
 });
+
+function fixtureAnalysis() {
+  return {
+    score: 7.5,
+    summary: "ok",
+    strengths: [],
+    risks: [],
+    suggestions: [],
+    findings: [],
+    node_scores: {},
+    growth: {
+      small: { ok: true, issues: [], changes: [] },
+      medium: { ok: true, issues: [], changes: [] },
+      large: { ok: true, issues: [], changes: [] },
+    },
+    ia_ok: false,
+    ia_unavailable: true,
+    agents_used: [],
+  };
+}
+
+test("runAnalyze: chama api.analyze com o estado atual e atualiza analysis/nota", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  store.setState({ nodes: [archNode("A", "Srv A")], edges: [] });
+  store.getState().setAnalyzing(false, "erro anterior");
+  assert.equal(store.getState().analyzeError, "erro anterior");
+
+  const realFetch = globalThis.fetch;
+  const calls: Array<{ url: string; body: unknown }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    return new Response(JSON.stringify(fixtureAnalysis()), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+  try {
+    await store.getState().runAnalyze();
+    const s = store.getState();
+    assert.equal(s.analyzing, false, "volta a false ao final");
+    assert.equal(s.analyzeError, null, "erro anterior é limpo no início");
+    assert.equal(s.analysis?.score, 7.5);
+    assert.equal(s.highlightNodeIds.length, 0);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0]?.url ?? "", /\/api\/v1\/analyze$/);
+    assert.equal((calls[0]?.body as { nodes?: unknown[] } | undefined)?.nodes?.length, 1);
+    assert.equal(s.uiNotice?.text, "Análise pronta (heurística local) · nota 7.5. Veja a aba Análise.");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("runAnalyze: falha na request → analyzeError preenchido, analyzing false, notice de erro", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  store.setState({ nodes: [archNode("A", "Srv A")] });
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ detail: "500 boom" }), { status: 500, statusText: "Internal Server Error" })) as typeof fetch;
+  try {
+    await store.getState().runAnalyze();
+    const s = store.getState();
+    assert.equal(s.analyzing, false);
+    assert.equal(s.analyzeError, "500 boom");
+    assert.equal(s.analysis, null, "falha não seta analysis");
+    assert.equal(s.uiNotice?.type, "error");
+    assert.match(s.uiNotice?.text ?? "", /500 boom/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("runAnalyze: sem nós é no-op (não chama fetch, não altera analyzing)", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+
+  let called = false;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    called = true;
+    return new Response(JSON.stringify(fixtureAnalysis()), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+  try {
+    await store.getState().runAnalyze();
+    assert.equal(called, false, "fetch não deve ser chamado sem nós");
+    assert.equal(store.getState().analyzing, false);
+    assert.equal(store.getState().analyzeError, null);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

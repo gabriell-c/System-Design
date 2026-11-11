@@ -618,7 +618,7 @@ export default function ComponentPalette() {
         </section>
       </div>
       )}
-      {/* AI Recommendation */}
+      {/* Recomendação do catálogo (regras) — stack-recommend, não LLM */}
       {recommendations.length > 0 && paletteTab === "componentes" && (
         <RecommendationBanner
           recommendations={recommendations}

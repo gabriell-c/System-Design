@@ -2,6 +2,7 @@
  * P4 — analysis slice do graph-store (movido VERBATIM de graph-store.ts).
  */
 import { computeCriticalPath } from "../critical-path";
+import { api } from "../api";
 import { scheduleClearNotice } from "./helpers";
 import type { GraphState } from "./types";
 import type { StoreApi } from "zustand";
@@ -18,8 +19,7 @@ export function analysisSlice(
   | "analyzing"
   | "analyzeError"
   | "recommendations"
-  | "analyzePhase"
-  | "setAnalyzePhase"
+  | "runAnalyze"
   | "setAnalysis"
   | "setAnalyzing"
   | "highlightCriticalPath"
@@ -31,7 +31,6 @@ export function analysisSlice(
   analyzing: false,
   analyzeError: null,
   recommendations: [],
-  analyzePhase: "idle",
 
     dismissRecommendations: () => {
     set({ recommendations: [] });
@@ -51,7 +50,26 @@ export function analysisSlice(
     set({ highlightNodeIds: [], blastHighlightEdgeIds: [] });
   },
 
-  setAnalyzePhase: (phase) => set({ analyzePhase: phase }),
+  runAnalyze: async () => {
+    // Mesma via do botão "Analisar" da TopBar (EditorShell#runAnalyze):
+    // api.analyze com o estado atual do store + updates nos mesmos campos.
+    const { name, context, nfr, nodes, edges, graphId } = get();
+    if (nodes.length === 0) return;
+    set({ analyzing: true, analyzeError: null });
+    try {
+      const result = await api.analyze({ name, context, nfr, nodes, edges, persist_id: graphId });
+      get().setAnalysis(result);
+      get().setAnalyzing(false);
+      get().pushUiNotice({
+        type: "success",
+        text: `Análise pronta (${result.ia_ok ? "com IA" : "heurística local"}) · nota ${result.score.toFixed(1)}. Veja a aba Análise.`,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha na análise";
+      get().setAnalyzing(false, msg);
+      get().pushUiNotice({ type: "error", text: msg });
+    }
+  },
 
   setAnalysis: (analysis) => {
     const criticalIds = analysis?.score_breakdown?.critical_node_ids ?? [];

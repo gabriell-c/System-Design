@@ -1,51 +1,61 @@
 "use client";
 
+import { useMemo } from "react";
 import { useGraphStore } from "@/lib/graph-store";
 import type { Finding, GrowthScenario } from "@/lib/types";
 import PanelEmpty from "@/components/ui/PanelEmpty";
 import { Search, Sparkles } from "lucide-react";
 import Skeleton from "@/components/ui/Skeleton";
 
-const PHASE_LABEL: Record<string, string> = {
-  analyzing: "Lendo contexto e topologia…",
-  scoring: "Calculando score e findings…",
-  review: "Revisando recomendações…",
-  done: "Quase pronto…",
+const INDETERMINATE_BAR_WIDTH = "40%";
+
+// Item 39 — nomes pt-BR dos agentes por-proveniência; valor desconhecido
+// (ou string vinda de backend futuro) é exibido como veio.
+const AGENT_LABELS: Record<string, string> = {
+  security: "segurança",
+  architecture: "arquitetura",
+  database: "banco",
+  code: "código",
+  style: "estilo",
+  coherence: "coerência",
+  tradeoffs: "trade-offs",
+  heuristica: "heurística",
+  consolidador: "consolidado",
 };
 
-function AnalysisLoadingSkeleton() {
-  const phase = useGraphStore((s) => s.analyzePhase);
-  const showFindings = phase === "scoring" || phase === "review" || phase === "done";
-  const showRecs = phase === "review" || phase === "done";
-  const width =
-    phase === "analyzing" ? "25%" : phase === "scoring" ? "55%" : phase === "review" ? "80%" : "95%";
+// Item 37 — substring estável do 403 de consentimento (texto do detalhe do
+// backend), para anexar a dica de onde ativar a checkbox.
+const CONSENT_ERROR_MARKER = "consentimento de envio de dados para IA externa";
+const CONSENT_ERROR_HINT = "Ative o consentimento em Configurações → Análise por IA.";
 
+// Item 28 — sem SSE/streaming de progresso nesta passada: a barra
+// indeterminada continua e o resumo `agents_done` só aparece quando a
+// análise termina (no resultado, abaixo).
+function AnalysisLoadingSkeleton() {
+  // Um único estado real: a análise está em voo (request /api/v1/analyze).
   return (
     <div className="space-y-4 px-4 py-6" aria-busy="true" aria-live="polite">
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
-        <p className="text-xs font-medium text-[var(--accent)]">
-          {PHASE_LABEL[phase] ?? "Analisando…"}
-        </p>
+        <p className="text-xs font-medium text-[var(--accent)]">Analisando…</p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
-          <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width }} />
+          <div
+            className="h-full animate-pulse rounded-full bg-[var(--accent)]"
+            style={{ width: INDETERMINATE_BAR_WIDTH }}
+          />
         </div>
       </div>
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
         <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Nota geral</p>
         <Skeleton rows={2} />
       </section>
-      {showFindings && (
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Findings</p>
-          <Skeleton rows={3} />
-        </section>
-      )}
-      {showRecs && (
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Recomendações</p>
-          <Skeleton rows={2} />
-        </section>
-      )}
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+        <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Findings</p>
+        <Skeleton rows={3} />
+      </section>
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+        <p className="mb-2 text-xs uppercase tracking-wide text-[var(--muted)]">Recomendações</p>
+        <Skeleton rows={2} />
+      </section>
     </div>
   );
 }
@@ -63,16 +73,42 @@ export default function AnalysisPanel() {
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
   const highlightCriticalNodes = useGraphStore((s) => s.highlightNodeIds);
   const setHighlightNodeIds = useGraphStore((s) => s.setHighlightNodeIds);
+  const nodes = useGraphStore((s) => s.nodes);
+  const nfr = useGraphStore((s) => s.nfr);
+  const runAnalyze = useGraphStore((s) => s.runAnalyze);
+
+  const nodeLabel = useMemo(() => {
+    const labelById = new Map(nodes.map((n) => [n.id, n.data.label]));
+    return (id: string) => labelById.get(id) ?? id;
+  }, [nodes]);
+
+  // NFR real em vez de números de marketing: sem target, mostra só o nível.
+  const growthNote =
+    nfr.users_per_day != null ? ` · ~${nfr.users_per_day.toLocaleString("pt-BR")} usuários/dia` : "";
 
   if (analyzing) {
     return <AnalysisLoadingSkeleton />;
   }
   if (analyzeError) {
+    // Item 37 — erro 403 por falta de consentimento (provedor externo):
+    // além da mensagem, aponta para a checkbox de Configurações.
+    const consentHint = analyzeError.includes(CONSENT_ERROR_MARKER)
+      ? ` ${CONSENT_ERROR_HINT}`
+      : "";
     return (
       <PanelEmpty
         icon={Sparkles}
         title="Falha na análise"
-        description={`${analyzeError} Verifique a conexão e tente novamente.`}
+        description={`${analyzeError} Verifique a conexão e tente novamente.${consentHint}`}
+        action={
+          <button
+            type="button"
+            className="btn-ghost mt-2"
+            onClick={() => void runAnalyze()}
+          >
+            Tentar de novo
+          </button>
+        }
       />
     );
   }
@@ -88,6 +124,12 @@ export default function AnalysisPanel() {
 
   const nodeFindings = analysis.findings.filter((f) => f.node_id === selectedNodeId);
   const globalFindings = analysis.findings.filter((f) => !f.node_id);
+
+  // Items 10/27 — resumo de agentes: ausente em resultados antigos (campos
+  // opcionais), então a linha/selo só aparecem quando há contagem.
+  const agentsTotal = analysis.agents_used?.length ?? 0;
+  const agentsDone = analysis.agents_done ?? agentsTotal;
+  const agentsFailed = analysis.agents_failed ?? 0;
   const criticalNodeIds = analysis.score_breakdown?.critical_node_ids ?? [];
   const bottleneckFindings = analysis.findings
     .filter(
@@ -107,6 +149,19 @@ export default function AnalysisPanel() {
           <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Nota geral</p>
           <span className="text-2xl font-semibold tabular-nums text-slate-50">{analysis.score.toFixed(1)}</span>
         </div>
+        {/* Items 10/27 — linha de agentes + selo âmbar de falha parcial. */}
+        {agentsTotal > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-[var(--muted)]">
+              Agentes: {agentsDone}/{agentsTotal} responderam
+            </p>
+            {agentsFailed > 0 && (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                {agentsDone}/{agentsTotal} agentes responderam
+              </span>
+            )}
+          </div>
+        )}
         <p className="mt-2 text-sm text-slate-300">{analysis.summary}</p>
         {analysis.arch_style && (
           <p className="mt-2 text-xs text-violet-300">
@@ -129,7 +184,7 @@ export default function AnalysisPanel() {
         )}
         {!analysis.ia_ok && (
           <p className="mt-2 text-xs text-amber-300">
-            IA indisponível — relatório heurístico local. {analysis.ia_unavailable ? "OmniRoute não respondeu." : ""}
+            IA indisponível — relatório heurístico local. {analysis.ia_unavailable ? "O provedor de IA não respondeu; mostrando apenas a análise heurística." : ""}
           </p>
         )}
         {analysis.score_breakdown && (
@@ -180,7 +235,7 @@ export default function AnalysisPanel() {
           <ul className="space-y-1">
             {criticalNodeIds.map((id) => (
               <li key={id} className="rounded border border-rose-500/20 bg-rose-500/10 px-2 py-1 text-xs text-rose-200">
-                {id}
+                {nodeLabel(id)}
               </li>
             ))}
           </ul>
@@ -248,9 +303,9 @@ export default function AnalysisPanel() {
 
       <section className="space-y-2">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Crescimento</h3>
-        <GrowthCard title="Pequeno · ~1 mil usuários" scenario={analysis.growth.small} />
-        <GrowthCard title="Médio · ~100 mil usuários" scenario={analysis.growth.medium} />
-        <GrowthCard title="Grande · 1 milhão+" scenario={analysis.growth.large} />
+        <GrowthCard title={`Pequeno${growthNote}`} scenario={analysis.growth.small} />
+        <GrowthCard title={`Médio${growthNote}`} scenario={analysis.growth.medium} />
+        <GrowthCard title={`Grande${growthNote}`} scenario={analysis.growth.large} />
       </section>
     </div>
   );
@@ -273,7 +328,17 @@ function FindingList({ items }: { items: Finding[] }) {
     <ul className="space-y-2">
       {items.map((item) => (
         <li key={`${item.title}-${item.node_id ?? "g"}`} className={`rounded-lg border p-2.5 ${severityClass(item.severity)}`}>
-          <p className="text-sm font-medium">{item.title}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-medium">{item.title}</p>
+            {item.agent && (
+              <span
+                className="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-300"
+                title={AGENT_LABELS[item.agent] ?? item.agent}
+              >
+                {AGENT_LABELS[item.agent] ?? item.agent}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-xs opacity-90">{item.detail}</p>
           {item.metric && (
             <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-black/20 px-2 py-0.5 text-sm uppercase tracking-wide">

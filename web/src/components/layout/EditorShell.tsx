@@ -10,6 +10,13 @@ import DiagramSidebar from "@/components/sidebar/DiagramSidebar";
 import PresentationMode from "@/components/layout/PresentationMode";
 import ResizablePanel from "@/components/ui/ResizablePanel";
 import { api } from "@/lib/api";
+import {
+  AUTO_ANALYZE_DEBOUNCE_MS,
+  AUTO_BUDGET_EXHAUSTED_NOTICE,
+  isAutoBudgetExhausted,
+  retryGateOpen,
+  shouldRunAutoAnalysis,
+} from "@/lib/analyze-gate";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useGraphStore } from "@/lib/graph-store";
 import { useProjectStore } from "@/lib/project-store";
@@ -25,6 +32,9 @@ const ExcalidrawView = dynamic(() => import("@/components/canvas/ExcalidrawWrapp
 
 const FOCUS_KEY = "archia-focus-mode";
 const AUTO_ANALYZE_KEY = "archia-auto-analyze";
+
+/** Gatilho de análise: manual (TopBar) × automático (debounce estrutural). */
+type AnalyzeTrigger = "auto" | "manual";
 
 /** Lightweight stable fingerprint — avoids JSON.stringify of full graph each change. */
 function structureKey(
@@ -88,6 +98,15 @@ export default function EditorShell() {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipFirst = useRef(true);
+  // ITEM 20 — uma request em voo por tipo de gatilho; nova execução do mesmo
+  // tipo aborta a anterior pendente (resultado defasado não pode sobrescrever).
+  const autoController = useRef<AbortController | null>(null);
+  const manualController = useRef<AbortController | null>(null);
+  // ITEM 36 — estado do gate de auto-análise (escopo de sessão, fora do store).
+  const autoLastRunAt = useRef<number | null>(null);
+  const autoLastFailedAt = useRef<number | null>(null);
+  const autoLastFingerprint = useRef<string | null>(null);
+  const autoDisabled = useRef(false);
   const [focusMode, setFocusMode] = useState(() => {
     try {
       return localStorage.getItem(FOCUS_KEY) === "1";
@@ -142,26 +161,58 @@ export default function EditorShell() {
     [nodes, edges, context, nfr],
   );
 
-  const runAnalyze = useCallback(async (opts?: { silent?: boolean }) => {
-    if (nodes.length === 0) return;
-    setAnalyzing(true);
-    try {
-      const result = await api.analyze({ name, context, nfr, nodes, edges, persist_id: graphId });
-      setAnalysis(result);
-      setAnalyzing(false);
-      if (!opts?.silent) {
-        const ia = result.ia_ok ? "com IA" : "heurística local";
-        pushUiNotice({
-          type: "success",
-          text: `Análise pronta (${ia}) · nota ${result.score.toFixed(1)}. Veja a aba Análise.`,
-        });
+  const runAnalyze = useCallback(
+    async (opts?: { silent?: boolean; trigger?: AnalyzeTrigger }) => {
+      const trigger: AnalyzeTrigger = opts?.trigger ?? "manual";
+      if (nodes.length === 0) return;
+      // ITEM 20 — um controller em voo por trigger; nova run do mesmo tipo
+      // aborta a anterior pendente e assume o slot.
+      const controllerRef = trigger === "auto" ? autoController : manualController;
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      setAnalyzing(true);
+      try {
+        const result = await api.analyze(
+          { name, context, nfr, nodes, edges, persist_id: graphId },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return; // run defasada: nunca sobrescrever o estado atual
+        controllerRef.current = null;
+        setAnalysis(result);
+        setAnalyzing(false);
+        if (!opts?.silent) {
+          const ia = result.ia_ok ? "com IA" : "heurística local";
+          pushUiNotice({
+            type: "success",
+            text: `Análise pronta (${ia}) · nota ${result.score.toFixed(1)}. Veja a aba Análise.`,
+          });
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return; // abortada: ignorar o AbortError
+        controllerRef.current = null;
+        const msg = err instanceof Error ? err.message : "Falha na análise";
+        setAnalyzing(false, msg);
+        if (isAutoBudgetExhausted(msg)) {
+          // ITEM 36 — lockout de sessão: auto-análise sai para sempre nesta
+          // sessão; botão manual segue funcionando (backend reabilita no dia
+          // seguinte). Aviso único.
+          if (!autoDisabled.current) {
+            autoDisabled.current = true;
+            pushUiNotice({ type: "info", text: AUTO_BUDGET_EXHAUSTED_NOTICE });
+          }
+          return;
+        }
+        if (trigger === "auto") {
+          // Falha transitória: próxima tentativa automática só após o min gap.
+          autoLastFailedAt.current = Date.now();
+          return;
+        }
+        if (!opts?.silent) pushUiNotice({ type: "error", text: msg });
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Falha na análise";
-      setAnalyzing(false, msg);
-      if (!opts?.silent) pushUiNotice({ type: "error", text: msg });
-    }
-  }, [context, edges, graphId, name, nfr, nodes, pushUiNotice, setAnalysis, setAnalyzing]);
+    },
+    [context, edges, graphId, name, nfr, nodes, pushUiNotice, setAnalysis, setAnalyzing],
+  );
 
   const runAnalyzeRef = useRef(runAnalyze);
   useEffect(() => {
@@ -174,17 +225,36 @@ export default function EditorShell() {
       return;
     }
     if (isFreeProject) return;
+    // ITEM 20/36 — nova mudança estrutural: cancela o debounce pendente E
+    // aborta a auto-request em voo antes de (re)agendar.
+    if (timer.current) clearTimeout(timer.current);
+    autoController.current?.abort();
     let enabled = false;
     try {
       enabled = localStorage.getItem(AUTO_ANALYZE_KEY) === "1";
     } catch {
       /* ignore */
     }
-    if (!enabled) return;
-    if (timer.current) clearTimeout(timer.current);
+    if (!enabled || autoDisabled.current) return;
     timer.current = setTimeout(() => {
-      void runAnalyzeRef.current({ silent: true });
-    }, 2000);
+      timer.current = null;
+      const now = Date.now();
+      // ITEM 36 — gate puro: gap pós-falha, cooldown, fingerprint, sessão.
+      if (!retryGateOpen(now, autoLastFailedAt.current)) return;
+      if (
+        !shouldRunAutoAnalysis({
+          lastRunAt: autoLastRunAt.current,
+          lastFingerprint: autoLastFingerprint.current,
+          now,
+          fingerprint,
+          autoDisabled: autoDisabled.current,
+        })
+      )
+        return;
+      autoLastRunAt.current = now;
+      autoLastFingerprint.current = fingerprint;
+      void runAnalyzeRef.current({ silent: true, trigger: "auto" });
+    }, AUTO_ANALYZE_DEBOUNCE_MS);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

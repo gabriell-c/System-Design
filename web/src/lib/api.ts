@@ -16,6 +16,21 @@ import type {
 } from "./simulation";
 import { API_BASE } from "./api-base";
 
+// Item 41 — badge de uso diário da IA: cache em memória de 60s para não
+// martelar /settings/ai/usage a cada abertura do painel.
+const AI_USAGE_CACHE_TTL_MS = 60_000;
+let aiUsageCache: { at: number; value: AiUsage } | null = null;
+
+async function fetchAiUsage(): Promise<AiUsage> {
+  const now = Date.now();
+  if (aiUsageCache && now - aiUsageCache.at < AI_USAGE_CACHE_TTL_MS) {
+    return aiUsageCache.value;
+  }
+  const value = await request<AiUsage>("/api/v1/settings/ai/usage");
+  aiUsageCache = { at: now, value };
+  return value;
+}
+
 export class ApiConflictError extends Error {
   readonly status = 409;
   readonly serverEtag: string | null;
@@ -108,10 +123,14 @@ export const api = {
     }),
   deleteGraph: (id: string) =>
     request<void>(`/api/v1/graphs/${id}`, { method: "DELETE" }),
-  analyze: (payload: GraphPayload & { persist_id?: string | null }) =>
-    request<AnalysisResult>("/api/v1/analyze", { method: "POST", body: JSON.stringify(payload) }),
-  analyzeGraph: (id: string) =>
-    request<AnalysisResult>(`/api/v1/graphs/${id}/analyze`, { method: "POST" }),
+  analyze: (payload: GraphPayload & { persist_id?: string | null }, signal?: AbortSignal) =>
+    request<AnalysisResult>("/api/v1/analyze", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      signal,
+    }),
+  analyzeGraph: (id: string, signal?: AbortSignal) =>
+    request<AnalysisResult>(`/api/v1/graphs/${id}/analyze`, { method: "POST", signal }),
   listVersions: (id: string) => request<GraphVersion[]>(`/api/v1/graphs/${id}/versions`),
   restoreVersion: (id: string, versionId: string) =>
     request<GraphRecord>(`/api/v1/graphs/${id}/versions/${versionId}/restore`, { method: "POST" }),
@@ -129,11 +148,14 @@ export const api = {
       };
     }>("/api/v1/compare", { method: "POST", body: JSON.stringify({ left, right }) }),
   getAiSettings: () => request<AiSettings>("/api/v1/settings/ai"),
+  // Item 41 — uso do dia (orçamento de IA); cache em memória de 60s no módulo.
+  getAiUsage: () => fetchAiUsage(),
   updateAiSettings: (payload: AiSettingsUpdate) =>
     request<AiSettings>("/api/v1/settings/ai", { method: "PUT", body: JSON.stringify(payload) }),
-  testAiSettings: () =>
+  testAiSettings: (draft?: AiSettingsDraft) =>
     request<{ ok: boolean; detail: string; latency_ms: number | null }>("/api/v1/settings/ai/test", {
       method: "POST",
+      ...(draft ? { body: JSON.stringify(draft) } : {}),
     }),
   listSimulationPresets: () => request<SimulationPreset[]>("/api/v1/simulations/presets"),
   runSimulation: (payload: SimulationRunPayload) =>
@@ -383,6 +405,8 @@ export type AiSettings = {
   api_key_masked: string;
   model: string;
   enabled: boolean;
+  /** Item 37 — consentimento para enviar dados do grafo a provedor externo. */
+  llm_data_consent?: boolean;
   updated_at: string | null;
 };
 
@@ -392,4 +416,27 @@ export type AiSettingsUpdate = {
   api_key?: string;
   model: string;
   enabled: boolean;
+  /** Item 37 — enviado no mesmo PUT que o restante da configuração. */
+  llm_data_consent?: boolean;
+};
+
+/** Item 41 — uso do dia (orçamento de IA), shape exato do GET /settings/ai/usage. */
+export type AiUsage = {
+  day: string;
+  analyze_used: number;
+  auto_used: number;
+  llm_calls: number;
+  limit: number;
+  auto_limit: number;
+};
+
+/**
+ * Draft não salvo para "Testar conexão": o endpoint /settings/ai/test aceita
+ * estes campos opcionais e usa a chave salva quando api_key é omitido.
+ */
+export type AiSettingsDraft = {
+  provider: AiProvider;
+  base_url: string;
+  model: string;
+  api_key?: string;
 };

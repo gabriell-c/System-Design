@@ -104,8 +104,7 @@ export type GraphState = {
   setLastEtag: (etag: string | null) => void;
   saveStatus: "saved" | "saving" | "dirty" | "error";
   setSaveStatus: (status: "saved" | "saving" | "dirty" | "error") => void;
-  analyzePhase: "idle" | "analyzing" | "scoring" | "review" | "done";
-  setAnalyzePhase: (phase: "idle" | "analyzing" | "scoring" | "review" | "done") => void;
+  runAnalyze: () => Promise<void>;
   excalidrawElements: ExcalidrawElement[];
   selectedExcalidrawElementId: string | null;
   setExcalidrawElements: (elements: ExcalidrawElement[]) => void;

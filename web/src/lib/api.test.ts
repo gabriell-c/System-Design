@@ -113,3 +113,60 @@ test("204/2xx sem body → undefined (sem crash no json parse)", async () => {
   const res = await api.deleteGraph("g1");
   assert.equal(res, undefined);
 });
+
+test("testAiSettings: sem draft → POST sem body; com draft → body JSON do draft", async () => {
+  const { api } = await import("./api");
+  const seen: Array<{ url: string; body: string | null }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    seen.push({ url: String(url), body: typeof init?.body === "string" ? init.body : null });
+    return new Response(JSON.stringify({ ok: true, detail: "ok", latency_ms: 12 }), {
+      status: 200,
+      statusText: "OK",
+    });
+  }) as typeof fetch;
+
+  const r1 = await api.testAiSettings();
+  assert.equal(r1.ok, true);
+  assert.match(seen[0]?.url ?? "", /\/api\/v1\/settings\/ai\/test$/);
+  assert.equal(seen[0]?.body, null, "sem draft → POST sem body (contrato antigo)");
+
+  const draft: import("./api").AiSettingsDraft = {
+    provider: "openai",
+    base_url: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+  };
+  await api.testAiSettings(draft);
+  assert.deepEqual(JSON.parse(seen[1]?.body ?? "{}"), draft, "draft sem api_key é enviado sem a chave");
+
+  const withKey = { ...draft, api_key: "sk-test" };
+  await api.testAiSettings(withKey);
+  assert.deepEqual(JSON.parse(seen[2]?.body ?? "{}"), withKey, "api_key do draft é enviado quando presente");
+});
+
+test("getAiUsage: shape do endpoint + cache em memória de 60s no módulo", async () => {
+  const { api } = await import("./api");
+  const usageFixture: import("./api").AiUsage = {
+    day: "2026-11-11",
+    analyze_used: 12,
+    auto_used: 3,
+    llm_calls: 4,
+    limit: 50,
+    auto_limit: 20,
+  };
+  const seen: string[] = [];
+  globalThis.fetch = (async (url: unknown, _init?: RequestInit) => {
+    seen.push(String(url));
+    return new Response(JSON.stringify(usageFixture), {
+      status: 200,
+      statusText: "OK",
+    });
+  }) as typeof fetch;
+
+  const r1 = await api.getAiUsage();
+  assert.deepEqual(r1, usageFixture);
+  assert.match(seen[0] ?? "", /\/api\/v1\/settings\/ai\/usage$/);
+
+  const r2 = await api.getAiUsage();
+  assert.deepEqual(r2, r1, "segunda chamada dentro de 60s usa o cache");
+  assert.equal(seen.length, 1, "cache do módulo evita o segundo fetch");
+});

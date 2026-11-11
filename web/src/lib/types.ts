@@ -368,6 +368,10 @@ export type FixAction = {
   action_type: string;
   label: string;
   payload: Record<string, unknown>;
+  /** Wave-2 (item 39) — referência de catálogo em fixes de agentes; ausente em
+   *  resultados persistidos antes do backend que emite esses campos. */
+  catalog_id?: string;
+  zone_kind?: string;
 };
 
 export type Finding = {
@@ -378,6 +382,11 @@ export type Finding = {
   metric?: MetricEstimate | null;
   fix_action?: FixAction | null;
   evidence_node_ids?: string[];
+  /** Wave-2 (item 39) — agente que produziu o finding
+   *  ("architecture" | "database" | "code" | "security" | "style" |
+   *   "coherence" | "tradeoffs" | "heuristica" | "consolidador");
+   *  valores desconhecidos são exibidos como vêm. */
+  agent?: string;
 };
 
 export type ScoreFactor = {
@@ -421,7 +430,13 @@ export type AnalysisResult = {
   };
   ia_ok: boolean;
   ia_unavailable: boolean;
-  agents_used: string[];
+  /** Wave-2 — opcional: resultados antigos persistidos sem os contadores de
+   *  agentes (ou sem a lista) continuam válidos. */
+  agents_used?: string[];
+  agents_done?: number;
+  agents_failed?: number;
+  /** Wave-2 (ITEM 36): backend indica se a análise veio do cache diário. */
+  cached?: boolean;
   arch_style?: string | null;
   style_confidence?: number;
   domain_coherence?: {

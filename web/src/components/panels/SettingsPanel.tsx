@@ -15,7 +15,10 @@ import PanelHeader from "@/components/ui/PanelHeader";
 import { useEffect, useState } from "react";
 import CustomSelect from "@/components/ui/Select";
 import Toggle from "@/components/ui/Toggle";
-import { api, type AiProvider, type AiSettings } from "@/lib/api";
+import { api, type AiProvider, type AiSettings, type AiSettingsDraft, type AiUsage } from "@/lib/api";
+
+// Mesma chave lida pelo EditorShell (auto-analyze) — fonte única de verdade.
+const AUTO_ANALYZE_KEY = "archia-auto-analyze";
 
 const PROVIDERS: { id: AiProvider; label: string; hint: string; base: string; model: string }[] = [
   {
@@ -62,10 +65,22 @@ export default function SettingsPanel() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("auto/coding");
   const [enabled, setEnabled] = useState(true);
+  // Item 37 — consentimento de envio de dados do grafo a provedor externo.
+  const [llmDataConsent, setLlmDataConsent] = useState(false);
+  // Item 41 — badge de uso do dia; null → bloco oculto (erro ou ainda
+  // carregando). Cache de 60s é módulo-level em api.ts.
+  const [usage, setUsage] = useState<AiUsage | null>(null);
+  // false no SSR; sincroniza com a chave localStorage após mount (evita
+  // mismatch de hidratação — o toggle escreve no localStorage, o EditorShell lê daí).
   const [autoAnalyze, setAutoAnalyze] = useState(false);
 
-  // Note: autoAnalyze state is managed via API, not localStorage
-  // to avoid hydration mismatch between server and client
+  useEffect(() => {
+    try {
+      setAutoAnalyze(localStorage.getItem(AUTO_ANALYZE_KEY) === "1");
+    } catch {
+      /* localStorage indisponível — mantém o padrão desligado */
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -78,6 +93,7 @@ export default function SettingsPanel() {
         setBaseUrl(data.base_url);
         setModel(data.model);
         setEnabled(data.enabled);
+        setLlmDataConsent(data.llm_data_consent ?? false);
         setApiKey("");
         setLoading(false);
       })
@@ -85,6 +101,23 @@ export default function SettingsPanel() {
         if (!alive) return;
         setError(err instanceof Error ? err.message : "Falha ao carregar configurações");
         setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Item 41 — uso do dia (badge): erro → mantém usage null → bloco oculto,
+  // sem crash; cache de 60s vive no api.ts.
+  useEffect(() => {
+    let alive = true;
+    api
+      .getAiUsage()
+      .then((u) => {
+        if (alive) setUsage(u);
+      })
+      .catch(() => {
+        /* item 41 — endpoint indisponível: esconde o bloco, não derruba o painel */
       });
     return () => {
       alive = false;
@@ -109,6 +142,7 @@ export default function SettingsPanel() {
         base_url: baseUrl.trim(),
         model: model.trim(),
         enabled,
+        llm_data_consent: llmDataConsent,
         ...(apiKey.trim() ? { api_key: apiKey.trim() } : {}),
       });
       setRemote(data);
@@ -122,26 +156,24 @@ export default function SettingsPanel() {
   }
 
   async function testConnection() {
+    // Testa o draft atual SEM salvar: o endpoint usa os campos informados
+    // (e a chave salva quando api_key é omitido).
     setTesting(true);
     setStatus(null);
     setError(null);
+    const draft: AiSettingsDraft = {
+      provider,
+      base_url: baseUrl.trim(),
+      model: model.trim(),
+      ...(apiKey.trim() ? { api_key: apiKey.trim() } : {}),
+    };
     try {
-      await api.updateAiSettings({
-        provider,
-        base_url: baseUrl.trim(),
-        model: model.trim(),
-        enabled,
-        ...(apiKey.trim() ? { api_key: apiKey.trim() } : {}),
-      });
-      if (apiKey.trim()) setApiKey("");
-      const result = await api.testAiSettings();
+      const result = await api.testAiSettings(draft);
       if (result.ok) {
         setStatus(`${result.detail}${result.latency_ms != null ? ` · ${result.latency_ms}ms` : ""}`);
       } else {
         setError(result.detail);
       }
-      const refreshed = await api.getAiSettings();
-      setRemote(refreshed);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no teste");
     } finally {
@@ -177,6 +209,27 @@ export default function SettingsPanel() {
           </>
         }
       />
+
+      {/* Item 37 — consentimento de envio de dados do grafo a provedor externo. */}
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-3">
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+            checked={llmDataConsent}
+            onChange={(e) => setLlmDataConsent(e.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="block font-medium text-[var(--foreground)]">
+              Enviar dados do grafo para provedor externo
+            </span>
+            <span className="block text-[12px] leading-relaxed text-[var(--muted)]">
+              Quando ativo, os labels/notas/contexto do grafo são enviados ao
+              provedor de IA escolhido.
+            </span>
+          </span>
+        </label>
+      </div>
 
       <div>
         <label className="flex items-center gap-1.5 text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
@@ -257,7 +310,7 @@ export default function SettingsPanel() {
           onChange={(v) => {
             setAutoAnalyze(v);
             try {
-              localStorage.setItem("archia-auto-analyze", v ? "1" : "0");
+              localStorage.setItem(AUTO_ANALYZE_KEY, v ? "1" : "0");
             } catch {
               /* ignore */
             }
@@ -273,6 +326,14 @@ export default function SettingsPanel() {
         />
       </div>
 
+      {/* Item 41 — badge de uso do dia; oculto (usage === null) em erro ou
+      *  antes do fetch completar. Cache de 60s evita refetch a cada mount. */}
+      {usage && (
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-xs text-[var(--muted)]">
+          Análises hoje: {usage.analyze_used}/{usage.limit} · auto {usage.auto_used}/{usage.auto_limit}
+        </p>
+      )}
+
       <div className="flex flex-col gap-2">
         <button type="button" className="btn-primary flex w-full items-center justify-center gap-2" disabled={saving} onClick={() => void save()}>
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -281,7 +342,7 @@ export default function SettingsPanel() {
         <button
           type="button"
           className="btn-ghost flex w-full items-center justify-center gap-2"
-          disabled={testing || !enabled}
+          disabled={testing}
           onClick={() => void testConnection()}
         >
           {testing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
