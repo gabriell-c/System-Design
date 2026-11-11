@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+# Versão da base de conhecimento (estimativas de mercado).
+KNOWLEDGE_VERSION = "2026.11"
+KNOWLEDGE_REVIEWED_AT = "2026-11"
+
+# Alvos de crescimento (ordem de grandeza): usuários por nível e demanda
+# implícita de RPS (fatia constante do total de usuários no caminho quente).
+GROWTH_TARGET_USERS = {"small": 1_000, "medium": 100_000, "large": 1_000_000}
+REQUESTS_PER_USER_PER_SECOND = 0.01
+
 THROUGHPUT_RPS = {
     "Flask": {"low": 200, "high": 600, "note": "gunicorn sync, 2-4 workers, JSON simples"},
     "Django": {"low": 150, "high": 400, "note": "WSGI + ORM; admin/ORM adicionam overhead"},
@@ -158,10 +167,11 @@ COMPLEXITY = {
     "Traefik": 3,
 }
 
-KNOWLEDGE_PROMPT = """
+KNOWLEDGE_PROMPT = f"""
 Você é um Software Architect / Principal Engineer. Toda métrica quantitativa
 (RPS, custo, usuários) é ESTIMATIVA heurística baseada em benchmarks públicos
-(TechEmpower, docs AWS us-east-1 2024-2026) — nunca apresente como medição.
+(TechEmpower, docs AWS us-east-1) — nunca apresente como medição.
+estimativas de mercado (base revisada em {KNOWLEDGE_REVIEWED_AT}, versão {KNOWLEDGE_VERSION})
 
 Ordens de grandeza:
 - Flask+gunicorn sync 2-4 workers: ~200-600 RPS JSON simples.
