@@ -9,6 +9,11 @@ register(new URL("../../../test/ts-ext-hooks.mjs", import.meta.url));
 
 import type { Edge, Node } from "@xyflow/react";
 import type { CanvasNodeData } from "../types";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+
+function exEl(id: string): ExcalidrawElement {
+  return { id } as unknown as ExcalidrawElement;
+}
 
 function archNode(id: string, label: string): Node<CanvasNodeData> {
   return {
@@ -123,4 +128,50 @@ test("applyRemote: sem undo, sem dirty, campos ausentes nunca sobrescrevem", asy
   assert.equal(s2.context, "");
   assert.equal(s2.nodes[0].id, "C", "nodes ausente no 2º payload não sobrescreve");
   assert.equal(s2.past.length, pastLen, "continuou sem undo");
+});
+
+test("nextId: única em burst e preserva prefixo do kind", async () => {
+  const { nextId } = await import("./helpers");
+  const seen = new Set<string>();
+  for (let i = 0; i < 1000; i++) seen.add(nextId("free"));
+  assert.equal(seen.size, 1000, "1000 IDs em burst devem ser distintos");
+  for (const prefix of ["block", "zone", "lane", "note", "cidr", "tenant"]) {
+    const id = nextId(prefix);
+    assert.ok(id.startsWith(`${prefix}-`), `ID de ${prefix} deve começar com '${prefix}-'`);
+  }
+});
+
+test("applyRemote: payload só com arestas descarta orfãs dos nós locais", async () => {
+  const store = await loadStore();
+  store.setState({ nodes: [archNode("A", "A"), archNode("B", "B")], edges: [] });
+  const orphan: Edge = { id: "e-orphan", source: "X", target: "Y" };
+  const live: Edge = { id: "e-live", source: "A", target: "B" };
+  store.getState().applyRemote({ edges: [orphan, live] });
+  const s = store.getState();
+  assert.deepEqual(
+    s.edges.map((e) => e.id),
+    ["e-live"],
+    "só a aresta com endpoints locais sobrevive; a orfã é descartada",
+  );
+  assert.equal(s.nodes.length, 2, "nós locais ficam intactos");
+});
+
+test("undo/redo restauram excalidrawElements e selectedNodeIds", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  const base = store.getState().past.length; // reset() não zera history (passa por withHistory)
+  // Base: cena [ex-1] + multi-seleção [n1, n2] (sem passar por history).
+  store.setState({ excalidrawElements: [exEl("ex-1")], selectedNodeIds: ["n1", "n2"] });
+  // Uma mutação que empurra history captura o snapshot acima.
+  store.getState().setName("com-historico");
+  assert.equal(store.getState().past.length, base + 1);
+  // Estado corrente diferente, definido SEM history.
+  store.setState({ excalidrawElements: [exEl("ex-9")], selectedNodeIds: [] });
+  assert.equal(store.getState().undo(), true);
+  const undone = store.getState();
+  assert.deepEqual(undone.excalidrawElements, [exEl("ex-1")], "undo restaura cena anterior");
+  assert.deepEqual(undone.selectedNodeIds, ["n1", "n2"], "undo restaura multi-seleção");
+  assert.equal(store.getState().redo(), true);
+  assert.deepEqual(store.getState().excalidrawElements, [exEl("ex-9")], "redo volta à cena corrente");
+  assert.deepEqual(store.getState().selectedNodeIds, [], "redo volta à seleção corrente");
 });

@@ -56,6 +56,10 @@ export type GraphSnapshot = {
   nodes: Node<CanvasNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
+  // Opcionais: snapshots antigos (persistidos) podem não trazê-los.
+  excalidrawElements?: ExcalidrawElement[];
+  selectedNodeIds?: string[];
+  diagramKind?: string | null;
 };
 
 export type GraphState = {

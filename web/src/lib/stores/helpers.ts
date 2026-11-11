@@ -16,8 +16,21 @@ export const HISTORY_LIMIT = 80;
 let nodeSeq = 1;
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Salto aleatório gerado UMA vez por aba (module load). Sem ele, duas abas
+// abertas ao mesmo tempo partilham o mesmo `nodeSeq` e o mesmo ms de
+// `Date.now()`, gerando o mesmo ID — colisão que quebra a colaboração LWW.
+const TAB_SALT = createTabSalt();
+function createTabSalt(): string {
+  if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
+    return Array.from(crypto.getRandomValues(new Uint32Array(2)))
+      .map((n) => n.toString(36))
+      .join("");
+  }
+  return Math.random().toString(36).slice(2, 10);
+}
+
 export function nextId(prefix: string) {
-  return `${prefix}-${Date.now()}-${nodeSeq++}`;
+  return `${prefix}-${Date.now().toString(36)}-${TAB_SALT}-${nodeSeq++}`;
 }
 
 export function scheduleClearNotice(set: (partial: Partial<GraphState>) => void) {
@@ -47,7 +60,18 @@ export function denyNest(
 }
 
 export function takeSnapshot(
-  state: Pick<GraphState, "name" | "context" | "nfr" | "nodes" | "edges" | "selectedNodeId">,
+  state: Pick<
+    GraphState,
+    | "name"
+    | "context"
+    | "nfr"
+    | "nodes"
+    | "edges"
+    | "selectedNodeId"
+    | "excalidrawElements"
+    | "selectedNodeIds"
+    | "diagramKind"
+  >,
 ): GraphSnapshot {
   return {
     name: state.name,
@@ -56,6 +80,9 @@ export function takeSnapshot(
     nodes: structuredClone(state.nodes),
     edges: structuredClone(state.edges),
     selectedNodeId: state.selectedNodeId,
+    excalidrawElements: structuredClone(state.excalidrawElements),
+    selectedNodeIds: structuredClone(state.selectedNodeIds),
+    diagramKind: state.diagramKind,
   };
 }
 

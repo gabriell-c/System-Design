@@ -583,7 +583,7 @@ export function documentSlice(
     return id;
   },
 
-  generateDiagramFromText: (text, name) => {
+  generateDiagramFromText: (text) => {
     const lines = text
       .split("\n")
       .map((l) => l.trim())
@@ -720,7 +720,7 @@ export function documentSlice(
       });
     });
 
-    template.edges.forEach((edgeDef, i) => {
+    template.edges.forEach((edgeDef) => {
       const sourceNode = template.nodes[parseInt(edgeDef.source)];
       const targetNode = template.nodes[parseInt(edgeDef.target)];
       if (!sourceNode || !targetNode) return;
@@ -896,23 +896,12 @@ export function documentSlice(
   setSelectedEdgeId: (selectedEdgeId) => set({ selectedEdgeId, selectedNodeId: null, selectedNodeIds: [] }),
 
   setExcalidrawElements: (elements) => {
-    const SENTINEL_ID = "__excalidraw_scene__";
-    const prev = get().nodes.filter((n) => n.id !== SENTINEL_ID);
-    const sentinel: Node<CanvasNodeData> = {
-      id: SENTINEL_ID,
-      type: "default",
-      position: { x: 0, y: 0 },
-      data: {
-        kind: "note",
-        label: "__excalidraw_scene__",
-        // Persist free-diagram scene so PUT /graphs isolates per project
-        text: JSON.stringify(elements),
-      },
-      hidden: true,
-    };
+    // A cena Excalidraw vive no campo first-class `excalidrawElements`
+    // (coluna `excalidraw_elements_json` no backend). O antigo nó-sentinela
+    // `__excalidraw_scene__` era só um workaround de persistência; a leitura
+    // legado ainda é feita em `loadGraph`.
     set({
       excalidrawElements: elements,
-      nodes: [...prev, sentinel],
       dirty: true,
     });
   },
@@ -1233,15 +1222,24 @@ export function documentSlice(
     // Fields ausentes no payload não são sobrescritos.
     const current = get();
     const updates: Partial<GraphState> = {};
-    if (remote.nodes !== undefined) {
-      const ids = new Set(remote.nodes.map((n) => n.id));
-      updates.nodes = remote.nodes;
-      updates.edges = (remote.edges ?? current.edges).filter(
-        (e) => ids.has(e.source) && ids.has(e.target),
+
+    const nodesChanged = remote.nodes !== undefined;
+    const edgesChanged = remote.edges !== undefined;
+
+    if (nodesChanged) updates.nodes = remote.nodes;
+
+    // Arestas orfãs: quando um endpoint some do estado efetivo, descarta.
+    // Filtrar contra o conjunto de nós vigente (remoto, ou local quando o
+    // payload só traz arestas) evita gravar aresta para nó inexistente.
+    if (nodesChanged || edgesChanged) {
+      const effectiveNodes = remote.nodes !== undefined ? remote.nodes : current.nodes;
+      const effectiveIds = new Set(effectiveNodes.map((n) => n.id));
+      const candidateEdges = remote.edges !== undefined ? remote.edges : current.edges;
+      updates.edges = candidateEdges.filter(
+        (e) => effectiveIds.has(e.source) && effectiveIds.has(e.target),
       );
-    } else if (remote.edges !== undefined) {
-      updates.edges = remote.edges;
     }
+
     if (remote.excalidrawElements !== undefined) {
       updates.excalidrawElements = remote.excalidrawElements;
       updates.selectedExcalidrawElementId = null;

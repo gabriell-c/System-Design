@@ -22,10 +22,32 @@ export function undoSlice(
   canRedo: () => get().future.length > 0,
 
   undo: () => {
-    const { past, future, name, context, nfr, nodes, edges, selectedNodeId } = get();
+    const {
+      past,
+      future,
+      name,
+      context,
+      nfr,
+      nodes,
+      edges,
+      selectedNodeId,
+      excalidrawElements,
+      selectedNodeIds,
+      diagramKind,
+    } = get();
     if (past.length === 0) return false;
     const previous = past[past.length - 1];
-    const current = takeSnapshot({ name, context, nfr, nodes, edges, selectedNodeId });
+    const current = takeSnapshot({
+      name,
+      context,
+      nfr,
+      nodes,
+      edges,
+      selectedNodeId,
+      excalidrawElements,
+      selectedNodeIds,
+      diagramKind,
+    });
     set({
       name: previous.name,
       context: previous.context,
@@ -33,7 +55,10 @@ export function undoSlice(
       nodes: previous.nodes,
       edges: previous.edges,
       selectedNodeId: previous.selectedNodeId,
-      selectedNodeIds: previous.selectedNodeId ? [previous.selectedNodeId] : [],
+      selectedNodeIds:
+        previous.selectedNodeIds ?? (previous.selectedNodeId ? [previous.selectedNodeId] : []),
+      excalidrawElements: previous.excalidrawElements ?? [],
+      diagramKind: previous.diagramKind ?? null,
       past: past.slice(0, -1),
       future: [current, ...future].slice(0, HISTORY_LIMIT),
       dirty: true,
@@ -44,10 +69,32 @@ export function undoSlice(
   },
 
   redo: () => {
-    const { past, future, name, context, nfr, nodes, edges, selectedNodeId } = get();
+    const {
+      past,
+      future,
+      name,
+      context,
+      nfr,
+      nodes,
+      edges,
+      selectedNodeId,
+      excalidrawElements,
+      selectedNodeIds,
+      diagramKind,
+    } = get();
     if (future.length === 0) return false;
     const next = future[0];
-    const current = takeSnapshot({ name, context, nfr, nodes, edges, selectedNodeId });
+    const current = takeSnapshot({
+      name,
+      context,
+      nfr,
+      nodes,
+      edges,
+      selectedNodeId,
+      excalidrawElements,
+      selectedNodeIds,
+      diagramKind,
+    });
     set({
       name: next.name,
       context: next.context,
@@ -55,7 +102,9 @@ export function undoSlice(
       nodes: next.nodes,
       edges: next.edges,
       selectedNodeId: next.selectedNodeId,
-      selectedNodeIds: next.selectedNodeId ? [next.selectedNodeId] : [],
+      selectedNodeIds: next.selectedNodeIds ?? (next.selectedNodeId ? [next.selectedNodeId] : []),
+      excalidrawElements: next.excalidrawElements ?? [],
+      diagramKind: next.diagramKind ?? null,
       past: [...past, current].slice(-HISTORY_LIMIT),
       future: future.slice(1),
       dirty: true,
