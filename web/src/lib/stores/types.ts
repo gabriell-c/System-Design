@@ -159,7 +159,7 @@ export type GraphState = {
     opts?: { label?: string },
   ) => void;
   addNote: (position: { x: number; y: number }, text?: string) => void;
-  addFreeNode: (kind: FreeNodeKind, position: { x: number; y: number }, label?: string) => void;
+  addFreeNode: (kind: FreeNodeKind, position: { x: number; y: number }, label?: string) => string;
   generateDiagramFromText: (text: string, name?: string) => { nodeId: string; nodeCount: number; edgeCount: number };
   moveFreeNodeLayer: (nodeId: string, direction: FreeLayerDirection) => void;
   applyFreeTemplate: (templateId: "simple-flow" | "decision-tree" | "process") => void;

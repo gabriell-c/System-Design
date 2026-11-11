@@ -10,11 +10,11 @@ export const FLOW_KIND_META: Record<
   FlowKind,
   { label: string; stroke: string; dash?: string; animated: boolean }
 > = {
-  sync: { label: "Sync", stroke: "#94a3b8", animated: false },
-  async: { label: "Async", stroke: "#a78bfa", dash: "6 4", animated: true },
-  data: { label: "Data", stroke: "#34d399", animated: false },
-  control: { label: "Control", stroke: "#38bdf8", dash: "4 2", animated: true },
-  management: { label: "Mgmt", stroke: "#fbbf24", dash: "2 3", animated: false },
+  sync: { label: "Síncrono", stroke: "#94a3b8", animated: false },
+  async: { label: "Assíncrono", stroke: "#a78bfa", dash: "6 4", animated: true },
+  data: { label: "Dados", stroke: "#34d399", animated: false },
+  control: { label: "Controle", stroke: "#38bdf8", dash: "4 2", animated: true },
+  management: { label: "Gestão", stroke: "#fbbf24", dash: "2 3", animated: false },
 };
 
 const FAILURE_BEHAVIORS: FailureBehavior[] = ["retry", "fallback", "dlq", "fail_fast", "none"];

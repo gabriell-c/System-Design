@@ -261,7 +261,7 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
       );
     }
     if (data.kind === "free-image") {
-      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL da imagem nas props</span>;
+      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL da imagem ou arraste o arquivo para o canvas</span>;
     }
     if (data.kind === "free-video" && data.mediaUrl) {
       return (
@@ -274,13 +274,13 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
       );
     }
     if (data.kind === "free-video") {
-      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL do vídeo nas props</span>;
+      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL do vídeo ou arraste o arquivo para o canvas</span>;
     }
     if (data.kind === "free-audio" && data.mediaUrl) {
       return <audio src={data.mediaUrl} className="w-full" controls preload="metadata" />;
     }
     if (data.kind === "free-audio") {
-      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL do áudio nas props</span>;
+      return <span className="text-xs text-[var(--muted-fg)]">Cole a URL do áudio ou arraste o arquivo para o canvas</span>;
     }
     if (isLink) {
       const href = data.linkUrl?.trim();

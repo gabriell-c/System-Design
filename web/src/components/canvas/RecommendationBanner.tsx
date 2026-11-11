@@ -22,7 +22,7 @@ export default function RecommendationBanner({
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-          AI Recommendation
+          Recomendação da IA
         </span>
         <button
           onClick={onDismiss}
@@ -52,7 +52,7 @@ export default function RecommendationBanner({
             <button
               onClick={() => onAccept(rec.techId)}
               className="flex-shrink-0 p-1 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-800/60 transition-colors"
-              title={`Add ${rec.title}`}
+              title={`Adicionar ${rec.title}`}
             >
               <Check className="h-3 w-3 text-amber-700 dark:text-amber-300" />
             </button>

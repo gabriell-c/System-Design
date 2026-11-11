@@ -56,7 +56,7 @@ export default function DrillDownNavigator({ diagramKind, parentGraphId, onDrill
             onDrillToChild?.(selected.id, nextLevel);
           }}
         >
-          Drill-down →
+          Detalhar →
         </button>
       )}
     </div>

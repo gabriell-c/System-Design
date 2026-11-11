@@ -580,6 +580,7 @@ export function documentSlice(
         selectedNodeId: id,
       });
     });
+    return id;
   },
 
   generateDiagramFromText: (text, name) => {
@@ -1253,7 +1254,6 @@ export function documentSlice(
   },
 
   reset: () => {
-    console.log("[GraphStore] reset() called");
     withHistory(get, set, () => {
       set({
         name: "Nova arquitetura",
@@ -1284,7 +1284,6 @@ export function documentSlice(
         saveStatus: "saved",
       });
     });
-    console.log("[GraphStore] reset() complete — excalidrawElements cleared");
   },
   };
 }

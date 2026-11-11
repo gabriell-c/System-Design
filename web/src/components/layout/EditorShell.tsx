@@ -72,19 +72,6 @@ export default function EditorShell() {
   const { loadProjects, projects, activeProjectId } = useProjectStore();
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const isFreeProject = activeProject?.project_kind === "free";
-  const storeSnapshot = useGraphStore.getState();
-
-  useEffect(() => {
-    console.log(
-      `[EditorShell] mount — project=${activeProjectId} kind=${activeProject?.project_kind ?? "?"} graphId=${storeSnapshot.graphId} nodes=${storeSnapshot.nodes.length} excalidraw=${storeSnapshot.excalidrawElements.length}`,
-    );
-
-    return () => {
-      console.log(`[EditorShell] unmount — project=${activeProjectId}`);
-    };
-    // Only log lifecycle once per EditorShell instance (keyed by projectId on the page).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     void loadProjects();

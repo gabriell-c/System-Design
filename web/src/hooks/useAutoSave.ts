@@ -20,18 +20,11 @@ async function saveGraph(): Promise<boolean> {
   const state = useGraphStore.getState();
 
   if (!state.graphId || !state.projectId) {
-    console.log("[AutoSave] skip — sem graphId ou projectId");
     return false;
   }
   if (!state.dirty) {
     return false;
   }
-
-  console.log("[AutoSave] salvando…", {
-    graphId: state.graphId.slice(0, 8),
-    nodes: state.nodes.length,
-    edges: state.edges.length,
-  });
 
   state.setSaveStatus("saving");
 
@@ -55,7 +48,6 @@ async function saveGraph(): Promise<boolean> {
     });
 
     state.markSaved(state.graphId, saved.etag ?? null);
-    console.log("[AutoSave] ✓ salvo");
     state.pushUiNotice({ type: "success", text: "Salvo automaticamente" });
     return true;
   } catch (error) {
@@ -108,7 +100,6 @@ export function useAutoSave() {
       }
       const timeSinceLastSave = Date.now() - lastSaveTimeRef.current;
       if (timeSinceLastSave >= intervalMs) {
-        console.log("[AutoSave] backup periódico…", { intervalMs, timeSinceLastSave });
         isSavingRef.current = true;
         try {
           await saveGraph();

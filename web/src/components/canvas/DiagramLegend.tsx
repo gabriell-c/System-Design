@@ -11,14 +11,7 @@ interface DiagramLegendProps {
   variant?: "overlay" | "floating";
 }
 
-const ZONE_KEYS = [
-  "region" as const,
-  "vpc" as const,
-  "availability_zone" as const,
-  "subnet_public" as const,
-  "subnet_private" as const,
-  "security_boundary" as const,
-];
+const ZONE_KEYS = Object.keys(ZONE_META) as (keyof typeof ZONE_META)[];
 
 const FLOW_KEYS = Object.keys(FLOW_KIND_META) as (keyof typeof FLOW_KIND_META)[];
 

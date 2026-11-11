@@ -3,7 +3,6 @@
 import {
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -45,7 +44,7 @@ import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { ensureHistoryPersistence } from "@/lib/history-store";
 import { computeSnap, type GuideLine } from "@/lib/snap";
-import type { CanvasNodeData, NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
+import type { NodeKind, SwimlaneKind, ZoneKind } from "@/lib/types";
 import { ALL_SWIMLANE_KINDS, ALL_ZONE_KINDS } from "@/lib/types";
 import { ZONE_META } from "@/lib/zones";
 import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
@@ -54,6 +53,7 @@ import LineageView from "@/components/canvas/LineageView";
 import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
 import { sortFreeNodesByLayer, freeLayerOrder } from "@/lib/sort-utils";
 import { useProjectStore } from "@/lib/project-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { isFreeData } from "@/lib/types";
 const nodeTypes: NodeTypes = {
   arch: ArchNode,
@@ -108,6 +108,28 @@ function nearestNodeInDirection(
   return candidates[0];
 }
 
+/** Resolve a posição absoluta (acumula a cadeia de parentId) para ordenação. */
+function toPositioned(nodes: Node[]): PositionedNode[] {
+  const byId = new Map(nodes.map((n) => [n.id, n] as const));
+  const cache = new Map<string, { x: number; y: number }>();
+  const abs = (id: string): { x: number; y: number } => {
+    const hit = cache.get(id);
+    if (hit) return hit;
+    const n = byId.get(id);
+    let x = n ? n.position.x : 0;
+    let y = n ? n.position.y : 0;
+    if (n?.parentId) {
+      const p = abs(n.parentId);
+      x += p.x;
+      y += p.y;
+    }
+    const res = { x, y };
+    cache.set(id, res);
+    return res;
+  };
+  return nodes.map((n) => ({ id: n.id, position: abs(n.id) }));
+}
+
 function activeCanvasNodeWrapper(): HTMLElement | null {
   const el = typeof document === "undefined" ? null : document.activeElement;
   return el instanceof Element ? el.closest<HTMLElement>(".react-flow__node") : null;
@@ -135,6 +157,7 @@ function CanvasInner() {
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
   const addSwimlane = useGraphStore((s) => s.addSwimlane);
+  const addFreeNode = useGraphStore((s) => s.addFreeNode);
   const setSelectedNodeIds = useGraphStore((s) => s.setSelectedNodeIds);
   const selectedNodeIds = useGraphStore((s) => s.selectedNodeIds);
   const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
@@ -152,11 +175,11 @@ function CanvasInner() {
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
   const sequenceMode = useGraphStore((s) => s.sequenceMode);
   const isLocked = useGraphStore((s) => s.isLocked);
-  const setIsLocked = useGraphStore((s) => s.setIsLocked);
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
   const isFreeMode = projects.find((p) => p.id === activeProjectId)?.project_kind === "free";
+  const author = useAuthStore((s) => s.user?.username) ?? "Arquiteto";
   const { screenToFlowPosition, setNodes, fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
@@ -171,7 +194,7 @@ function CanvasInner() {
   }, []);
 
   // P2.1.1 + P2.1.3 — LOD: ajustar configurações conforme a escala
-  const _lod = useMemo(() => lodConfig(nodes.length), [nodes.length]);
+  const lod = useMemo(() => lodConfig(nodes.length), [nodes.length]);
 
   // Cards que só “parecem” dentro do bloco (sem parentId) passam a andar junto
   useEffect(() => {
@@ -217,7 +240,7 @@ function CanvasInner() {
         const currentId = wrapper.dataset.id;
         if (!currentId) return;
         event.preventDefault();
-        const all = getNodes();
+        const all = toPositioned(getNodes());
         const current = all.find((n) => n.id === currentId);
         if (!current) return;
         if (key === "home" || key === "end") {
@@ -231,7 +254,8 @@ function CanvasInner() {
         if (target) focusCanvasNode(target.id);
       }
 
-      if (event.key === "Delete" || event.key === "Backspace") {
+      // Delete remove a seleção; Backspace fica livre (ex.: renomear inline).
+      if (event.key === "Delete") {
         event.preventDefault();
         deleteSelected();
       }
@@ -268,7 +292,7 @@ function CanvasInner() {
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [selectedNodeIds, nodes, updateNodeData, isFreeMode]);
+  }, [selectedNodeIds, nodes, updateNodeData]);
 
   const orderedNodes = useMemo(() => {
     if (isFreeMode) {
@@ -281,13 +305,23 @@ function CanvasInner() {
 
     const containers = nodes.filter((n) => isContainerNode(n));
     const rest = nodes.filter((n) => !isContainerNode(n));
+    const byId = new Map(nodes.map((n) => [n.id, n] as const));
+    const depthMemo = new Map<string, number>();
     const depth = (n: (typeof nodes)[0]) => {
+      const hit = depthMemo.get(n.id);
+      if (hit !== undefined) return hit;
       let d = 0;
       let p = n.parentId;
       while (p) {
+        const pd = depthMemo.get(p);
+        if (pd !== undefined) {
+          d += pd;
+          break;
+        }
         d += 1;
-        p = nodes.find((x) => x.id === p)?.parentId;
+        p = byId.get(p)?.parentId;
       }
+      depthMemo.set(n.id, d);
       return d;
     };
     containers.sort((a, b) => depth(b) - depth(a));
@@ -381,6 +415,20 @@ function CanvasInner() {
           })();
           return;
         }
+        if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+          const pos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          const kind = file.type.startsWith("video/") ? "free-video" : "free-image";
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const id = addFreeNode(kind, pos, file.name);
+            if (id) updateNodeData(id, { mediaUrl: dataUrl });
+            pushUiNotice({ type: "success", text: `Mídia "${file.name}" adicionada.` });
+          };
+          reader.onerror = () => pushUiNotice({ type: "error", text: "Falha ao ler a mídia." });
+          reader.readAsDataURL(file);
+          return;
+        }
       }
 
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -426,7 +474,7 @@ function CanvasInner() {
 
       addCatalogNode(catalogId, { x: position.x - 100, y: position.y - 30 });
     },
-    [addBlock, addCatalogNode, addSwimlane, addZone, loadSnapshot, nodes, pushUiNotice, screenToFlowPosition],
+    [addBlock, addCatalogNode, addSwimlane, addZone, addFreeNode, updateNodeData, loadSnapshot, nodes, pushUiNotice, screenToFlowPosition],
   );
 
   function startWithZone(kind: ZoneKind) {
@@ -449,11 +497,20 @@ function CanvasInner() {
 
   useEffect(() => {
     try {
-       
+
       setShowOnboarding(localStorage.getItem("archia-onboarded") !== "1");
     } catch {
-       
+
       setShowOnboarding(true);
+    }
+  }, []);
+
+  const skipOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem("archia-onboarded", "1");
+    } catch {
+      /* storage bloqueado — segue sem persistir */
     }
   }, []);
 
@@ -548,6 +605,13 @@ function CanvasInner() {
             <p className="mt-3 text-sm text-[var(--muted-fg)]">
               Abra o painel de Contexto e escolha um template (MVP, SaaS, Marketplace…)
             </p>
+            <button
+              type="button"
+              className="mt-3 text-xs text-[var(--muted-fg)] underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--foreground)]"
+              onClick={skipOnboarding}
+            >
+              Pular onboarding
+            </button>
           </div>
         </div>
       )}
@@ -577,7 +641,7 @@ function CanvasInner() {
           <div className="pointer-events-auto">
             <TitleBlock
               title={name || "Arquitetura"}
-              author="Arquiteto"
+              author={author}
               version="1.0"
               nfr={nfr}
               variant="overlay"
@@ -700,7 +764,8 @@ function CanvasInner() {
          * desligamos o focus do wrapper para não ter 2 tab-stops por node. */
         nodesFocusable={false}
         zoomOnScroll={!isLocked}
-        panOnDrag={!isLocked ? [1, 2] : false}
+        // Pan com botão do meio ou Space+arrastar; LMB vira seleção/movimento.
+        panOnDrag={!isLocked ? [2] : false}
         zoomOnPinch={!isLocked}
         selectionOnDrag={!isLocked}
         selectionMode={isLocked ? undefined : SelectionMode.Partial}
@@ -723,7 +788,7 @@ function CanvasInner() {
         }, [setSelectedEdgeId])}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodeDragStart={useCallback((event: unknown, node: { id: string }) => {
+        onNodeDragStart={useCallback(() => {
           if (isLockedRef.current) return;
           checkpointDrag();
           snapRef.current.active = true;
@@ -734,7 +799,7 @@ function CanvasInner() {
         onNodeDrag={useCallback((event: unknown, draggedNode: { id: string; position: { x: number; y: number } }) => {
           if (!snapRef.current.active || !draggedNode) return;
           if (isLockedRef.current) return;
-          if (!_lod.snapEnabled) {
+          if (!lod.snapEnabled) {
             setGuidelines([]);
             return;
           }
@@ -753,7 +818,7 @@ function CanvasInner() {
             );
           }
           setGuidelines(result.guidelines);
-        }, [_lod, setNodes, setGuidelines])}
+        }, [lod, setNodes, setGuidelines])}
         onNodeDragStop={useCallback((_event: unknown, node: { id: string } | null) => {
           if (isLockedRef.current) return;
           snapRef.current.active = false;
@@ -767,11 +832,13 @@ function CanvasInner() {
         fitView
         fitViewOptions={{ padding: 0.2 }}
         connectionLineStyle={{ stroke: "var(--accent)", strokeWidth: 2 }}
-        defaultEdgeOptions={{ type: "smoothstep", animated: _lod.animatedEdges }}
+        defaultEdgeOptions={{ type: "smoothstep", animated: lod.animatedEdges }}
         onlyRenderVisibleElements={shouldEnableVisibleElements(nodes.length, isFreeMode)}
         onMove={(_, vp) => {
-          // P2.1.3 — tracking zoom level for semantic LOD (xyflow v12)
-          setZoomLevel(vp.zoom);
+          // P2.1.3 — tracking zoom for semantic LOD. Só re-renderiza quando a
+          // porcentagem inteira muda; frames de pan (zoom constante) bailam.
+          const pct = Math.round(vp.zoom * 100);
+          setZoomLevel((prev) => (prev * 100 === pct ? prev : pct / 100));
         }}
         proOptions={{ hideAttribution: true }}
         aria-label="Canvas de arquitetura"
