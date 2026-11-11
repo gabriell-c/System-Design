@@ -98,5 +98,99 @@ jobs:
 
       - name: Build
         env:
-          NEXT_PUBLIC_API_URL: http://127.0.0.1:8021
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4410
         run: pnpm exec next build
+
+  e2e:
+    name: E2E (Playwright, non-blocking)
+    runs-on: ubuntu-latest
+    # Independent of the build jobs: e2e failures must never block lint/build.
+    if: always()
+    timeout-minutes: 40
+    env:
+      # Same env approach as the webServer blocks in web/playwright.config.ts,
+      # with a fresh SQLite DB and the repo-standard API port 4410.
+      ARCHIA_JWT_SECRET: ci-test-secret-not-for-production-use-32c
+      ARCHIA_ENV: development
+      LOG_JSON: "true"
+      DATABASE_URL: sqlite:///./data/playwright.db
+      CORS_ORIGINS: http://localhost:3015
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:4410
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install backend test deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Start API on :4410 (fresh SQLite)
+        working-directory: backend
+        run: |
+          mkdir -p data
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 4410 > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4410/api/health >/dev/null 2>&1; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          cat api.log
+          exit 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install web deps
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E
+        working-directory: web
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker images (smoke)
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [web-build]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build contexts: backend/ uses backend/.dockerignore, web/ uses web/.dockerignore.
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t archia-backend backend/
+
+      - name: Build web image
+        run: docker build -f web/Dockerfile --build-arg NEXT_PUBLIC_API_URL=http://127.0.0.1:4410 -t archia-web web/
+

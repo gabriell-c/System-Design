@@ -1,7 +1,5 @@
 ﻿<p align="center">
-  <img src="https://img.shields.io/badge/status-100%25_confian%C3%A7a_arquitetural-3fb950?style=for-the-badge" alt="Status">
-  <img src="https://img.shields.io/badge/tests-324_passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
-  <img src="https://img.shields.io/badge/gaps-53%2F53_Feito-3fb950?style=for-the-badge" alt="Gaps">
+  <img src="https://img.shields.io/badge/status-remediacao_em_curso-ffea00?style=for-the-badge" alt="Status">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.141-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js">
@@ -20,7 +18,7 @@ O **Archia** é um SaaS que permite modelar arquiteturas de sistemas (componente
 
 > 💡 **Caso de uso principal:** arquitetos e devs seniores usam o Archia para validar uma proposta de stack antes de escrever código — o editor entrega recomendações, compara alternativas lado a lado e simula o comportamento da arquitetura sob carga.
 
-> ✅ **Status:** 100% de confiança arquitetural atingido (53/53 gaps P0-P3 fechados, 324+ testes passando: 298 backend + 26+ frontend). Canvas livre com personalização completa (borda, opacidade, tipografia, alinhamento, sombra, ícone, gradiente, padrão, hover) implementado. **UI/UX:** selects customizados, máscaras de telefone/valores, crop de avatar com preview 1:1, RichTextEditor nas notas, sincronização de avatar em tempo real. Ver [`docs/features/diagrama-livre-ux.md`](docs/features/diagrama-livre-ux.md), [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
+> ⚠️ **Status:** remediação em curso — ver [AUDIT-COMPLETO.md](AUDIT-COMPLETO.md) (27 itens abertos) e [ROADMAP-ARQUITETURA.md](ROADMAP-ARQUITETURA.md) (19 itens abertos). Canvas livre com personalização completa (borda, opacidade, tipografia, alinhamento, sombra, ícone, gradiente, padrão, hover) implementado. **UI/UX:** selects customizados, máscaras de telefone/valores, crop de avatar com preview 1:1, RichTextEditor nas notas, sincronização de avatar em tempo real. Ver [`docs/features/diagrama-livre-ux.md`](docs/features/diagrama-livre-ux.md), [`docs/GAPS-POR-PRIORIDADE.md`](docs/GAPS-POR-PRIORIDADE.md) e [`docs/PERFORMANCE-AUDIT.md`](docs/PERFORMANCE-AUDIT.md).
 
 ---
 

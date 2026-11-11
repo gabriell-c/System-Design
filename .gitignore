@@ -1,44 +1,49 @@
+# Dependencies
 node_modules/
+
+# Build output
 .next/
 out/
 dist/
+
+# Python
 *.pyc
 __pycache__/
-.pypytest_cache/
-.rff_cache/
+.pytest_cache/
+.basetemp/
+.ruff_cache/
 .venv/
 venv/
-backend/data/*.db
-backend/data/playwright.db
+
+# SQLite data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+backend/data/
 backend/data.db
+
+# Agent scratch (gate state) — session-local, not for the repo
+.claude/
+web/.claude/
+
+# Environment / secrets
 .env
 .env.local
 backend/.env
 web/.env
 web/.env.local
+
+# Logs / OS
 *.log
 .DS_Store
+
+# Web test artifacts
+web/test-results.json/
 web/test-results/
+web/e2e/*.png
+web/*.png
 web/playwright-report/
 web/blob-report/
 web/eslint-errors.json
 web/tsconfig.tsbuildinfo
-backend/data/*.db-shm
-backend/data/*.db-wal
-# Ignore analysis and temporary files
-*.txt
-analysis_*.txt
-chunk_*.txt
-line_*.txt
-test-*.txt
-debug-*.txt
-cookies.txt
-docker_content.txt
-final-results.txt
-project_check.txt
-pyproject_content.txt
-readme_content.txt
-requirements_content.txt
-test-log.txt
-test-output.txt
-test-results.txt
+backend/.claude/
