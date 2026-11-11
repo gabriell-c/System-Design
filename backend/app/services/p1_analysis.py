@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import logging
+from pathlib import Path
+
 from app.schemas.analysis import (
     AnalysisResult,
     DomainBenchmark,
@@ -10,6 +14,106 @@ from app.schemas.analysis import (
     ScoreBreakdown,
     ScoreFactor,
 )
+
+logger = logging.getLogger(__name__)
+
+# Snapshot autoritativo dos ids de catálogo / zone kinds reais do front
+# (web/src/lib). Regenerar quando o catálogo crescer:
+#     cd web && UPDATE_CATALOG_SNAPSHOT=1 pnpm exec node --experimental-strip-types --test src/lib/catalog.integrity.test.ts
+# (o bloco de integridade do test web reescreve o arquivo).
+_CATALOG_SNAPSHOT_PATH = Path(__file__).with_name("catalog_snapshot.json")
+_catalog_snapshot_cache: dict | None = None
+
+# action_type aceitos em fix_action (espelha web/src/lib/fix-actions.ts + tipos
+# emitidos por este módulo: update_node/set_nfr/note não têm aplicação
+# automática no canvas, mas são payloads legítimos de "recomendação").
+VALID_FIX_ACTION_TYPES = frozenset(
+    {
+        "select_node",
+        "highlight_node",
+        "add_zone",
+        "add_catalog_node",
+        "apply_pattern",
+        "update_node",
+        "set_nfr",
+        "note",
+    }
+)
+
+# Item 40 — constantes reais da fórmula de score (agents/runner.py + heuristic.py).
+# A penalidade de severidade age sobre node_scores (nunca na nota final);
+# a nota final é o blend 0.4×heurística + 0.6×consolidador (quando a IA participa).
+SEVERITY_NODE_PENALTY: dict[str, float] = {
+    "info": 0.0,
+    "warning": -0.4,
+    "critical": -1.0,
+}
+NODE_SCORE_FLOOR = 2.0
+HEURISTIC_SCORE_WEIGHT = 0.4
+CONSOLIDATOR_SCORE_WEIGHT = 0.6
+
+
+def load_catalog_snapshot() -> dict:
+    """Carrega (com cache) o snapshot de ids de catálogo válidos."""
+    global _catalog_snapshot_cache
+    if _catalog_snapshot_cache is None:
+        with _CATALOG_SNAPSHOT_PATH.open("r", encoding="utf-8") as fh:
+            _catalog_snapshot_cache = json.load(fh)
+    return _catalog_snapshot_cache
+
+
+def _payload_field(action: FixAction, snake_key: str, camel_key: str) -> object:
+    """Lê um campo do payload aceitando os formatos antigo (payload) e novo
+    (campo de 1ª classe do schema de fix_action) — tolerante à ausência."""
+    payload = action.payload if isinstance(action.payload, dict) else {}
+    for source in (
+        lambda: payload.get(camel_key),
+        lambda: payload.get(snake_key),
+        lambda: getattr(action, snake_key, None),
+    ):
+        value = source()
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _fix_action_invalid_reason(action: FixAction, finding: Finding) -> str | None:
+    """Valida um fix_action emitido (ex.: LLM). Retorna o motivo da rejeição,
+    ou None quando válido. Campos ausentes não invalidam — a ação só precisa
+    ser internamente coerente com o snapshot do catálogo."""
+    snapshot = load_catalog_snapshot()
+    catalog_ids = set(snapshot.get("catalog_ids") or [])
+    zone_kinds = set(snapshot.get("zone_kinds") or [])
+
+    action_type = getattr(action, "action_type", None)
+    if action_type not in VALID_FIX_ACTION_TYPES:
+        return f"action_type inválido: {action_type!r}"
+
+    catalog_id = _payload_field(action, "catalog_id", "catalogId")
+    if catalog_id is not None and catalog_id not in catalog_ids:
+        return f"catalogId inexistente no catálogo: {catalog_id!r}"
+
+    zone_kind = _payload_field(action, "zone_kind", "zoneKind")
+    if zone_kind is not None and zone_kind not in zone_kinds:
+        return f"zoneKind inválido: {zone_kind!r}"
+
+    if action_type == "add_catalog_node" and catalog_id is None:
+        return "add_catalog_node sem catalogId usável"
+
+    if action_type == "apply_pattern":
+        pattern_ids = (action.payload or {}).get("patternIds") or []
+        if not pattern_ids:
+            return "apply_pattern sem patternIds"
+        unknown = [pid for pid in pattern_ids if pid not in catalog_ids]
+        if unknown:
+            return f"patternIds inexistentes no catálogo: {unknown}"
+
+    if action_type in {"select_node", "highlight_node"}:
+        node_id = _payload_field(action, "node_id", "node_id")
+        if not node_id and not finding.node_id:
+            return f"{action_type} sem node_id"
+
+    return None
 
 
 def _node_data(node: dict) -> dict:
@@ -141,12 +245,24 @@ def check_saga_for_distributed_tx(nodes: list[dict], edges: list[dict], nfr: dic
 
 
 def attach_fix_actions(findings: list[Finding]) -> list[Finding]:
-    """P1.2.1 — Generate fix actions for findings missing them."""
+    """P1.2.1 — Preencher findings sem fix_action; validar os que já têm.
+
+    Um fix_action já presente (ex.: emitido pelo LLM) é validado contra o
+    snapshot do catálogo; falhou a validação, loga warning e cai no fallback
+    por palavra-chave (que continua útil quando o LLM não emite fix_action).
+    """
     out: list[Finding] = []
     for f in findings:
-        if f.fix_action:
-            out.append(f)
-            continue
+        if f.fix_action is not None:
+            reason = _fix_action_invalid_reason(f.fix_action, f)
+            if reason is None:
+                out.append(f)
+                continue
+            logger.warning(
+                "fix_action do finding %r rejeitada (%s) — usando fallback por palavra-chave",
+                f.title,
+                reason,
+            )
         title_lower = f.title.lower()
         fix: FixAction | None = None
         if "bottleneck" in title_lower or "gargalo" in title_lower:
@@ -159,7 +275,7 @@ def attach_fix_actions(findings: list[Finding]) -> list[Finding]:
             fix = FixAction(
                 action_type="add_catalog_node",
                 label="Adicionar CDN",
-                payload={"catalogId": "aws-cloudfront"},
+                payload={"catalogId": "dep-cloudfront"},
             )
         elif "monitor" in title_lower or "observ" in title_lower:
             fix = FixAction(
@@ -244,26 +360,55 @@ def attach_fix_actions(findings: list[Finding]) -> list[Finding]:
 
 
 def compute_score_breakdown(result: AnalysisResult, nodes: list[dict]) -> ScoreBreakdown:
-    """P1.2.4 — Explain overall score."""
+    """P1.2.4 — Explains overall score.
+
+    Ruling (item 40): factors are *non-additive contributions*, not a sum
+    that reconstructs the final score. The real formula lives in
+    agents/runner.py: final score = 0.4×heuristic + 0.6×consolidator (or the
+    bare heuristic when IA is unavailable), and the per-severity penalties
+    (SEVERITY_NODE_PENALTY) apply to node_scores (floor NODE_SCORE_FLOOR),
+    never to the final score. The first row ("Score final") carries the
+    actual number so the UI "Por que X?" stays truthful; the remaining rows
+    show the documented node-level effects and qualitative context, each
+    labeled as such in `detail`.
+    """
     critical = sum(1 for f in result.findings if f.severity == "critical")
     warning = sum(1 for f in result.findings if f.severity == "warning")
     info = sum(1 for f in result.findings if f.severity == "info")
 
     factors: list[ScoreFactor] = [
         ScoreFactor(
+            label="Score final",
+            impact=round(result.score, 1),
+            detail=(
+                f"{HEURISTIC_SCORE_WEIGHT}×heurística + "
+                f"{CONSOLIDATOR_SCORE_WEIGHT}×consolidador (quando a IA participa; "
+                f"só heurística caso contrário). As linhas a seguir são efeitos "
+                f"por nó / contexto — não somam a esta nota."
+            ),
+        ),
+        ScoreFactor(
             label="Findings críticos",
-            impact=-min(3.0, critical * 1.2),
-            detail=f"{critical} finding(s) crítico(s) reduzem a nota.",
+            impact=round(critical * SEVERITY_NODE_PENALTY["critical"], 1),
+            detail=(
+                f"{critical} finding(s) crítico(s): "
+                f"{SEVERITY_NODE_PENALTY['critical']:+.1f} em cada nó afetado "
+                f"(node_scores, piso {NODE_SCORE_FLOOR}) — não afeta a nota final diretamente."
+            ),
         ),
         ScoreFactor(
             label="Findings warning",
-            impact=-min(2.0, warning * 0.4),
-            detail=f"{warning} aviso(s) moderam a confiança.",
+            impact=round(warning * SEVERITY_NODE_PENALTY["warning"], 1),
+            detail=(
+                f"{warning} aviso(s): "
+                f"{SEVERITY_NODE_PENALTY['warning']:+.1f} em cada nó afetado "
+                f"(node_scores) — não afeta a nota final diretamente."
+            ),
         ),
         ScoreFactor(
             label="Pontos fortes",
-            impact=min(1.5, len(result.strengths) * 0.3),
-            detail=f"{len(result.strengths)} força(s) identificada(s).",
+            impact=0.0,
+            detail=f"{len(result.strengths)} força(s) — contexto qualitativo; não entra na fórmula da nota.",
         ),
     ]
 
@@ -272,8 +417,8 @@ def compute_score_breakdown(result: AnalysisResult, nodes: list[dict]) -> ScoreB
         factors.append(
             ScoreFactor(
                 label="Coerência de domínio",
-                impact=(dc - 5) * 0.3,
-                detail=f"Coerência geral {dc:.1f}/10.",
+                impact=0.0,
+                detail=f"Coerência geral {dc:.1f}/10 — contexto qualitativo; não entra na fórmula da nota.",
             )
         )
 
@@ -282,17 +427,18 @@ def compute_score_breakdown(result: AnalysisResult, nodes: list[dict]) -> ScoreB
         factors.append(
             ScoreFactor(
                 label="Review scorecard",
-                impact=(rs - 5) * 0.2,
-                detail=f"Scorecard {rs:.1f}/10.",
+                impact=0.0,
+                detail=f"Scorecard {rs:.1f}/10 — contexto qualitativo; não entra na fórmula da nota.",
             )
         )
 
-    explained = max(0.0, min(10.0, result.score + sum(f.impact for f in factors) * 0.1))
+    # A breakdown não recalcula a nota: explica a que já existe (fórmula do runner).
+    explained = round(result.score, 1)
     critical_node_ids = [f.node_id for f in result.findings if f.severity == "critical" and f.node_id]
 
     return ScoreBreakdown(
         base_score=result.score,
-        explained_score=round(explained, 1),
+        explained_score=explained,
         factors=factors,
         critical_node_ids=[x for x in critical_node_ids if x],
         finding_counts={"critical": critical, "warning": warning, "info": info},

@@ -31,6 +31,7 @@ from app.rate_limit import (
     _buckets,
     sweep_expired_buckets,
 )
+from app.services.omniroute import CompleteResult
 
 BIRTH = "1990-01-01"
 
@@ -328,7 +329,12 @@ class TestWsLegacy:
 
 
 class TestSettingsEncryption:
-    """P1.5 — ai_settings.api_key cifrada (Fernet) e PUT restrito a senior."""
+    """P1.5 — ai_settings.api_key cifrada (Fernet).
+
+    Item 29 — as configurações são por usuário: o segredo deixou de ser
+    global, então PUT é auto-atendimento (cada usuário edita a própria
+    linha; isolamento é o que garante não vazar nada para outros).
+    """
 
     def _put_payload(self) -> dict:
         return {
@@ -339,10 +345,18 @@ class TestSettingsEncryption:
             "enabled": True,
         }
 
-    def test_put_ai_denied_for_regular_user(self, client):
+    def test_put_ai_regular_user_edits_own_row(self, client):
+        """Usuário comum edita a própria linha; a do SENIOR fica intacta."""
         with _user_session("geo") as bob:
-            resp = bob.put("/api/v1/settings/ai", json=self._put_payload())
-            assert resp.status_code == 403
+            payload = {**self._put_payload(), "api_key": "sk-bob-iso-555444333"}
+            resp = bob.put("/api/v1/settings/ai", json=payload)
+            assert resp.status_code == 200
+            assert resp.json()["api_key_masked"].startswith("sk-b")
+
+        senior = client.put("/api/v1/settings/ai", json=self._put_payload())
+        assert senior.status_code == 200
+        assert senior.json()["api_key_masked"].startswith("sk-a")
+        assert "5544" not in senior.json()["api_key_masked"]
 
     def test_put_ai_senior_stores_encrypted(self, client):
         resp = client.put("/api/v1/settings/ai", json=self._put_payload())
@@ -402,6 +416,7 @@ class TestLlmCaps:
 
         async def fake_complete_json(*_args, **_kwargs):
             calls["n"] += 1
+            return CompleteResult(data=None, usage=None, attempts=1, ok=False)
 
         monkeypatch.setattr(runner_mod, "complete_json", fake_complete_json)
         gid = client.post(
@@ -422,6 +437,7 @@ class TestLlmCaps:
 
         async def fake_complete_json(*_args, **_kwargs):
             calls["n"] += 1
+            return CompleteResult(data=None, usage=None, attempts=1, ok=False)
 
         monkeypatch.setattr(runner_mod, "complete_json", fake_complete_json)
         monkeypatch.setattr("app.rate_limit.LLM_DAILY_ANALYZE_BUDGET", 2)
