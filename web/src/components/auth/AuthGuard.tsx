@@ -18,7 +18,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Verificar autenticação ao carregar
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
 
   useEffect(() => {
     // Se já carregou e não está autenticado, redirecionar para login

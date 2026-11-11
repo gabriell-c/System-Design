@@ -22,6 +22,7 @@ export default function CircuitBreakerNode({ id, data, selected }: NodeProps<Nod
         borderColor: state === "open" ? "#f43f5e" : "#f59e0b",
       }}
       aria-label={`Circuit breaker ${data.label}, estado ${state}`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "50%" }} />
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "50%" }} />

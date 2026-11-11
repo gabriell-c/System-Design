@@ -21,6 +21,7 @@ export default function TransitGatewayNode({ id, data, selected }: NodeProps<Nod
         borderColor: "rgba(167, 139, 250, 0.55)",
       }}
       aria-label={`Transit Gateway ${data.label}, ${attachments.length} attachments`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "35%" }} />
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "35%" }} />

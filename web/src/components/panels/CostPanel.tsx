@@ -1,8 +1,10 @@
 "use client";
 
 import { DollarSign, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { api } from "@/lib/api";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 import type { CostBreakdown } from "@/lib/types";
 
@@ -12,25 +14,22 @@ export default function CostPanel() {
   const [data, setData] = useState<CostBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!graphId) return;
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
+      if (!graphId) return;
       setLoading(true);
       setError(null);
       try {
         const result = await api.costEstimate(graphId);
-        if (!cancelled) setData(result);
+        if (!isCancelled()) setData(result);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro");
+        if (!isCancelled()) setError(e instanceof Error ? e.message : "Erro");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!isCancelled()) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [graphId]);
+    },
+    [graphId],
+  );
 
   if (!graphId) {
     return <p className="px-4 py-6 text-sm text-[var(--muted)]">Salve o diagrama para ver custos.</p>;
@@ -53,15 +52,12 @@ export default function CostPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-          <DollarSign size={16} aria-hidden />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Cost model</p>
-          <p className="mt-0.5 text-xs text-[var(--muted-fg)]">{data.summary}</p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={DollarSign}
+        chipClass="bg-emerald-500/15 text-emerald-300"
+        title="Cost model"
+        subtitle={data.summary}
+      />
 
       <div className="grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-[var(--border)] bg-black/20 p-2">

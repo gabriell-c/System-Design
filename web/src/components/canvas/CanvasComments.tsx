@@ -4,6 +4,7 @@ import { MessageSquarePlus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { api } from "@/lib/api";
+import { API_BASE } from "@/lib/api-base";
 import { useGraphStore } from "@/lib/graph-store";
 import type { CanvasComment } from "@/lib/types";
 
@@ -44,8 +45,7 @@ export default function CanvasComments() {
   // Real-time comment sync via shared collab WebSocket room
   useEffect(() => {
     if (!graphId || typeof window === "undefined") return;
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
-    const wsUrl = base.replace(/^http/, "ws") + `/api/v1/ws/graphs/${graphId}`;
+    const wsUrl = API_BASE.replace(/^http/, "ws") + `/api/v1/ws/graphs/${graphId}`;
     let ws: WebSocket | null = null;
     try {
       ws = new WebSocket(wsUrl);

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { BookMarked, Copy, ExternalLink } from "lucide-react";
 import { buildAdrs } from "@/lib/adr";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 import type { AdrEntry } from "@/lib/types";
 
@@ -58,17 +59,12 @@ export default function AdrPanel() {
   return (
     <div className="space-y-4 px-4 py-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300">
-            <BookMarked size={16} />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-100">ADRs leves</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-              Decisões inferidas do canvas — vincule Jira/Confluence (P1.4.6).
-            </p>
-          </div>
-        </div>
+        <PanelHeader
+          icon={BookMarked}
+          chipClass="bg-indigo-500/15 text-indigo-300"
+          title="ADRs leves"
+          subtitle="Decisões inferidas do canvas — vincule Jira/Confluence (P1.4.6)."
+        />
         <button type="button" className="btn-ghost inline-flex items-center gap-2 text-sm" onClick={copyAll}>
           <Copy size={12} />
           Copiar

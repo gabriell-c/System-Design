@@ -33,8 +33,8 @@ export default function DiagramGeneratorModal({ onClose }: { onClose: () => void
         // Close modal after successful generation
         setTimeout(onClose, 500);
       }
-    } catch (err: any) {
-      pushUiNotice({ type: "error", text: err?.message || "Erro ao gerar diagrama" });
+    } catch (err) {
+      pushUiNotice({ type: "error", text: err instanceof Error ? err.message : "Erro ao gerar diagrama" });
     } finally {
       setLoading(false);
     }

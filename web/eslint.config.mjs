@@ -13,11 +13,11 @@ const eslintConfig = [
   },
   {
     rules: {
-      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/exhaustive-deps": "error",
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/refs": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "react-hooks/incompatible-library": "off",
       "@next/next/no-location-assign-relative-destination": "off",
     },

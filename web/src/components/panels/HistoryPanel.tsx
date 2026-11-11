@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import type { CanvasNodeData, GraphVersion } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
@@ -15,21 +16,20 @@ export default function HistoryPanel() {
   const [versions, setVersions] = useState<GraphVersion[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!graphId) return;
-    let cancelled = false;
-    api
-      .listVersions(graphId)
-      .then((rows) => {
-        if (!cancelled) setVersions(rows);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Falha ao listar versões");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [graphId]);
+  useApiEffect(
+    (isCancelled) => {
+      if (!graphId) return;
+      api
+        .listVersions(graphId)
+        .then((rows) => {
+          if (!isCancelled()) setVersions(rows);
+        })
+        .catch((err: unknown) => {
+          if (!isCancelled()) setError(err instanceof Error ? err.message : "Falha ao listar versões");
+        });
+    },
+    [graphId],
+  );
 
   if (!graphId) {
     return (

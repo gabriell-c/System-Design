@@ -18,6 +18,7 @@ export default function NoteNode({ id, data, selected }: NodeProps<Node<NoteNode
         color: "#422006",
       }}
       aria-label={`Nota: ${data.label}`}
+      tabIndex={0}
     >
       <textarea
         className="w-full resize-none bg-transparent text-xs font-medium leading-snug focus:outline-none focus:ring-2 focus:ring-[var(--accent)] min-h-[48px]"

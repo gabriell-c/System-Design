@@ -142,6 +142,32 @@ const FONT_WEIGHT: Record<string, number | string> = {
   bold: 700,
 };
 
+/**
+ * P4 — registry: todas as instâncias de FreeNode compartilham UM par global
+ * keydown/keyup para Shift (antes cada instância registrava listeners
+ * próprios; com N nodes livres eram 2N listeners de window).
+ */
+const shiftListeners = new Set<(down: boolean) => void>();
+let shiftKeyListening = false;
+function onShiftKeydown(e: KeyboardEvent) {
+  if (e.key === "Shift") shiftListeners.forEach((fn) => fn(true));
+}
+function onShiftKeyup(e: KeyboardEvent) {
+  if (e.key === "Shift") shiftListeners.forEach((fn) => fn(false));
+}
+function bindShiftKeyListening() {
+  if (shiftKeyListening || typeof window === "undefined") return;
+  window.addEventListener("keydown", onShiftKeydown);
+  window.addEventListener("keyup", onShiftKeyup);
+  shiftKeyListening = true;
+}
+function releaseShiftKeyListening() {
+  if (!shiftKeyListening) return;
+  window.removeEventListener("keydown", onShiftKeydown);
+  window.removeEventListener("keyup", onShiftKeyup);
+  shiftKeyListening = false;
+}
+
 function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const isLocked = useGraphStore((s) => s.isLocked);
@@ -155,17 +181,12 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
   const aspectRef = useRef(1);
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Shift") setShiftHeld(true);
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Shift") setShiftHeld(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    const notify = (down: boolean) => setShiftHeld(down);
+    shiftListeners.add(notify);
+    bindShiftKeyListening();
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+      shiftListeners.delete(notify);
+      if (shiftListeners.size === 0) releaseShiftKeyListening();
     };
   }, []);
 
@@ -329,6 +350,8 @@ function FreeNodeInner({ id, data, selected }: NodeProps<Node<FreeNodeData>>) {
     <div
       className={`relative h-full w-full group ${selected ? "ring-2 ring-[var(--accent)]/70" : ""} ${HOVER_CLASS[hoverEffect]}`}
       aria-label={data.label}
+      role="article"
+      tabIndex={0}
       style={{ contain: "layout style" }}
     >
       {data.linkUrl && <LinkButton href={data.linkUrl} />}

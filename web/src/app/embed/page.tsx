@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { API_BASE } from "@/lib/api-base";
 import { renderEmbedSvg } from "@/lib/embed-svg";
 import type { CanvasNodeData } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
@@ -70,7 +71,7 @@ export default function EmbedPage() {
     }
     const result = renderEmbedSvg(nodes, edges, { theme, width: 1400, height: 900 });
     const liveUrl = `${origin}/embed?graph=${graphId}&theme=${theme}`;
-    const svgApi = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410"}/api/v1/embed/${graphId}/svg?theme=${theme}`;
+    const svgApi = `${API_BASE}/api/v1/embed/${graphId}/svg?theme=${theme}`;
     return {
       ...result,
       iframeSnippet: `<iframe src="${liveUrl}" width="100%" height="600" frameborder="0" title="Archia — ${name || "diagrama"}" loading="lazy" allowfullscreen></iframe>\n<!-- SVG estático: ${svgApi} -->`,

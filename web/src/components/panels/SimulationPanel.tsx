@@ -18,6 +18,7 @@ import {
   Clock,
   Flame,
 } from "lucide-react";
+import PanelHeader from "@/components/ui/PanelHeader";
 import CustomSelect from "@/components/ui/Select";
 import { useSimulation } from "@/hooks/useSimulation";
 import { api } from "@/lib/api";
@@ -104,17 +105,12 @@ export default function SimulationPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
-          <Zap size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Simulação de carga</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Testa se a arquitetura aguenta a carga, onde estão os gargalos, e o que quebra sob pressão.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={Zap}
+        chipClass="bg-amber-500/15 text-amber-300"
+        title="Simulação de carga"
+        subtitle="Testa se a arquitetura aguenta a carga, onde estão os gargalos, e o que quebra sob pressão."
+      />
 
       {/* Test Mode Selector */}
       <div>

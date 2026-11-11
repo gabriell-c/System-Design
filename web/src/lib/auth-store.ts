@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { API_BASE } from './api-base';
 
 export type AuthUser = {
   id: number;
@@ -36,8 +37,6 @@ interface AuthState {
   setUser: (user: AuthUser | null) => void;
   setToken: (token: string | null) => void;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4410';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -141,7 +140,12 @@ export const useAuthStore = create<AuthState>()(
             const error = await response.json();
             let message = 'Update failed';
             if (Array.isArray(error.detail)) {
-              message = error.detail.map((e: any) => e.msg || e.loc?.join('.')).join('; ');
+              // Shape FastAPI/Pydantic de erro de validação
+              message = error.detail
+                .map((e: { msg?: string; loc?: ReadonlyArray<string | number> }) =>
+                  e.msg || e.loc?.map((part) => String(part)).join('.'),
+                )
+                .join('; ');
             } else if (typeof error.detail === 'string') {
               message = error.detail;
             }
@@ -161,7 +165,7 @@ export const useAuthStore = create<AuthState>()(
       setToken: (token) => set({ token }),
       setAvatarUrl: (url) => {
         set((state) => ({
-          user: state.user ? { ...state.user, avatar_url: url } : null,
+          user: state.user ? { ...state.user, avatar_url: url ?? undefined } : null,
         }));
         try {
           if (url) {

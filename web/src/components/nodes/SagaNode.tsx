@@ -27,7 +27,8 @@ export default function SagaNode({ id, data, selected }: NodeProps<Node<ArchNode
         borderColor: "#7c3aed",
         opacity,
       }}
-      title="Saga orchestrator — coordena transações distribuídas"
+      aria-label={`Saga ${data.label}`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
       <AnchorHandle nodeId={id} handleId="left-out" type="source" position={Position.Left} style={{ top: "65%" }} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 
 export default function WellArchitectedPanel() {
@@ -10,7 +11,7 @@ export default function WellArchitectedPanel() {
   if (!analysis) {
     return (
       <div className="space-y-3 px-4 py-4">
-        <p className="text-sm text-[var(--muted-fg)]">Jalankan analisis untuk melihat Well-Architected Scorecard.</p>
+        <p className="text-sm text-[var(--muted-fg)]">Execute a análise para ver o Scorecard Well-Architected.</p>
       </div>
     );
   }
@@ -18,7 +19,7 @@ export default function WellArchitectedPanel() {
   if (!wa) {
     return (
       <div className="space-y-3 px-4 py-4">
-        <p className="text-sm text-[var(--muted-fg)]">Scorecard Well-Architected belum tersedia.</p>
+        <p className="text-sm text-[var(--muted-fg)]">Scorecard Well-Architected ainda não está disponível.</p>
       </div>
     );
   }
@@ -34,17 +35,12 @@ export default function WellArchitectedPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
-          <ShieldCheck size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Well-Architected Review</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            AWS Well-Architected Framework assessment (P1.2.7).
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={ShieldCheck}
+        chipClass="bg-blue-500/15 text-blue-300"
+        title="Well-Architected Review"
+        subtitle="AWS Well-Architected Framework assessment (P1.2.7)."
+      />
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
         <div className="flex items-center justify-between">

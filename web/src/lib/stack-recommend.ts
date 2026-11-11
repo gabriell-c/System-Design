@@ -100,7 +100,7 @@ export function checkRecommendations(
           title: catalogItem.label,
           description: catalogItem.description ?? "",
           reason: rule.reason,
-          category: catalogItem.category,
+          category: catalogItem.category ?? "service",
         });
       }
     }

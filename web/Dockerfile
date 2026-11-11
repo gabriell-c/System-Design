@@ -5,10 +5,10 @@ WORKDIR /app
 # Copy only package files first (for layer caching)
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies (include @swc/helpers for Next.js 16 Turbopack)
+# Install dependencies (@swc/helpers is declared in package.json devDependencies
+# and pinned in pnpm-lock.yaml — a frozen install must not mutate the lockfile).
 RUN corepack enable && corepack prepare pnpm@9 --activate && \
-    pnpm install --frozen-lockfile && \
-    pnpm add -D @swc/helpers
+    pnpm install --frozen-lockfile
 
 # Copy all source files
 COPY . .

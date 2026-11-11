@@ -22,6 +22,7 @@ export default function SwimlaneNode({ id, data, selected }: NodeProps<Node<Swim
         minHeight: 120,
       }}
       aria-label={`Swimlane ${data.label}`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "50%" }} />
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "50%" }} />

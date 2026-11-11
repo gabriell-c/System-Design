@@ -1,8 +1,9 @@
 "use client";
 
 import { BookOpen, Copy, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import { downloadText, slugifyFilename } from "@/lib/export";
 
@@ -14,26 +15,23 @@ export default function WikiPanel() {
   const [updatedAt, setUpdatedAt] = useState("");
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!graphId) return;
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
+      if (!graphId) return;
       setLoading(true);
       try {
         const doc = await api.liveDoc(graphId);
-        if (cancelled) return;
+        if (isCancelled()) return;
         setMarkdown(doc.markdown);
         setUpdatedAt(doc.updated_at);
       } catch {
-        if (!cancelled) setMarkdown("_Erro ao carregar wiki viva._");
+        if (!isCancelled()) setMarkdown("_Erro ao carregar wiki viva._");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!isCancelled()) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [graphId, name]);
+    },
+    [graphId, name],
+  );
 
   async function copyMd() {
     await navigator.clipboard.writeText(markdown);

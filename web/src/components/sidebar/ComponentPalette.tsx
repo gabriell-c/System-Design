@@ -157,12 +157,15 @@ export default function ComponentPalette() {
     });
   }
 
-  function placeCard(catalogId: string) {
-    const item = findCatalog(catalogId);
-    if (!item) return;
-    const offset = nodes.length * 20;
-    addCatalogNode(catalogId, { x: 280 + offset, y: 160 + offset });
-  }
+  const placeCard = useCallback(
+    (catalogId: string) => {
+      const item = findCatalog(catalogId);
+      if (!item) return;
+      const offset = nodes.length * 20;
+      addCatalogNode(catalogId, { x: 280 + offset, y: 160 + offset });
+    },
+    [nodes.length, addCatalogNode],
+  );
 
   const flatCatalogItems = useMemo(
     () =>
@@ -179,7 +182,7 @@ export default function ComponentPalette() {
   // Reset active index when filters change
   useEffect(() => {
     setActiveIndex(-1);
-  }, [/* q, providerFilter */]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, providerFilter]);
 
   const onListKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -202,7 +205,7 @@ export default function ComponentPalette() {
         setActiveIndex(flatCatalogItems.length - 1);
       }
     },
-    [flatCatalogItems, activeIndex, addCatalogNode, nodes.length],
+    [flatCatalogItems, activeIndex, placeCard],
   );
 
   return (

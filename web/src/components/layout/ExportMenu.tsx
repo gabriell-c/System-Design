@@ -74,7 +74,7 @@ export default function ExportMenu({ onDone }: Props) {
         setBusy("png");
         await exportArchitecturePng(`${base}.png`, nodes, {
           boardReady: false,
-          meta: { title: name, nfr, provider: nfr?.arch_style },
+          meta: { title: name, nfr, provider: nfr?.arch_style ?? undefined },
         });
         pushUiNotice({ type: "success", text: "Imagem PNG exportada." });
       } else if (kind === "png-clean") {
@@ -92,7 +92,7 @@ export default function ExportMenu({ onDone }: Props) {
             author: "Arquiteto",
             version: "1.0",
             classification: "Confidencial — uso interno",
-            provider: nfr?.arch_style,
+            provider: nfr?.arch_style ?? undefined,
           },
         });
         pushUiNotice({ type: "success", text: "PNG board-ready (title block + legenda) exportado." });

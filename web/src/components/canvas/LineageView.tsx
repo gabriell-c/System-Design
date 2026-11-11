@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GitBranch, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import PanelEmpty from "@/components/ui/PanelEmpty";
 
@@ -27,21 +28,18 @@ export default function LineageView() {
 
   const open = Boolean(graphId) && !dismissed;
 
-  useEffect(() => {
-    if (!graphId) return;
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
+      if (!graphId) return;
       try {
         const result = await api.lineage(graphId);
-        if (!cancelled) setData(result);
+        if (!isCancelled()) setData(result);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro");
+        if (!isCancelled()) setError(e instanceof Error ? e.message : "Erro");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [graphId]);
+    },
+    [graphId],
+  );
 
   if (!open) return null;
 

@@ -18,6 +18,9 @@ export default function BlockNode({ id, data, selected }: NodeProps<Node<BlockNo
       className={`relative h-full min-h-[220px] min-w-[320px] rounded-2xl border-2 border-dashed shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] ${
         selected ? "ring-2 ring-indigo-400/60" : ""
       }`}
+      role="article"
+      aria-label={`${data.label} - Bloco (${meta.label})`}
+      tabIndex={0}
       style={{
         background: `linear-gradient(180deg, ${meta.bg} 0%, rgba(7,11,16,0.92) 48%)`,
         borderColor: selected ? "#22d3ee" : meta.border,

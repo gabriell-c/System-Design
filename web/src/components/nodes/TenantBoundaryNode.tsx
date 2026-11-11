@@ -16,6 +16,7 @@ export default function TenantBoundaryNode({ id, data, selected }: NodeProps<Nod
       }`}
       style={{ background: "rgba(217,70,239,0.06)", borderColor: "rgba(232,121,249,0.45)" }}
       aria-label={`Tenant boundary ${mode}`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left" type="target" position={Position.Left} style={{ top: "50%" }} />
       <AnchorHandle nodeId={id} handleId="right" type="source" position={Position.Right} style={{ top: "50%" }} />

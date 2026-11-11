@@ -3,6 +3,7 @@
 import { CheckCircle2, CircleAlert, CircleDashed, ListChecks } from "lucide-react";
 import { useMemo } from "react";
 import { buildKickoffChecklist, kickoffScore } from "@/lib/kickoff";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 
 export default function KickoffPanel() {
@@ -19,17 +20,12 @@ export default function KickoffPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-          <ListChecks size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Checklist de kickoff</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            O que costuma faltar ao iniciar um projeto — baseado no canvas + NFRs.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={ListChecks}
+        chipClass="bg-emerald-500/15 text-emerald-300"
+        title="Checklist de kickoff"
+        subtitle="O que costuma faltar ao iniciar um projeto — baseado no canvas + NFRs."
+      />
 
       <div className="rounded-xl border border-[var(--border)] bg-black/25 px-3 py-3">
         <p className="text-sm uppercase tracking-wide text-[var(--muted)]">Prontidão</p>

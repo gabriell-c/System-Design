@@ -116,7 +116,7 @@ export default function SidebarNav({ forceExpanded = false }: { forceExpanded?: 
   }, [pathname]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     if (currentProject) setExpanded(true);
   }, [currentProject]);
 

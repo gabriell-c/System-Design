@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { Plus, Trash2, RefreshCw, Workflow } from "lucide-react";
 import { useGraphStore } from "@/lib/graph-store";
+import {
+  withEventTopicAdded,
+  withEventTopicFieldUpdated,
+  withEventTopicRemoved,
+} from "@/lib/event-topics";
+import PanelHeader from "@/components/ui/PanelHeader";
 import type { EventTopic } from "@/lib/types";
 import PanelEmpty from "@/components/ui/PanelEmpty";
 
@@ -24,42 +30,27 @@ export default function EventCatalogPanel() {
       schema_type: "jsonschema",
       retention_hours: 72,
     };
-    setNfr((prev) => ({
-      ...prev,
-      event_topics: [...(prev?.event_topics ?? []), entry],
-    }));
+    setNfr((prev) => withEventTopicAdded(prev, entry));
     setNewItem("");
     pushUiNotice({ type: "success", text: "Tópico adicionado ao catálogo." });
   };
 
   const removeTopic = (idx: number) => {
-    setNfr((prev) => ({
-      ...prev,
-      event_topics: prev?.event_topics?.filter((_, i) => i !== idx) ?? [],
-    }));
+    setNfr((prev) => withEventTopicRemoved(prev, idx));
   };
 
   const updateTopic = (idx: number, field: keyof EventTopic, value: string | undefined) => {
-    setNfr((prev) => {
-      const topics = [...(prev.event_topics ?? [])];
-      topics[idx] = { ...topics[idx], [field]: value };
-      return { ...prev, event_topics: topics };
-    });
+    setNfr((prev) => withEventTopicFieldUpdated(prev, idx, field, value));
   };
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
-          <RefreshCw size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Event Catalog</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Schema registry, versões, DLQ e retenção amarrados aos tópicos Kafka do desenho (P1.1.3).
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={RefreshCw}
+        chipClass="bg-violet-500/15 text-violet-300"
+        title="Event Catalog"
+        subtitle="Schema registry, versões, DLQ e retenção amarrados aos tópicos Kafka do desenho (P1.1.3)."
+      />
 
       <div className="flex gap-2">
         <input

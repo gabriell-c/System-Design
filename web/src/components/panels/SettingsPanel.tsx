@@ -11,6 +11,7 @@ import {
   Save,
   Sparkles,
 } from "lucide-react";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useEffect, useState } from "react";
 import CustomSelect from "@/components/ui/Select";
 import Toggle from "@/components/ui/Toggle";
@@ -159,17 +160,12 @@ export default function SettingsPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
-          <Bot size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Provedor de IA</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Configure URL, chave e modelo usados pelos agentes de análise. A chave nunca é exibida por completo.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={Bot}
+        chipClass="bg-violet-500/15 text-violet-300"
+        title="Provedor de IA"
+        subtitle="Configure URL, chave e modelo usados pelos agentes de análise. A chave nunca é exibida por completo."
+      />
 
       <Toggle
         checked={enabled}

@@ -60,7 +60,7 @@ export default function NewProjectModal({ open, onClose, onSubmit }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setName("");
      
     setDescription("");

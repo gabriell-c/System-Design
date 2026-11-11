@@ -4,8 +4,14 @@ import { useState } from "react";
 import { FileText, Lightbulb, LayoutTemplate, Database, Code, Activity, Network, GitBranch } from "lucide-react";
 import Toggle from "@/components/ui/Toggle";
 import PanelEmpty from "@/components/ui/PanelEmpty";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { COMPLIANCE_OPTIONS } from "@/lib/nfr";
+import {
+  withEventTopicAdded,
+  withEventTopicFieldUpdated,
+  withEventTopicRemoved,
+} from "@/lib/event-topics";
 import { PROJECT_TEMPLATES } from "@/lib/templates";
 import { useGraphStore } from "@/lib/graph-store";
 import type { DataOwnership, ApiContract, EventTopic, ConsistencyPattern, DataLineage } from "@/lib/types";
@@ -35,17 +41,12 @@ export default function ContextPanel({ isFreeMode = false }: { isFreeMode?: bool
     return (
       <div className="space-y-4 px-4 py-4">
         {dialog}
-        <div className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
-            <FileText size={16} />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-100">Sobre este diagrama</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-              Descreva a ideia visual — sem NFRs, templates ou análise técnica.
-            </p>
-          </div>
-        </div>
+        <PanelHeader
+          icon={FileText}
+          chipClass="bg-amber-500/15 text-amber-300"
+          title="Sobre este diagrama"
+          subtitle="Descreva a ideia visual — sem NFRs, templates ou análise técnica."
+        />
         <div>
           <label className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="free-project-context">
             Descrição
@@ -119,19 +120,15 @@ export default function ContextPanel({ isFreeMode = false }: { isFreeMode?: bool
 
   function addEventTopic() {
     const item: EventTopic = { name: "", protocol: "kafka" };
-    setNfr({ ...nfr, event_topics: [...(nfr.event_topics || []), item] });
+    setNfr(withEventTopicAdded(nfr, item));
   }
 
   function updateEventTopic(index: number, field: keyof EventTopic, value: string | number) {
-    const list = [...(nfr.event_topics || [])];
-    list[index] = { ...list[index], [field]: value as never };
-    setNfr({ ...nfr, event_topics: list });
+    setNfr(withEventTopicFieldUpdated(nfr, index, field, value));
   }
 
   function removeEventTopic(index: number) {
-    const list = [...(nfr.event_topics || [])];
-    list.splice(index, 1);
-    setNfr({ ...nfr, event_topics: list });
+    setNfr(withEventTopicRemoved(nfr, index));
   }
 
   function addConsistencyPattern() {
@@ -229,11 +226,31 @@ export default function ContextPanel({ isFreeMode = false }: { isFreeMode?: bool
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-2">
+      <div
+        role="tablist"
+        aria-label="Detalhes do contexto do projeto"
+        className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-2"
+        onKeyDown={(e) => {
+          // P4.4d — setas Left/Right (e Home/End) trocam a aba, mantendo o foco.
+          const idx = tabs.findIndex((t) => t.key === activeTab);
+          let next: number | null = null;
+          if (e.key === "ArrowLeft") next = (idx - 1 + tabs.length) % tabs.length;
+          else if (e.key === "ArrowRight") next = (idx + 1) % tabs.length;
+          else if (e.key === "Home") next = 0;
+          else if (e.key === "End") next = tabs.length - 1;
+          else return;
+          e.preventDefault();
+          setActiveTab(tabs[next].key);
+          document.getElementById(`ctx-tab-${tabs[next].key}`)?.focus();
+        }}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            id={`ctx-tab-${tab.key}`}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition ${
               activeTab === tab.key
                 ? "bg-[var(--accent-muted)] text-indigo-300"

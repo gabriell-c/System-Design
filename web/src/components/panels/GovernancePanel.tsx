@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Shield, Users, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import { useProjectStore } from "@/lib/project-store";
 import PanelEmpty from "@/components/ui/PanelEmpty";
@@ -31,29 +32,26 @@ export default function GovernancePanel() {
   const [raci, setRaci] = useState<{ rows: RaciRow[] } | null>(null);
   const [policies, setPolicies] = useState<PolicyFinding[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
       if (!activeProjectId) return;
       try {
         const [r, p] = await Promise.all([
           api.projectRaci(activeProjectId),
           api.projectPolicy(activeProjectId),
         ]);
-        if (cancelled) return;
+        if (isCancelled()) return;
         setRaci(r as { rows: RaciRow[] });
         setPolicies((p as { findings?: PolicyFinding[] }).findings ?? []);
       } catch {
-        if (!cancelled) {
+        if (!isCancelled()) {
           setRaci(null);
           setPolicies([]);
         }
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeProjectId, graphId]);
+    },
+    [activeProjectId, graphId],
+  );
 
   async function exportAdrs() {
     if (!activeProjectId) return;

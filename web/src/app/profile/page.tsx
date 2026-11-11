@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import NextImage from "next/image";
 import { useAuthStore } from "@/lib/auth-store";
 import { maskPhone } from "@/lib/masks";
 import {
@@ -74,7 +74,7 @@ export default function ProfilePage() {
         // ignore
       }
     }
-  }, [avatarUrl]);
+  }, [avatarUrl, setAvatarUrl]);
 
   async function save() {
     setSaving(true);
@@ -127,9 +127,10 @@ export default function ProfilePage() {
   }
 
   function applyCrop() {
+    if (!cropImage) return; // sem imagem carregada — nada a recortar
     setCropping(true);
     // Create canvas to crop the image
-    const img = new (globalThis as any).Image();
+    const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -244,7 +245,7 @@ export default function ProfilePage() {
                 <div className="relative group">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 text-xl font-bold text-slate-950 overflow-hidden">
                     {avatarUrl ? (
-                      <Image
+                      <NextImage
                         src={avatarUrl}
                         alt="Avatar"
                         width={64}
@@ -583,7 +584,7 @@ function CropModal({
           ref={containerRef}
           className="relative w-full aspect-square overflow-hidden rounded-lg bg-[var(--surface-3)] select-none"
         >
-          <Image
+          <NextImage
             src={src}
             alt="Crop preview"
             width={500}

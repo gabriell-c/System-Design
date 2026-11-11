@@ -11,6 +11,8 @@ import {
   useReactFlow,
   type EdgeTypes,
   type NodeTypes,
+  type Node,
+  type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Keyboard, Maximize, Minus, Plus, Trash2, Unlink2 } from "lucide-react";
@@ -50,7 +52,7 @@ import { filterVisibility, descendantIds } from "@/lib/canvas-filter";
 import CanvasComments from "@/components/canvas/CanvasComments";
 import LineageView from "@/components/canvas/LineageView";
 import { lodConfig, shouldEnableVisibleElements } from "@/lib/performance";
-import { freeLayerFingerprint, sortFreeNodesByLayer, freeLayerOrder } from "@/lib/sort-utils";
+import { sortFreeNodesByLayer, freeLayerOrder } from "@/lib/sort-utils";
 import { useProjectStore } from "@/lib/project-store";
 import { isFreeData } from "@/lib/types";
 const nodeTypes: NodeTypes = {
@@ -76,6 +78,46 @@ const edgeTypes: EdgeTypes = {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+}
+
+/** P4 — navegação por teclado no canvas (P4.4): helpers puros + DOM. */
+type PositionedNode = { id: string; position: { x: number; y: number } };
+
+function nodeReadingOrder(nodes: PositionedNode[]): PositionedNode[] {
+  return [...nodes].sort((a, b) => a.position.x - b.position.x || a.position.y - b.position.y);
+}
+
+function nearestNodeInDirection(
+  nodes: PositionedNode[],
+  current: PositionedNode,
+  dir: "up" | "down" | "left" | "right",
+): PositionedNode | undefined {
+  const vertical = dir === "up" || dir === "down";
+  const forward = dir === "right" || dir === "down";
+  const cx = current.position.x;
+  const cy = current.position.y;
+  const candidates = nodes.filter((n) =>
+    vertical ? (forward ? n.position.y > cy : n.position.y < cy) : forward ? n.position.x > cx : n.position.x < cx,
+  );
+  if (candidates.length === 0) return undefined;
+  candidates.sort((a, b) => {
+    const da = vertical ? Math.abs(a.position.y - cy) : Math.abs(a.position.x - cx);
+    const db = vertical ? Math.abs(b.position.y - cy) : Math.abs(b.position.x - cx);
+    return da - db || Math.abs(a.position.x - cx) - Math.abs(b.position.x - cx);
+  });
+  return candidates[0];
+}
+
+function activeCanvasNodeWrapper(): HTMLElement | null {
+  const el = typeof document === "undefined" ? null : document.activeElement;
+  return el instanceof Element ? el.closest<HTMLElement>(".react-flow__node") : null;
+}
+
+function focusCanvasNode(nodeId: string): void {
+  const wrapper = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(nodeId)}"]`);
+  if (!wrapper) return;
+  // O root do node component tem tabindex="0" (P4.4a); fallback pro wrapper.
+  (wrapper.querySelector<HTMLElement>('[tabindex="0"]') ?? wrapper).focus();
 }
 
 function CanvasInner() {
@@ -115,7 +157,7 @@ function CanvasInner() {
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const projects = useProjectStore((s) => s.projects);
   const isFreeMode = projects.find((p) => p.id === activeProjectId)?.project_kind === "free";
-  const { screenToFlowPosition, setNodes, fitView, zoomIn, zoomOut } = useReactFlow();
+  const { screenToFlowPosition, setNodes, fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guidelines, setGuidelines] = useState<GuideLine[]>([]);
   const snapRef = useRef({ active: false, originalPositions: new Map<string, { x: number; y: number }>() });
@@ -130,8 +172,6 @@ function CanvasInner() {
 
   // P2.1.1 + P2.1.3 — LOD: ajustar configurações conforme a escala
   const _lod = useMemo(() => lodConfig(nodes.length), [nodes.length]);
-
-  const layerFp = useMemo(() => freeLayerFingerprint(nodes), [nodes]);
 
   // Cards que só “parecem” dentro do bloco (sem parentId) passam a andar junto
   useEffect(() => {
@@ -165,6 +205,32 @@ function CanvasInner() {
         return;
       }
 
+      // P4.4b — setas navegam entre nodes (ordem por posição); Home/End vão
+      // para o primeiro/último. Só atua com foco em um node do canvas;
+      // Tab segue nativo. (focusNode não existe no @xyflow/react v12 —
+      // navegação feita via getNodes + ordem de posição + focus no DOM.)
+      const isNavKey =
+        key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright" || key === "home" || key === "end";
+      if (!mod && isNavKey) {
+        const wrapper = activeCanvasNodeWrapper();
+        if (!wrapper) return;
+        const currentId = wrapper.dataset.id;
+        if (!currentId) return;
+        event.preventDefault();
+        const all = getNodes();
+        const current = all.find((n) => n.id === currentId);
+        if (!current) return;
+        if (key === "home" || key === "end") {
+          const ordered = nodeReadingOrder(all);
+          const target = key === "home" ? ordered[0] : ordered[ordered.length - 1];
+          if (target && target.id !== currentId) focusCanvasNode(target.id);
+          return;
+        }
+        const dir = key === "arrowup" ? "up" : key === "arrowdown" ? "down" : key === "arrowleft" ? "left" : "right";
+        const target = nearestNodeInDirection(all, current, dir);
+        if (target) focusCanvasNode(target.id);
+      }
+
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         deleteSelected();
@@ -172,7 +238,7 @@ function CanvasInner() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteSelected, redo, undo, fitView]);
+  }, [deleteSelected, redo, undo, fitView, getNodes]);
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -235,7 +301,7 @@ function CanvasInner() {
       return 0;
     });
     return [...containers, ...sortedRest];
-  }, [nodes, isFreeMode, layerFp]);
+  }, [nodes, isFreeMode]);
 
   const displayEdges = useMemo(() => {
     if (!blastHighlightEdgeIds.length) return edges;
@@ -383,7 +449,7 @@ function CanvasInner() {
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setShowOnboarding(localStorage.getItem("archia-onboarded") !== "1");
     } catch {
        
@@ -629,21 +695,28 @@ function CanvasInner() {
         elementsSelectable={!isLocked}
         nodesConnectable={!isLocked}
         nodesDraggable={!isLocked}
+        /* P4.4a — o wrapper do RF v12 já vem focusable por default; o foco
+         * fica no root do node component (tabIndex/role/aria-label), então
+         * desligamos o focus do wrapper para não ter 2 tab-stops por node. */
+        nodesFocusable={false}
         zoomOnScroll={!isLocked}
         panOnDrag={!isLocked ? [1, 2] : false}
         zoomOnPinch={!isLocked}
         selectionOnDrag={!isLocked}
         selectionMode={isLocked ? undefined : SelectionMode.Partial}
         multiSelectionKeyCode={!isLocked ? "Shift" : undefined}
-        onSelectionChange={useCallback(({ nodes: selected, edges: selectedEdges }) => {
-          if (isLockedRef.current) return;
-          if (selectedEdges?.[0]) {
-            setSelectedEdgeId(selectedEdges[0].id);
-            return;
-          }
-          const ids = (selected ?? []).map((n) => n.id);
-          setSelectedNodeIds(ids);
-        }, [setSelectedEdgeId, setSelectedNodeIds])}
+        onSelectionChange={useCallback(
+          ({ nodes: selected, edges: selectedEdges }: { nodes?: Node[]; edges?: Edge[] }) => {
+            if (isLockedRef.current) return;
+            if (selectedEdges?.[0]) {
+              setSelectedEdgeId(selectedEdges[0].id);
+              return;
+            }
+            const ids = (selected ?? []).map((n) => n.id);
+            setSelectedNodeIds(ids);
+          },
+          [setSelectedEdgeId, setSelectedNodeIds],
+        )}
         onEdgeClick={useCallback((_: unknown, edge: { id: string }) => {
           if (isLockedRef.current) return;
           setSelectedEdgeId(edge.id);

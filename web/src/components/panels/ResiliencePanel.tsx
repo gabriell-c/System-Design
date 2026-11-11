@@ -3,6 +3,7 @@
 import { AlertTriangle, Loader2, Skull, Zap } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 import { isArchData } from "@/lib/types";
 import type { BlastRadiusResult, FailureInjectionResult } from "@/lib/types";
@@ -69,17 +70,12 @@ export default function ResiliencePanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-300">
-          <Skull size={16} aria-hidden />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Injeção de falha</p>
-          <p className="mt-0.5 text-xs text-[var(--muted-fg)]">
-            Selecione um serviço no canvas e simule indisponibilidade — blast radius no diagrama.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={Skull}
+        chipClass="bg-rose-500/15 text-rose-300"
+        title="Injeção de falha"
+        subtitle="Selecione um serviço no canvas e simule indisponibilidade — blast radius no diagrama."
+      />
 
       <div>
         <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="fail-mode">

@@ -45,10 +45,13 @@
     "birth_date": "Data de nascimento",
     "new_password": "Nova senha",
     "verify_identity_btn": "Verificar identidade",
-    "reset_password_btn": "Redefinir senha",
-    "identity_verified": "Identidade verificada. Defina sua nova senha.",
+    "code_sent": "Código de recuperação enviado para o seu telefone. (Em dev, veja o log do backend.)",
+    "code_label": "Código de recuperação",
+    "code_placeholder": "8 dígitos",
+    "code_invalid": "O código tem 8 dígitos.",
+    "confirm_btn": "Confirmar nova senha",
+    "confirm_failed": "Código inválido ou expirado.",
     "verification_failed": "Falha na verificação",
-    "reset_failed": "Falha na redefinição",
     "network_error": "Erro de rede",
     "password_reset_redirect": "Senha redefinida! Redirecionando para o login..."
   }

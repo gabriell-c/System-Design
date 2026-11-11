@@ -8,48 +8,55 @@ import { useTranslation } from "@/i18n";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
 
-type Step = "verify" | "reset";
+/** Fluxo em 2 passos (P1.3): /recover é enumeration-safe (sempre {sent: true})
+ *  e entrega um código de 8 dígitos fora da resposta; /recover/confirm valida
+ *  o código e invalida todas as sessões do usuário. */
+type Step = "verify" | "code";
 
 export default function RecoverPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const [step, setStep] = useState<Step>("verify");
-  const [form, setForm] = useState({ username: "", phone: "", birth_date: "" });
-  const [resetToken, setResetToken] = useState("");
+  const [form, setForm] = useState({ phone: "", birth_date: "" });
+  const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const update = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  const update = (k: "phone" | "birth_date", v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); setLoading(true);
+    setError(""); setSuccess(""); setLoading(true);
     try {
       const r = await fetch(`${API}/api/v1/auth/recover`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ phone: form.phone, birth_date: form.birth_date }),
       });
-      const data = await r.json();
-      if (!r.ok) { setError(data.detail || t("recover.verification_failed")); return; }
-      setResetToken(data.reset_token);
-      setStep("reset");
+      // A resposta nunca revela se o usuário existe ({sent: true} sempre).
+      if (!r.ok) { setError(t("recover.verification_failed")); return; }
+      setStep("code");
     } catch { setError(t("recover.network_error")); } finally { setLoading(false); }
   };
 
-  const handleReset = async (e: React.FormEvent) => {
+  const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^\d{8}$/.test(code)) { setError(t("recover.code_invalid")); return; }
     setError(""); setLoading(true);
     try {
-      const r = await fetch(`${API}/api/v1/auth/reset-password`, {
+      const r = await fetch(`${API}/api/v1/auth/recover/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: resetToken, new_password: newPassword }),
+        body: JSON.stringify({
+          phone: form.phone,
+          birth_date: form.birth_date,
+          code,
+          new_password: newPassword,
+        }),
       });
-      const data = await r.json();
-      if (!r.ok) { setError(data.detail || t("recover.reset_failed")); return; }
+      if (!r.ok) { setError(t("recover.confirm_failed")); return; }
       setSuccess(t("recover.password_reset_redirect"));
       setTimeout(() => router.push("/login"), 2000);
     } catch { setError(t("recover.network_error")); } finally { setLoading(false); }
@@ -71,9 +78,6 @@ export default function RecoverPage() {
           {success && <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">{success}</div>}
           {step === "verify" ? (
             <form onSubmit={handleVerify} className="space-y-4">
-              <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("auth.username")}</label>
-                <input type="text" value={form.username} onChange={(e) => update("username", e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:ring-2 focus:ring-indigo-500" required /></div>
               <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("recover.phone_number")}</label>
                 <input type="tel" value={form.phone} onChange={(e) => {
                   const raw = e.target.value.replace(/\D/g, "");
@@ -90,17 +94,22 @@ export default function RecoverPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleReset} className="space-y-4">
+            <form onSubmit={handleConfirm} className="space-y-4">
               <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" /> {t("recover.identity_verified")}
+                <CheckCircle className="w-4 h-4" /> {t("recover.code_sent")}
               </div>
+              <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("recover.code_label")}</label>
+                <input type="text" value={code} inputMode="numeric" autoComplete="one-time-code" maxLength={8}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder={t("recover.code_placeholder")}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 tracking-[0.4em] text-center focus:ring-2 focus:ring-indigo-500" required /></div>
               <div><label className="block text-sm font-medium text-slate-300 mb-1">{t("recover.new_password")}</label>
                 <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8}
                   placeholder={t("register.min_8_chars")} className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500" required /></div>
               <button type="submit" disabled={loading}
                 className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium transition-all flex items-center justify-center gap-2">
                 {loading ? <div className="w-5 h-5 border-2 border-[var(--border-strong)] border-t-white rounded-full animate-spin" /> : <KeyRound className="w-5 h-5" />}
-                {t("recover.reset_password_btn")}
+                {t("recover.confirm_btn")}
               </button>
             </form>
           )}

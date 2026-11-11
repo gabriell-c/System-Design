@@ -1,110 +1,156 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createCollabProvider, type CollabPresence, type CollabProvider } from "@/lib/collab";
+import {
+  createCollabProvider,
+  type CollabAuthError,
+  type CollabPresence,
+  type CollabProvider,
+  type MergedGraphSnapshot,
+} from "@/lib/collab";
 import { useAuthStore } from "@/lib/auth-store";
 import { useGraphStore } from "@/lib/graph-store";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
+import type { AnalysisResult, CanvasNodeData, ProjectNfr } from "@/lib/types";
+import type { Edge, Node } from "@xyflow/react";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { API_BASE } from "@/lib/api-base";
 
 /**
- * Wires Yjs CRDT sync for the active graph when the user is authenticated.
- * Presence badge + remote snapshot apply (without fighting local typing).
+ * Wires real-time collaboration for the active graph when the user is
+ * authenticated. Presence is server-injected (token-trusted); remote state is
+ * merged element-wise and applied through graph-store.applyRemote — no undo
+ * entry, no dirty flag, no Excalidraw clobber.
  */
 export default function CollabPresenceBadge() {
   const graphId = useGraphStore((s) => s.graphId);
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
-  const loadSnapshot = useGraphStore((s) => s.loadSnapshot);
-  const name = useGraphStore((s) => s.name);
-  const analysis = useGraphStore((s) => s.analysis);
-  const context = useGraphStore((s) => s.context);
-  const nfr = useGraphStore((s) => s.nfr);
+  const excalidrawElements = useGraphStore((s) => s.excalidrawElements);
+  const applyRemote = useGraphStore((s) => s.applyRemote);
   const user = useAuthStore((s) => s.user);
   const unresolvedComments = useGraphStore(
     (s) => s.canvasComments.filter((c) => !c.resolved).length,
   );
   const [peers, setPeers] = useState<CollabPresence[]>([]);
   const [connected, setConnected] = useState(false);
+  const [authError, setAuthError] = useState<CollabAuthError | null>(null);
   const providerRef = useRef<CollabProvider | null>(null);
-  const skipPush = useRef(false);
 
+  // One provider per graph: seed from the live store state (fresh read, not a
+  // stale closure) and apply remote merges through applyRemote.
   useEffect(() => {
     if (!graphId || !user) return;
-    const provider = createCollabProvider(
-      graphId,
-      String(user.id || user.email || "anon"),
-      user.username || user.email || "Usuário",
-    );
+    const provider = createCollabProvider(graphId);
     providerRef.current = provider;
+
+    const state = useGraphStore.getState();
+    provider.seedFromSnapshot({
+      nodes: state.nodes,
+      edges: state.edges,
+      excalidrawElements: state.excalidrawElements,
+      name: state.name,
+      context: state.context,
+      nfr: state.nfr,
+    });
+
     provider.connect(API_BASE);
-    const unsub = provider.subscribe((s) => {
+
+    const unsubscribe = provider.subscribe((s) => {
       setPeers(s.peers);
       setConnected(s.connected);
+      setAuthError(s.authError);
     });
-    const unsubGraph = provider.onGraphChange((snap) => {
-      skipPush.current = true;
-      try {
-        loadSnapshot(
-          name,
-          snap.nodes as Parameters<typeof loadSnapshot>[1],
-          snap.edges as Parameters<typeof loadSnapshot>[2],
-          analysis,
-          context,
-          nfr,
-        );
-      } finally {
-        queueMicrotask(() => {
-          skipPush.current = false;
-        });
-      }
+
+    const unsubscribeGraph = provider.onGraphChange((merged: MergedGraphSnapshot) => {
+      applyRemote({
+        nodes: (merged.nodes ?? []) as Node<CanvasNodeData>[],
+        edges: (merged.edges ?? []) as Edge[],
+        excalidrawElements: (merged.excalidrawElements ?? []) as ExcalidrawElement[],
+        // Pass-through apenas quando o snapshot remoto carrega o campo —
+        // undefined nunca sobrescreve o estado local.
+        name: merged.name,
+        analysis:
+          merged.analysis !== undefined ? (merged.analysis as AnalysisResult) : undefined,
+        context: merged.context,
+        nfr: merged.nfr !== undefined ? (merged.nfr as ProjectNfr) : undefined,
+      });
     });
-    provider.seedFromSnapshot({ nodes, edges });
+
     return () => {
-      unsub();
-      unsubGraph();
-      provider.disconnect();
+      unsubscribe();
+      unsubscribeGraph();
+      provider.close();
       providerRef.current = null;
+      setPeers([]);
+      setConnected(false);
+      setAuthError(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnect only on graph/user change
-  }, [graphId, user?.id, user?.email]);
+  }, [graphId, user, applyRemote]);
 
+  // Push local structural changes (throttled by the provider).
   useEffect(() => {
-    if (!providerRef.current || skipPush.current) return;
-    providerRef.current.pushLocalSnapshot({ nodes, edges });
-  }, [nodes, edges]);
+    const provider = providerRef.current;
+    if (!provider) return;
+    provider.pushLocalSnapshot({
+      nodes,
+      edges,
+      excalidrawElements,
+    });
+  }, [nodes, edges, excalidrawElements]);
 
-  if (!graphId || !user) return null;
-  const others = peers.filter((p) => p.userId !== String(user.id || user.email));
-  const count = Math.max(1, peers.length);
-  const unresolved = unresolvedComments;
+  if (!user) return null;
+
+  if (authError) {
+    return (
+      <div
+        className="flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-300"
+        title={
+          authError === "auth"
+            ? "Autenticação da colaboração falhou (código 4001) — verifique a sessão e recarregue."
+            : "Sala indisponível ou cheia (código 4003)."
+        }
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+        {authError === "auth" ? "Colaboração indisponível (autenticação)" : "Sala indisponível"}
+        {unresolvedComments > 0 && (
+          <span className="ml-1 rounded-full bg-white/10 px-1.5 py-px">{unresolvedComments} comentários</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
-      className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/90 px-2.5 py-1.5 text-xs text-[var(--muted-fg)] backdrop-blur"
-      title={connected ? "Colaboração Yjs ativa" : "Reconectando…"}
+      className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-1)] px-3 py-1.5 text-xs text-[var(--muted-fg)]"
+      title={
+        connected
+          ? "Sincronização em tempo real ativa"
+          : "Colaboração não conectada — tentando reconectar…"
+      }
     >
       <span
-        className={`inline-block h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-400"}`}
-        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${
+          connected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"
+        }`}
       />
-      <span>
-        {count} online
-        {others.length > 0 ? ` · ${others.map((p) => p.displayName).join(", ")}` : ""}
-        {unresolved > 0 ? ` · ${unresolved} comentário${unresolved === 1 ? "" : "s"} ativo${unresolved === 1 ? "" : "s"}` : ""}
-      </span>
-      <div className="flex -space-x-1">
-        {peers.slice(0, 5).map((p) => (
+      <span className="text-[var(--fg)]">{peers.length || 1}</span>
+      <div className="flex -space-x-1.5">
+        {peers.slice(0, 4).map((p) => (
           <span
             key={p.userId}
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
-            style={{ background: p.color }}
+            className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--surface-1)] text-[10px] font-semibold text-white"
+            style={{ backgroundColor: p.color }}
             title={p.displayName}
           >
-            {p.displayName.slice(0, 1).toUpperCase()}
+            {p.displayName.slice(0, 1).toUpperCase() || "?"}
           </span>
         ))}
       </div>
+      {unresolvedComments > 0 && (
+        <span className="ml-1 rounded-full bg-indigo-500/15 px-1.5 py-px text-indigo-300">
+          {unresolvedComments} comentários
+        </span>
+      )}
     </div>
   );
 }

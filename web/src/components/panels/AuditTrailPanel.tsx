@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { History } from "lucide-react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { useGraphStore } from "@/lib/graph-store";
 import PanelEmpty from "@/components/ui/PanelEmpty";
+import PanelHeader from "@/components/ui/PanelHeader";
 import Skeleton from "@/components/ui/Skeleton";
 
 type AuditEntryRow = {
@@ -26,27 +28,24 @@ export default function AuditTrailPanel() {
   const [page, setPage] = useState(0);
   const limit = 20;
 
-  useEffect(() => {
-    if (!graphId) return;
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
+      if (!graphId) return;
       setLoading(true);
       setError(null);
       try {
         const data = await api.listAuditEntries(graphId, { limit, offset: page * limit });
-        if (cancelled) return;
+        if (isCancelled()) return;
         setEntries(data.entries as AuditEntryRow[]);
         setTotal(data.total);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erro ao carregar");
+        if (!isCancelled()) setError(e instanceof Error ? e.message : "Erro ao carregar");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!isCancelled()) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [graphId, page]);
+    },
+    [graphId, page],
+  );
 
   if (!graphId) {
     return (
@@ -56,17 +55,12 @@ export default function AuditTrailPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
-          <History size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Audit Trail</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Registro de todas as alterações (P1.4.4).
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={History}
+        chipClass="bg-blue-500/15 text-blue-300"
+        title="Audit Trail"
+        subtitle="Registro de todas as alterações (P1.4.4)."
+      />
 
       {loading && <Skeleton rows={4} className="px-1" />}
       {error && <p className="text-sm text-rose-300">{error}</p>}
@@ -89,7 +83,7 @@ export default function AuditTrailPanel() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-200">{entry.action}</span>
-                  <span className="text-[var(--muted)]">{new Date(entry.created_at).toLocaleString()}</span>
+                  <span className="text-[var(--muted)]">{entry.created_at ? new Date(entry.created_at).toLocaleString() : "—"}</span>
                 </div>
                 <p className="mt-1 text-[var(--muted-fg)]">
                   <span className="text-[var(--muted)]">Por: </span>

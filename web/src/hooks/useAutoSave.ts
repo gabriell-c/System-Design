@@ -77,7 +77,9 @@ export function useAutoSave() {
   const autoSaveIntervalMinutes = user?.auto_save_interval_minutes ?? 15;
 
   // Ref para o timestamp do último save — survives HMR, stable across renders
-  const lastSaveTimeRef = useRef<number>(Date.now());
+  // Inicializado como null (Date.now() no render seria impuro; a 1ª checagem
+  // periódica define a referência do "agora").
+  const lastSaveTimeRef = useRef<number | null>(null);
   const isSavingRef = useRef(false);
   const autoSaveEnabledRef = useRef(autoSaveEnabled);
   const autoSaveIntervalMinutesRef = useRef(autoSaveIntervalMinutes);
@@ -101,6 +103,9 @@ export function useAutoSave() {
       const state = useGraphStore.getState();
       if (!state.graphId || !state.projectId || !state.dirty || isSavingRef.current) return;
 
+      if (lastSaveTimeRef.current === null) {
+        lastSaveTimeRef.current = Date.now();
+      }
       const timeSinceLastSave = Date.now() - lastSaveTimeRef.current;
       if (timeSinceLastSave >= intervalMs) {
         console.log("[AutoSave] backup periódico…", { intervalMs, timeSinceLastSave });

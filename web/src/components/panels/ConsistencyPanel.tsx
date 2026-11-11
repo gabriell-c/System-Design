@@ -1,8 +1,9 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, RefreshCw, Layers } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useApiEffect } from "@/hooks/useApiEffect";
 import { analyzeDiagramConsistency, type ConsistencyIssue } from "@/lib/diagram-consistency";
 import { diagramKindLabel } from "@/lib/diagram-library";
 import { useProjectStore } from "@/lib/project-store";
@@ -19,9 +20,8 @@ export default function ConsistencyPanel() {
 
   const project = projects.find((p) => p.id === activeProjectId);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
+  useApiEffect(
+    async (isCancelled) => {
       if (!activeProjectId || !project?.diagrams?.length) {
         setIssues([]);
         setRemoteOk(null);
@@ -30,18 +30,21 @@ export default function ConsistencyPanel() {
       setLoading(true);
       try {
         const remote = await api.projectConsistency(activeProjectId);
-        if (cancelled) return;
+        if (isCancelled()) return;
         setRemoteOk(Boolean(remote.ok));
         if (Array.isArray(remote.issues) && remote.issues.length) {
           setIssues(
-            remote.issues.map((i: Record<string, unknown>) => ({
-              severity: (i.severity as ConsistencyIssue["severity"]) ?? "warning",
-              stableRef: String(i.stable_ref ?? ""),
-              label: String(i.label ?? ""),
-              presentIn: (i.present_in as string[]) ?? [],
-              missingIn: (i.missing_in as string[]) ?? [],
-              detail: String(i.detail ?? ""),
-            })),
+            remote.issues.map((raw) => {
+              const i = raw as Record<string, unknown>;
+              return {
+                severity: (i.severity as ConsistencyIssue["severity"]) ?? "warning",
+                stableRef: String(i.stable_ref ?? ""),
+                label: String(i.label ?? ""),
+                presentIn: (i.present_in as string[]) ?? [],
+                missingIn: (i.missing_in as string[]) ?? [],
+                detail: String(i.detail ?? ""),
+              };
+            }),
           );
         } else {
           const local = analyzeDiagramConsistency(
@@ -55,7 +58,7 @@ export default function ConsistencyPanel() {
           setIssues(local);
         }
       } catch {
-        if (cancelled) return;
+        if (isCancelled()) return;
         const local = analyzeDiagramConsistency(
           (project?.diagrams ?? []).map((d) => ({
             graphId: d.id,
@@ -67,13 +70,11 @@ export default function ConsistencyPanel() {
         setIssues(local);
         setRemoteOk(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!isCancelled()) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeProjectId, project, tick]);
+    },
+    [activeProjectId, project, tick],
+  );
 
   return (
     <div className="space-y-4 px-4 py-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Moon, Play, SkipBack, SkipForward, Sun, X } from "lucide-react";
 import { useGraphStore } from "@/lib/graph-store";
 
@@ -32,9 +32,12 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
     }))
     .sort((a, b) => a.flowNumber - b.flowNumber);
 
-  const handlePrev = () => setStep((s) => Math.max(0, s - 1));
-  const handleNext = () => setStep((s) => Math.min(steps.length - 1, s + 1));
-  const handlePlay = () => setPlaying((v) => !v);
+  const handlePrev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
+  const handleNext = useCallback(
+    () => setStep((s) => Math.min(steps.length - 1, s + 1)),
+    [steps.length],
+  );
+  const handlePlay = useCallback(() => setPlaying((v) => !v), []);
 
   // Update highlights when step changes
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function PresentationMode({ graphId: _graphId }: Props) {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, step, steps.length]);
+  }, [open, step, steps.length, handleNext, handlePrev]);
 
   // Auto-play interval
   useEffect(() => {

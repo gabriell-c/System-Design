@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 import type { Finding } from "@/lib/types";
 import PanelEmpty from "@/components/ui/PanelEmpty";
@@ -47,17 +48,12 @@ export default function ThreatAnalysisPanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-300">
-          <ShieldAlert size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Análise de ameaças (STRIDE + LINDDUN)</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Ameaças de segurança e privacidade detectadas na arquitetura.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={ShieldAlert}
+        chipClass="bg-rose-500/15 text-rose-300"
+        title="Análise de ameaças (STRIDE + LINDDUN)"
+        subtitle="Ameaças de segurança e privacidade detectadas na arquitetura."
+      />
 
       {threatFindings.length === 0 ? (
         <PanelEmpty

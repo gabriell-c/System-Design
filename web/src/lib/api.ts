@@ -14,8 +14,7 @@ import type {
   SimulationResult,
   SimulationRunPayload,
 } from "./simulation";
-
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4410";
+import { API_BASE } from "./api-base";
 
 export class ApiConflictError extends Error {
   readonly status = 409;
@@ -31,7 +30,7 @@ export class ApiConflictError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
     headers: {

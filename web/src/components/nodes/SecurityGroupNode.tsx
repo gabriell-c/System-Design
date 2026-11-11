@@ -21,6 +21,7 @@ export default function SecurityGroupNode({ id, data, selected }: NodeProps<Node
         borderColor: "rgba(244, 114, 182, 0.55)",
       }}
       aria-label={`Security group ${data.label}, ${rules.length} regras`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />

@@ -21,6 +21,7 @@ export default function NaclNode({ id, data, selected }: NodeProps<Node<ArchNode
         borderColor: "rgba(251, 146, 60, 0.55)",
       }}
       aria-label={`NACL ${data.label}, ${rules.length} regras`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="left-in" type="target" position={Position.Left} style={{ top: "40%" }} />
       <AnchorHandle nodeId={id} handleId="right-out" type="source" position={Position.Right} style={{ top: "40%" }} />

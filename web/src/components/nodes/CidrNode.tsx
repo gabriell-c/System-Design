@@ -16,6 +16,7 @@ export default function CidrNode({ id, data, selected }: NodeProps<Node<CidrNode
       }`}
       style={{ background: "rgba(20,184,166,0.08)", borderColor: "rgba(45,212,191,0.45)" }}
       aria-label={`CIDR ${cidr}`}
+      tabIndex={0}
     >
       <AnchorHandle nodeId={id} handleId="in" type="target" position={Position.Top} />
       <div className="flex items-center gap-2">

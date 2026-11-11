@@ -19,6 +19,9 @@ export default function ZoneNode({ id, data, selected }: NodeProps<Node<ZoneNode
       className={`relative h-full min-h-[160px] min-w-[240px] rounded-2xl border-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] ${
         selected ? "ring-2 ring-indigo-400/60" : ""
       }`}
+      role="article"
+      aria-label={`${data.label} - ${meta.label}`}
+      tabIndex={0}
       style={{
         background: `linear-gradient(180deg, ${meta.bg} 0%, rgba(7,11,16,0.88) 42%)`,
         borderColor: selected ? "#22d3ee" : meta.border,

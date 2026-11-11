@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Database, Key, Share2, RefreshCw } from "lucide-react";
+import PanelHeader from "@/components/ui/PanelHeader";
 import { useGraphStore } from "@/lib/graph-store";
 import type {
   DataOwnership,
@@ -121,17 +122,12 @@ export default function DataArchitecturePanel() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-          <Database size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">Arquitetura de Dados</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted-fg)]">
-            Ownership, contratos de API, tópicos de eventos e lineage
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        icon={Database}
+        chipClass="bg-emerald-500/15 text-emerald-300"
+        title="Arquitetura de Dados"
+        subtitle="Ownership, contratos de API, tópicos de eventos e lineage"
+      />
 
       {/* Tabs */}
       <div className="flex gap-2 bg-zinc-800/50 p-1 rounded-lg">

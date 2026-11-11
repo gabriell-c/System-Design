@@ -303,9 +303,9 @@ export default function Inspector({
         {tab === "cost" && <CostPanel />}
         {tab === "wiki" && <WikiPanel />}
         {tab === "audit" && <AuditTrailPanel />}
-        {tab === "access" && <AccessPanel graphId={graphId} />}
-        {tab === "boundary" && <BoundaryPanel graphId={graphId} />}
-        {tab === "diff" && <DiffPanel graphId={graphId} />}
+        {tab === "access" && graphId && <AccessPanel graphId={graphId} />}
+        {tab === "boundary" && graphId && <BoundaryPanel graphId={graphId} />}
+        {tab === "diff" && graphId && <DiffPanel graphId={graphId} />}
         {tab === "togaf" && <TogafPanel />}
         {tab === "adr" && <AdrPanel />}
         {tab === "review" && <ReviewPanel />}

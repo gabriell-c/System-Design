@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import dynamic from "next/dynamic";
-import ExcalidrawWrapper from "@/components/canvas/ExcalidrawWrapper";
 import DomainNotice from "@/components/layout/DomainNotice";
 import Inspector from "@/components/panels/Inspector";
 import ComponentPalette from "@/components/sidebar/ComponentPalette";
@@ -17,6 +16,12 @@ import { useProjectStore } from "@/lib/project-store";
 import TopBar from "./TopBar";
 
 const DesignCanvas = dynamic(() => import("@/components/canvas/DesignCanvas"), { ssr: false });
+
+// Excalidraw é pesado: carrega sob demanda (o CSS vai junto no chunk do wrapper).
+const ExcalidrawView = dynamic(() => import("@/components/canvas/ExcalidrawWrapper"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-[var(--surface-1)]" />,
+});
 
 const FOCUS_KEY = "archia-focus-mode";
 const AUTO_ANALYZE_KEY = "archia-auto-analyze";
@@ -205,7 +210,7 @@ export default function EditorShell() {
         className="h-full min-h-0 w-full overflow-hidden"
         style={{ height: "100%", width: "100%", background: "#fff" }}
       >
-        <ExcalidrawWrapper />
+        <ExcalidrawView />
       </div>
     );
   }
