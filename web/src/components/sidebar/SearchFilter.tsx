@@ -24,7 +24,7 @@ const C4_LABELS: Record<C4Level | "all", string> = {
   code: "Code",
 };
 
-const SERVICE_CATALOG = Array.from(new Set(CATALOG.map((c) => c.id).filter((id) => id.includes("-")))).slice(0, 40);
+const CATALOG_ID_OPTIONS = CATALOG.map((c) => ({ value: c.id, label: c.label }));
 
 export default function SearchFilter() {
   const canvasFilter = useGraphStore((s) => s.canvasFilter);
@@ -101,8 +101,8 @@ export default function SearchFilter() {
         <CustomSelect
           value={canvasFilter.catalogId}
           options={[
-            { value: "", label: "Catalogo (ID)" },
-            ...SERVICE_CATALOG.map((id) => ({ value: id, label: id })),
+            { value: "", label: "Catálogo" },
+            ...CATALOG_ID_OPTIONS,
           ]}
           onChange={(v) => setCanvasFilter({ ...canvasFilter, catalogId: v })}
         />

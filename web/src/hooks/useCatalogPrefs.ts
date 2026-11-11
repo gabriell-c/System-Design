@@ -174,7 +174,9 @@ const CATEGORY_ORDER: Record<string, number> = {
   database: 4,
   platform: 5,
   tool: 6,
-  uncategorized: 7,
+  security: 7,
+  network: 8,
+  uncategorized: 9,
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -185,6 +187,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   database: "Bancos de dados",
   platform: "Plataformas",
   tool: "Ferramentas",
+  security: "Segurança",
+  network: "Rede",
   uncategorized: "Outros",
 };
 

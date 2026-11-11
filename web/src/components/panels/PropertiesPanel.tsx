@@ -2,6 +2,7 @@
 
 import { Boxes, ChevronDown, ChevronUp, Layers, Link2, Trash2 } from "lucide-react";
 import { RENDER_MODES, STATE_LIBS, UI_LIBS, findCatalog } from "@/lib/catalog";
+import { getCatalogAttributes } from "@/lib/catalog-attrs";
 import { canNestIntoContainer, isBlockNode, isContainerNode } from "@/lib/blocks";
 import { FLOW_KIND_META, normalizeEdgeData } from "@/lib/edges";
 import { freeLayerOrder } from "@/lib/sort-utils";
@@ -804,6 +805,7 @@ export default function PropertiesPanel() {
 
   const archData = node.data;
   const catalog = findCatalog(archData.catalogId);
+  const catalogAttrs = archData.catalogId ? getCatalogAttributes(archData.catalogId) : null;
   const cfg = archData.config;
   const parent = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
   const stackBlocks = compatibleParents.filter((n) => isBlockNode(n));
@@ -920,6 +922,27 @@ export default function PropertiesPanel() {
 
       <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3 space-y-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Contrato de capacidade</p>
+        {catalogAttrs && (
+          <div className="space-y-0.5 text-xs text-[var(--muted)]">
+            {catalogAttrs.maxRps != null && (
+              <p>
+                Limite de referência: <strong className="text-slate-200">{catalogAttrs.maxRps.toLocaleString("pt-BR")} req/s</strong>
+              </p>
+            )}
+            {catalogAttrs.ha && (
+              <p>
+                HA: <strong className="text-slate-200">{catalogAttrs.ha}</strong>
+                {catalogAttrs.regions && (
+                  <>
+                    {" · Regiões: "}
+                    <strong className="text-slate-200">{catalogAttrs.regions.join(", ")}</strong>
+                  </>
+                )}
+              </p>
+            )}
+            {catalogAttrs.notes && <p className="text-[var(--muted-fg)]">{catalogAttrs.notes}</p>}
+          </div>
+        )}
         <input
           type="number"
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-slate-100"
@@ -966,7 +989,8 @@ export default function PropertiesPanel() {
 
       {(archData.kind === "cloud" || catalog?.provider) && (
         <p className="text-xs text-[var(--muted-fg)]">
-          {cfg.provider ?? catalog?.provider} · {cfg.service ?? catalog?.capability}
+          {[cfg.provider ?? catalog?.provider, cfg.service ?? catalog?.capability].filter(Boolean).join(" · ") ||
+            "Serviço de nuvem"}
         </p>
       )}
 

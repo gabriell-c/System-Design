@@ -2,7 +2,7 @@
 
 import { Activity, Boxes, ChevronRight, Cloud, Database, Fingerprint, HeartPulse, Layers, Layout, Network, Plug, Plus, Rocket, Search, Server, Share2, Shield } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KIND_META, CATALOG, findCatalog } from "@/lib/catalog";
+import { KIND_META, CATALOG, findCatalog, providerOf } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
 import { TechIcon } from "@/lib/tech-icons";
 import CatalogLibrary from "./CatalogLibrary";
@@ -21,6 +21,14 @@ import VirtualList from "@/components/ui/VirtualList";
 type PaletteTab = "componentes" | "filtros" | "vistas";
 
 const KINDS: NodeKind[] = ALL_NODE_KINDS;
+const PROVIDER_CHIPS: (CloudProvider | "all")[] = ["all", "aws", "azure", "gcp", "generic"];
+const PROVIDER_CHIP_LABELS: Record<CloudProvider | "all", string> = {
+  all: "Todos",
+  aws: "AWS",
+  azure: "Azure",
+  gcp: "GCP",
+  generic: "Agnóstico",
+};
 const ZONE_ICONS: Record<ZoneKind, typeof Layers> = {
   region: Cloud,
   vpc: Layers,
@@ -58,7 +66,7 @@ const KIND_ICONS: Record<NodeKind, typeof Layout> = {
 export default function ComponentPalette() {
   const [paletteTab, setPaletteTab] = useState<PaletteTab>("componentes");
   const [query, setQuery] = useState("");
-  const [providerFilter] = useState<CloudProvider | "all">("all");
+  const [providerFilter, setProviderFilter] = useState<CloudProvider | "all">("all");
   const addBlock = useGraphStore((s) => s.addBlock);
   const addZone = useGraphStore((s) => s.addZone);
   const addSwimlane = useGraphStore((s) => s.addSwimlane);
@@ -106,16 +114,9 @@ export default function ComponentPalette() {
       const items = visibleCatalog.filter((item) => {
         if (item.kind !== kind) return false;
         if (providerFilter !== "all") {
-          const p = item.provider ?? item.defaults.provider;
-          if (p && p !== providerFilter && p !== "generic") return false;
-          if (providerFilter !== "generic" && !p && !item.tags?.some((t) => t.includes(providerFilter))) {
-            // keep stack items without provider always visible
-            if (["frontend", "backend"].includes(kind)) {
-              /* ok */
-            } else if (kind === "cloud" || kind === "identity" || kind === "integration" || kind === "observability" || kind === "database") {
-              if (!item.id.includes(providerFilter) && !item.tech.toLowerCase().includes(providerFilter)) return false;
-            }
-          }
+          // Mostra itens do provider escolhido + itens agnósticos (stack)
+          const p = providerOf(item);
+          if (p !== providerFilter && p !== "generic") return false;
         }
         if (!q) return true;
         return (
@@ -178,6 +179,13 @@ export default function ComponentPalette() {
 
   const [activeIndex, setActiveIndex] = useState(-1);
   const listboxRef = useRef<HTMLDivElement>(null);
+
+  // O(1) lookup para o índice de navegação por teclado (evita findIndex O(n²) no VirtualList)
+  const flatIndexById = useMemo(() => {
+    const m = new Map<string, number>();
+    flatCatalogItems.forEach((item, i) => m.set(item.id, i));
+    return m;
+  }, [flatCatalogItems]);
 
   // Reset active index when filters change
   useEffect(() => {
@@ -243,16 +251,35 @@ export default function ComponentPalette() {
           ))}
         </div>
         {paletteTab === "componentes" && (
-          <label className="relative mt-2 block">
-            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-fg)]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar…"
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-0)] py-2 pl-8 pr-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]/50"
-              aria-label="Buscar na paleta"
-            />
-          </label>
+          <>
+            <label className="relative mt-2 block">
+              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-fg)]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar…"
+                className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-0)] py-2 pl-8 pr-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] placeholder:text-[var(--muted-fg)] focus:border-[var(--accent)]/50"
+                aria-label="Buscar na paleta"
+              />
+            </label>
+            <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Filtrar por provider">
+              {PROVIDER_CHIPS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  aria-pressed={providerFilter === p}
+                  onClick={() => setProviderFilter(p)}
+                  className={`min-h-6 rounded-md px-2 py-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                    providerFilter === p
+                      ? "bg-[var(--accent-muted)] text-indigo-200 ring-1 ring-cyan-500/30"
+                      : "text-[var(--muted)] hover:bg-white/5 hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {PROVIDER_CHIP_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -503,7 +530,7 @@ export default function ComponentPalette() {
                   estimateSize={72}
                   getKey={(item) => item.id}
                   renderItem={(item) => {
-                    const flatIdx = flatCatalogItems.findIndex((x) => x.id === item.id);
+                    const flatIdx = flatIndexById.get(item.id) ?? -1;
                     const isActive = flatIdx === activeIndex;
                     return (
                     <button
@@ -553,26 +580,40 @@ export default function ComponentPalette() {
           <p className="px-1 text-xs text-[var(--muted)]">Nada encontrado para “{query}”.</p>
         )}
 
-        <section className="mt-4 border-t border-[var(--border)] pt-3">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-300">Patterns</p>
+        <section className="mt-4 border-t border-[var(--border)] pt-3" aria-labelledby="palette-patterns">
+          <p id="palette-patterns" className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-300">
+            Patterns
+          </p>
           <ul className="space-y-2">
-            {PATTERNS_CATALOG.filter((p) => ["pat-saga", "pat-outbox", "pat-cqrs", "pat-event-driven"].includes(p.id)).map(
-              (pat) => (
-                <li key={pat.id}>
-                  <button
-                    type="button"
-                    className="min-h-6 min-w-6 w-full rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-left text-xs text-slate-200 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                    onClick={() => {
-                      const pos = { x: 120 + nodes.length * 24, y: 120 + nodes.length * 12 };
-                      addPatternNodes(applyPattern(pat.id, pos));
-                      pushUiNotice({ type: "success", text: `Pattern ${pat.label} aplicado.` });
-                    }}
-                  >
-                    {pat.label}
-                  </button>
+            {KINDS.map((kind) => {
+              const pats = PATTERNS_CATALOG.filter((p) => p.kind === kind);
+              if (pats.length === 0) return null;
+              return (
+                <li key={`patterns-${kind}`}>
+                  <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    {KIND_META[kind].label}
+                  </p>
+                  <ul className="grid grid-cols-2 gap-1.5">
+                    {pats.map((pat) => (
+                      <li key={pat.id}>
+                        <button
+                          type="button"
+                          title={pat.description}
+                          className="min-h-6 min-w-6 w-full rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 py-2 text-left text-xs text-slate-200 hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                          onClick={() => {
+                            const pos = { x: 120 + nodes.length * 24, y: 120 + nodes.length * 12 };
+                            addPatternNodes(applyPattern(pat.id, pos));
+                            pushUiNotice({ type: "success", text: `Pattern ${pat.label} aplicado.` });
+                          }}
+                        >
+                          {pat.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
-              ),
-            )}
+              );
+            })}
           </ul>
         </section>
       </div>

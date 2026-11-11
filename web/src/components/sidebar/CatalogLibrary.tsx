@@ -33,7 +33,12 @@ const CAT_TABS: { value: CatalogCategory | "all"; label: string }[] = [
   { value: "database", label: "Bancos" },
   { value: "platform", label: "Plataformas" },
   { value: "tool", label: "Ferramentas" },
+  { value: "security", label: "Segurança" },
+  { value: "network", label: "Rede" },
 ];
+
+/** Popularidade mínima (1–10) para exibir o badge "popular". */
+const POPULAR_THRESHOLD = 8;
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -295,7 +300,7 @@ export default function CatalogLibrary({ open, onClose }: Props) {
                                 <span className="min-w-0 flex-1">
                                   <span className="flex items-center gap-1.5">
                                     <span className="text-sm font-semibold text-slate-100">{item.label}</span>
-                                    {item.popularity && item.popularity >= 8 && (
+                                    {item.popularity && item.popularity >= POPULAR_THRESHOLD && (
                                       <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-semibold text-amber-400">
                                         <Star size={8} /> popular
                                       </span>
