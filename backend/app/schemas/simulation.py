@@ -336,26 +336,35 @@ class CircuitBreakersOut(BaseModel):
 
 
 class CostLineItemOut(BaseModel):
-    """Linha de `line_items` em GET /graphs/{id}/cost-estimate."""
+    """Linha de `line_items` em GET /graphs/{id}/cost-estimate (R5, tag "cost").
+
+    R4: `priced` = nó tem custo na tabela estática (custo zero conhecido,
+    ex. frameworks, continua priced=True). `tier` saiu do contrato (R2/R3).
+    """
 
     node_id: str
     label: str
     catalog_id: str
     region: str
-    tier: str
     cost_key: str
     cost_usd_month: float
+    priced: bool
 
 
 class CostEstimateOut(BaseModel):
-    """GET /graphs/{id}/cost-estimate."""
+    """GET /graphs/{id}/cost-estimate e POST .../cost-estimate/live (R5).
+
+    R2: `heuristic_total_usd_month`, `by_tier` e `tier` SAIAM do wire —
+    sem mais total conflitante. Região honesta (R6), tabela estática com
+    versão (R1).
+    """
 
     line_items: list[CostLineItemOut] = Field(default_factory=list)
     total_usd_month: float = 0.0
-    heuristic_total_usd_month: float = 0.0
     by_region: dict[str, float] = Field(default_factory=dict)
-    by_tier: dict[str, float] = Field(default_factory=dict)
     node_count: int = 0
+    priced_count: int = 0
+    price_table_version: str = ""
     summary: str = ""
 
 

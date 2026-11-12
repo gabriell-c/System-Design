@@ -132,11 +132,24 @@ def rate_limit_resilience(request: Request, user_key: str) -> None:
     """Rate limit: 30 resilience requests per 60 seconds per IP+user.
 
     Endpoints de resiliência (injeção de falha, blast radius, circuit
-    breakers, custo, live doc) são bem mais leves que simulação completa —
-    por isso 30/60s em vez de 5/60s (rate_limit_simulation).
+    breakers, live doc) são bem mais leves que simulação completa —
+    por isso 30/60s em vez de 5/60s (rate_limit_simulation). Custo saiu
+    do bundle e tem limiter próprio: rate_limit_cost (R5).
     """
     ip = request.client.host if request.client else "unknown"
     _rate_limit(f"resilience:{ip}:{user_key}", max_attempts=30, window_seconds=60)
+
+
+def rate_limit_cost(request: Request, user_key: str) -> None:
+    """Rate limit: 60 cost requests per 60 seconds per IP+user (R5).
+
+    Custo é barato e idempotente (tabela estática, node-only, sem estado)
+    — por isso 60/60s em vez dos 30/60s de resiliência, num bucket
+    separado (`cost:`): exaurir o limite de custo não trava a suite de
+    resiliência e vice-versa.
+    """
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"cost:{ip}:{user_key}", max_attempts=60, window_seconds=60)
 
 
 # ---------------------------------------------------------------------------

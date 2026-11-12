@@ -1,11 +1,13 @@
-"""P0.5 — Resilience: failure injection, blast radius, circuit breakers, cost model, live doc.
+"""P0.5 — Resilience: failure injection, blast radius, circuit breakers, live doc.
 
 Ownership (IDOR-safe, item 1): todos os endpoints passam por
 `get_graph_or_404` — grafo de terceiro é 404, nunca 200. Helpers vêm de
 `app.routes._graph_helpers` (nada de acoplar em `routes.graphs`, item 14).
 
 Rate limit (item 12): 30 req/60s por usuário (rate_limit_resilience) —
-diferente dos 5/60s da simulação completa.
+diferente dos 5/60s da simulação completa. O endpoint de custo saiu para
+a rota própria `app.routes.cost` (R5, tag "cost", limiter 60/60s) — o
+PATH GET `/graphs/{id}/cost-estimate` é invariante (contrato front).
 
 Contratos:
 - (a) S1b: `inject_failure(nodes, edges, node_id, mode, max_hops)` com
@@ -13,8 +15,8 @@ Contratos:
   O import do fallback abaixo só existe enquanto o S1b não aterrissa —
   remover quando `RESILIENCE_MAX_HOPS` vier do service.
 - (c) S3b: modelos de resposta em `app.schemas.simulation`
-  (FailureInjectionOut, BlastRadiusOut, CircuitBreakersOut,
-  CostEstimateOut, LiveDocOut).
+  (FailureInjectionOut, BlastRadiusOut, CircuitBreakersOut, LiveDocOut;
+  CostEstimateOut vive na rota de custo, R5).
 """
 
 from __future__ import annotations
@@ -33,13 +35,11 @@ from app.routes.auth import get_current_user
 from app.schemas.simulation import (
     BlastRadiusOut,
     CircuitBreakersOut,
-    CostEstimateOut,
     FailureInjectionOut,
     LiveDocOut,
 )
 from app.services.blast_radius import compute_blast_radius
 from app.services.circuit_breaker import analyze_circuit_breakers
-from app.services.cost_model import estimate_cost_breakdown
 from app.services.failure_injection import inject_failure
 from app.services.live_doc import build_live_doc
 
@@ -124,19 +124,6 @@ def circuit_breakers_graph(
     graph = get_graph_or_404(db, current_user, graph_id)
     nodes, _edges = _graph_graph_data(graph)
     return analyze_circuit_breakers(nodes, _edges)
-
-
-@router.get("/graphs/{graph_id}/cost-estimate", response_model=CostEstimateOut)
-def cost_estimate_graph(
-    graph_id: str,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> CostEstimateOut:
-    rate_limit_resilience(request, user_rate_limit_key(current_user))
-    graph = get_graph_or_404(db, current_user, graph_id)
-    nodes, edges = _graph_graph_data(graph)
-    return estimate_cost_breakdown(nodes, edges)
 
 
 @router.get("/graphs/{graph_id}/doc", response_model=LiveDocOut)

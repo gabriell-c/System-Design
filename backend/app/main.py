@@ -32,6 +32,7 @@ from app.routes.auth import router as auth_router
 from app.routes.boundary import router as boundary_router
 from app.routes.annotation import router as annotation_router
 from app.routes.comments import router as comments_router
+from app.routes.cost import router as cost_router
 from app.routes.embed import router as embed_router
 from app.routes.share import router as share_router
 from app.routes.governance import router as governance_router
@@ -239,5 +240,6 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(users_router)
 app.include_router(resilience_router)
+app.include_router(cost_router)
 app.include_router(network_router)
 app.include_router(ws_router)
