@@ -1,11 +1,19 @@
-"""P0.5.5 — Blast radius: dependências downstream e % de jornadas impactadas."""
+"""P0.5.5 — Blast radius: dependências downstream e % de jornadas impactadas.
+
+Custo (documentado): cada chamada faz DUAS travessias — o BFS downstream
+dentro de `inject_failure` e um BFS reverso (upstream) para o mapa por hop.
+Cada uma é O(n + e); juntas, em grafo de 500 nós, ficam <50ms (coberto em
+tests/test_failure_injection.py::test_blast_radius_500_nodes_under_50ms).
+Um passe único não mudaria a classe de complexidade, então mantém-se as
+duas travessias pela legibilidade.
+"""
 
 from __future__ import annotations
 
 from collections import deque
 from typing import Any
 
-from app.services.failure_injection import inject_failure
+from app.services.failure_injection import RESILIENCE_MAX_HOPS, inject_failure
 
 
 def compute_blast_radius(
@@ -13,16 +21,24 @@ def compute_blast_radius(
     edges: list[dict],
     origin_node_id: str,
     *,
-    max_hops: int = 6,
+    mode: str = "down",
+    max_hops: int = RESILIENCE_MAX_HOPS,
 ) -> dict[str, Any]:
-    """Grafo de dependência + blast a partir de um nó (usa injeção de falha)."""
-    injection = inject_failure(nodes, edges, origin_node_id, mode="down", max_hops=max_hops)
+    """Grafo de dependência + blast a partir de um nó (usa injeção de falha).
+
+    `mode` segue a semântica `down`/`timeout`/`degraded` de
+    `failure_injection` (repassado a `inject_failure`). `max_hops` usa a
+    constante unificada `RESILIENCE_MAX_HOPS` (8) — mesmo valor que a
+    injeção de falha; as rotas clavam 1–20 sobre ela.
+    """
+    injection = inject_failure(nodes, edges, origin_node_id, mode=mode, max_hops=max_hops)
     if not injection.get("ok"):
         return injection
 
     node_map = {str(n.get("id")): n for n in nodes if n.get("id")}
     adj = _reverse_adjacency(edges)
 
+    # BFS reverso (upstream): quem depende do origin, hop a hop.
     hops_map: dict[str, int] = {origin_node_id: 0}
     queue: deque[tuple[str, int]] = deque([(origin_node_id, 0)])
     while queue:
@@ -48,7 +64,7 @@ def compute_blast_radius(
 
     labels = {
         nid: str((node_map.get(nid, {}).get("data") or {}).get("label") or nid)
-        for nid in affected
+        for nid in sorted(affected)
     }
 
     return {
@@ -56,7 +72,8 @@ def compute_blast_radius(
         "origin_node_id": origin_node_id,
         "origin_label": injection.get("failed_label"),
         "max_hops": max_hops,
-        "hops": {str(h): ids for h, ids in sorted(by_hop.items())},
+        # sorted() por hop: determinismo — mesma entrada = saída byte-idêntica.
+        "hops": {str(h): sorted(ids) for h, ids in sorted(by_hop.items())},
         "affected_node_ids": sorted(affected),
         "unreachable_node_ids": injection.get("unreachable_node_ids") or [],
         "degraded_node_ids": injection.get("degraded_node_ids") or [],
