@@ -75,6 +75,16 @@ const edgeTypes: EdgeTypes = {
   flowBadge: FlowBadgeEdge,
 };
 
+/**
+ * S3b (item 68c) — teto de arestas ANIMADAS em highlight (blast/caminho
+ * crítico). O ReactFlow anima via stroke-dashoffset; em grafos grandes
+ * (centenas de arestas) isso estoura o compositor. Só as primeiras N
+ * (em ordem de documento) animam; as demais ficam destacadas sem
+ * animação. RULING: orçamento ÚNICO compartilhado por "Caminho crítico"
+ * (analysis) ∪ blast de injeção — mesmo canal visual (aresta --error).
+ */
+const MAX_ANIMATED_HIGHLIGHT_EDGES = 30;
+
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
@@ -170,6 +180,10 @@ function CanvasInner() {
   const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const loadSnapshot = useGraphStore((s) => s.loadSnapshot);
   const blastHighlightEdgeIds = useGraphStore((s) => s.blastHighlightEdgeIds);
+  // S3a (ruling do store): arestas do BLAST DE INJEÇÃO vivem em
+  // `blastEdgeIds`; `blastHighlightEdgeIds` é do "Caminho crítico"
+  // (analysis-slice). O canvas renderiza as duas, com um canal visual.
+  const blastEdgeIds = useGraphStore((s) => s.blastEdgeIds);
   const reconcileOrphanCards = useGraphStore((s) => s.reconcileOrphanCards);
   const diagramKind = useGraphStore((s) => s.diagramKind);
   const parentGraphId = useGraphStore((s) => s.parentGraphId);
@@ -338,18 +352,28 @@ function CanvasInner() {
   }, [nodes, isFreeMode]);
 
   const displayEdges = useMemo(() => {
-    if (!blastHighlightEdgeIds.length) return edges;
-    const highlight = new Set(blastHighlightEdgeIds);
+    const highlight = new Set([...blastHighlightEdgeIds, ...blastEdgeIds]);
+    if (highlight.size === 0) return edges;
+    const animated = new Set<string>();
+    let budget = MAX_ANIMATED_HIGHLIGHT_EDGES;
+    for (const e of edges) {
+      if (budget > 0 && highlight.has(e.id)) {
+        animated.add(e.id);
+        budget -= 1;
+      }
+    }
     return edges.map((e) =>
       highlight.has(e.id)
         ? {
             ...e,
-            style: { ...e.style, stroke: "#f43f5e", strokeWidth: 3 },
-            animated: true,
+            // S3b (item 68a): token de tema (--error) em vez de #f43f5e
+            // cravado — respeita os 3 temas (inclui high-contrast).
+            style: { ...e.style, stroke: "var(--error)", strokeWidth: 3 },
+            animated: animated.has(e.id),
           }
         : e,
     );
-  }, [edges, blastHighlightEdgeIds]);
+  }, [edges, blastHighlightEdgeIds, blastEdgeIds]);
 
   const displayNodes = useMemo(
     () => visibleNodes(orderedNodes, canvasFilter, ownerTeam),

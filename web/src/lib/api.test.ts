@@ -170,3 +170,147 @@ test("getAiUsage: shape do endpoint + cache em memória de 60s no módulo", asyn
   assert.deepEqual(r2, r1, "segunda chamada dentro de 60s usa o cache");
   assert.equal(seen.length, 1, "cache do módulo evita o segundo fetch");
 });
+
+// ============================================================
+// S3b — contrato (d): métodos de simulação/resiliência + 429
+// (ApiRateLimitError com retryAfter number, duck-typed pelo S3a)
+// ============================================================
+
+test("runSimulationPreset: POST /simulations/run-preset, signal, output_format json por padrão", async () => {
+  const { api } = await import("./api");
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify({}), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+
+  const controller = new AbortController();
+  await api.runSimulationPreset({ preset_id: "p1", nodes: [], edges: [], seed: 42, realism_level: 0 }, controller.signal);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0]?.url ?? "", /\/api\/v1\/simulations\/run-preset$/);
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.equal(calls[0]?.init?.signal, controller.signal, "AbortSignal é repassado ao fetch");
+  const body = JSON.parse(String(calls[0]?.init?.body ?? "{}")) as Record<string, unknown>;
+  assert.equal(body.preset_id, "p1");
+  assert.equal(body.output_format, "json", "default quando o payload omite output_format");
+});
+
+test("failureInjection: body {node_id, mode, max_hops} + signal", async () => {
+  const { api } = await import("./api");
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+
+  const controller = new AbortController();
+  const res = await api.failureInjection("g7", { node_id: "n1", mode: "down", max_hops: 2 }, controller.signal);
+  assert.equal(res.ok, true);
+  assert.match(calls[0]?.url ?? "", /\/api\/v1\/graphs\/g7\/failure-injection$/);
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.equal(calls[0]?.init?.signal, controller.signal);
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body ?? "{}")), { node_id: "n1", mode: "down", max_hops: 2 });
+});
+
+test("blastRadius: mesmo shape do body, /graphs/{id}/blast-radius + signal", async () => {
+  const { api } = await import("./api");
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify({ ok: true, node_labels: { n1: "N1" } }), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+
+  const controller = new AbortController();
+  const res = await api.blastRadius("g7", { node_id: "n1", mode: "timeout", max_hops: 3 }, controller.signal);
+  assert.equal(res.node_labels?.n1, "N1");
+  assert.match(calls[0]?.url ?? "", /\/api\/v1\/graphs\/g7\/blast-radius$/);
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.equal(calls[0]?.init?.signal, controller.signal);
+  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body ?? "{}")), { node_id: "n1", mode: "timeout", max_hops: 3 });
+});
+
+test("runScenario: POST /graphs/{id}/simulation-scenarios/{sid}/run, signal, sem body", async () => {
+  const { api } = await import("./api");
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify({ seed: 9 }), { status: 200, statusText: "OK" });
+  }) as typeof fetch;
+
+  const controller = new AbortController();
+  await api.runScenario("g7", "sc1", controller.signal);
+  assert.match(calls[0]?.url ?? "", /\/api\/v1\/graphs\/g7\/simulation-scenarios\/sc1\/run$/);
+  assert.equal(calls[0]?.init?.method, "POST");
+  assert.equal(calls[0]?.init?.signal, controller.signal);
+  assert.equal(calls[0]?.init?.body, undefined, "o cenário roda contra o grafo atual — sem body");
+});
+
+test("exportSimulation: devolve Response bruto (Content-Disposition respeitado); format vence payload", async () => {
+  const { api } = await import("./api");
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return new Response("rps,0\n500\n", {
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": 'attachment; filename="sim-42-load.csv"',
+      },
+    });
+  }) as typeof fetch;
+
+  const controller = new AbortController();
+  const resp = await api.exportSimulation(
+    { preset_id: "p1", nodes: [], edges: [], seed: 42, realism_level: 0, output_format: "json" },
+    "csv",
+    controller.signal,
+  );
+  assert.ok(resp instanceof Response, "corpo não-JSON: o chamador recebe o Response");
+  assert.equal(resp.headers.get("Content-Disposition"), 'attachment; filename="sim-42-load.csv"');
+  assert.equal(await resp.text(), "rps,0\n500\n");
+  const body = JSON.parse(String(calls[0]?.init?.body ?? "{}")) as Record<string, unknown>;
+  assert.equal(body.output_format, "csv", "format explícito vence payload.output_format");
+  assert.equal(calls[0]?.init?.signal, controller.signal);
+});
+
+test("429 → ApiRateLimitError com retryAfter number (header Retry-After)", async () => {
+  const { api, ApiRateLimitError } = await import("./api");
+  globalThis.fetch = (async () =>
+    new Response(null, {
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: { "Retry-After": "60" },
+    })) as typeof fetch;
+  let caught: unknown;
+  try {
+    await api.failureInjection("g7", { node_id: "n1" });
+  } catch (err) {
+    caught = err;
+  }
+  assert.ok(caught instanceof ApiRateLimitError, `esperado ApiRateLimitError, veio: ${String(caught)}`);
+  const error = caught as ApiRateLimitError;
+  assert.equal(error.status, 429);
+  assert.equal(error.retryAfter, 60);
+  assert.equal(typeof error.retryAfter, "number", "S3a duck-type 'retryAfter' in err → sempre number");
+});
+
+test("429 sem Retry-After → fallback 60s (janela padrão do backend); também no export", async () => {
+  const { api, ApiRateLimitError } = await import("./api");
+  globalThis.fetch = (async () =>
+    new Response(null, { status: 429, statusText: "Too Many Requests" })) as typeof fetch;
+  let caught: unknown;
+  try {
+    await api.exportSimulation({ preset_id: "p", nodes: [], edges: [], seed: 1, realism_level: 0 }, "prometheus");
+  } catch (err) {
+    caught = err;
+  }
+  assert.ok(caught instanceof ApiRateLimitError, "export raw também converte 429");
+  assert.equal((caught as ApiRateLimitError).retryAfter, 60);
+});
+
+test("runSimulation removido do client (endpoint segue no backend)", async () => {
+  const { api } = await import("./api");
+  assert.ok(!("runSimulation" in api), "método morto removido — sem chamador no client");
+  assert.ok("runSimulationPreset" in api);
+});

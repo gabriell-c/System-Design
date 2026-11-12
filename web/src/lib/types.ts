@@ -838,6 +838,12 @@ export type TeamAccess = {
   role: "read" | "write" | "admin";
 };
 
+/**
+ * P0.5 — resumo de injeção de falha. S3b: espelha `FailureInjectionOut`
+ * (backend/app/schemas/simulation.py) — campos com default no backend são
+ * optionais; o nome TS mantém o legado (`FailureInjectionResult`) porque o
+ * painel (S3a) já importa ele.
+ */
 export type FailureInjectionResult = {
   ok: boolean;
   error?: string;
@@ -855,13 +861,36 @@ export type FailureInjectionResult = {
   summary?: string;
 };
 
+/**
+ * P0.5 — blast radius. S3b: espelha `BlastRadiusOut` — acrescenta
+ * `mode`/`max_hops`/`highlight_edges`/`node_labels` (o backend passou a
+ * devolver os rótulos dos nós no próprio payload).
+ */
 export type BlastRadiusResult = FailureInjectionResult & {
   origin_node_id?: string;
   origin_label?: string;
+  mode?: string;
+  max_hops?: number;
   highlight_edge_ids?: string[];
+  /** Arestas destacadas em formato bruto (dicts do engine). */
+  highlight_edges?: unknown[];
+  /** S3b (contrato e): mapa node_id → label produzido pelo backend. */
+  node_labels?: Record<string, string>;
   hops?: Record<string, string[]>;
 };
 
+/**
+ * P0.5 — circuit breakers. S3b: espelha `CircuitBreakersOut`; itens de
+ * `breakers` variam (nó vs aresta) → dict livre.
+ */
+export type CircuitBreakersResult = {
+  breakers: unknown[];
+  breaker_count: number;
+  gaps: string[];
+  recommendation: string;
+};
+
+/** P0.5 — espelha `CostEstimateOut`/`CostLineItemOut` (sem mudança de shape). */
 export type CostBreakdown = {
   line_items: Array<{
     node_id: string;
@@ -880,6 +909,7 @@ export type CostBreakdown = {
   summary: string;
 };
 
+/** P0.5 — espelha `LiveDocOut` (sem mudança de shape). */
 export type LiveDocResult = {
   markdown: string;
   anchors: Record<string, string>;

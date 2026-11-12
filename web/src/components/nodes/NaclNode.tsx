@@ -1,6 +1,7 @@
 "use client";
 
 import { Position, type Node, type NodeProps } from "@xyflow/react";
+import { useMemo } from "react";
 import { ListTree } from "lucide-react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
 import { useGraphStore } from "@/lib/graph-store";
@@ -8,8 +9,10 @@ import type { ArchNodeData } from "@/lib/types";
 
 export default function NaclNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const rules = data.naclRules ?? [];
-  const blastUnreachable = useGraphStore((s) => s.blastUnreachableIds);
-  const inBlast = blastUnreachable.includes(id);
+  const blastUnreachableIds = useGraphStore((s) => s.blastUnreachableIds);
+  // S3b (item 68b): Set memoizado — membership O(1) em todo change.
+  const blastUnreachable = useMemo(() => new Set(blastUnreachableIds), [blastUnreachableIds]);
+  const inBlast = blastUnreachable.has(id);
 
   return (
     <article

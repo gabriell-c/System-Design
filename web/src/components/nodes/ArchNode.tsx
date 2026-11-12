@@ -1,6 +1,7 @@
 "use client";
 
 import { Position, type Node, type NodeProps } from "@xyflow/react";
+import { useMemo } from "react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
 import { KIND_META } from "@/lib/catalog";
 import { useGraphStore } from "@/lib/graph-store";
@@ -15,13 +16,18 @@ import { scoreTone } from "@/components/nodes/score-tone";
 export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
   const architectureView = useGraphStore((s) => s.architectureView);
   const highlightNodeIds = useGraphStore((s) => s.highlightNodeIds);
-  const blastUnreachable = useGraphStore((s) => s.blastUnreachableIds);
-  const blastDegraded = useGraphStore((s) => s.blastDegradedIds);
+  const blastUnreachableIds = useGraphStore((s) => s.blastUnreachableIds);
+  const blastDegradedIds = useGraphStore((s) => s.blastDegradedIds);
   const diffHighlights = useGraphStore((s) => s.diffHighlights);
   const officialIcon = useOfficialIconMode() ? getOfficialIcon(data.catalogId) : null;
   const highlighted = highlightNodeIds.includes(id);
-  const blastDown = blastUnreachable.includes(id);
-  const blastDegradedNode = blastDegraded.includes(id);
+  // S3b (item 68b): membership O(1) — o Set só recria quando o array do
+  // store muda de identidade (setBlastRadiusHighlight), e cada nó memoiza
+  // o próprio (ruling: per-node, zero arquivo novo, custo insignificante).
+  const blastUnreachable = useMemo(() => new Set(blastUnreachableIds), [blastUnreachableIds]);
+  const blastDegraded = useMemo(() => new Set(blastDegradedIds), [blastDegradedIds]);
+  const blastDown = blastUnreachable.has(id);
+  const blastDegradedNode = blastDegraded.has(id);
   const diffStatus = diffHighlights.find((h) => h.nodeId === id)?.status;
   const diffColor = diffStatus === "added" ? "#22c55e" : diffStatus === "removed" ? "#ef4444" : diffStatus === "changed" ? "#eab308" : null;
   const isLocked = useGraphStore((s) => s.isLocked);
@@ -60,11 +66,11 @@ export default function ArchNode({ id, data, selected }: NodeProps<Node<ArchNode
                   ? "rgba(127, 29, 29, 0.2)"
                   : "#121821",
           borderColor: blastDown
-            ? "rgb(244, 63, 94)"
+            ? "var(--error)" // S3b (item 68a): token de tema em vez de #f43f5e cravado
             : blastDegradedNode
               ? "rgb(245, 158, 11)"
               : data.bottleneck
-                ? "rgb(244, 63, 94)"
+                ? "var(--error)"
                 : (diffColor ?? meta.border),
           opacity: diffStatus === "removed" ? 0.4 : opacity,
         }}

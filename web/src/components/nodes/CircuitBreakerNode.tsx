@@ -1,14 +1,17 @@
 "use client";
 
 import { Position, type Node, type NodeProps } from "@xyflow/react";
+import { useMemo } from "react";
 import { ShieldAlert } from "lucide-react";
 import AnchorHandle from "@/components/nodes/AnchorHandle";
 import { useGraphStore } from "@/lib/graph-store";
 import type { ArchNodeData } from "@/lib/types";
 
 export default function CircuitBreakerNode({ id, data, selected }: NodeProps<Node<ArchNodeData>>) {
-  const blastUnreachable = useGraphStore((s) => s.blastUnreachableIds);
-  const inBlast = blastUnreachable.includes(id);
+  const blastUnreachableIds = useGraphStore((s) => s.blastUnreachableIds);
+  // S3b (item 68b): Set memoizado — membership O(1) em todo change.
+  const blastUnreachable = useMemo(() => new Set(blastUnreachableIds), [blastUnreachableIds]);
+  const inBlast = blastUnreachable.has(id);
   const cb = data.circuitBreaker;
   const state = cb?.state ?? "closed";
 
@@ -19,7 +22,8 @@ export default function CircuitBreakerNode({ id, data, selected }: NodeProps<Nod
       } ${inBlast ? "ring-2 ring-rose-500/70" : ""}`}
       style={{
         background: "linear-gradient(135deg, rgba(245,158,11,0.15) 0%, #121821 70%)",
-        borderColor: state === "open" ? "#f43f5e" : "#f59e0b",
+        // S3b (item 68a): token de tema em vez de #f43f5e cravado.
+        borderColor: state === "open" ? "var(--error)" : "#f59e0b",
       }}
       aria-label={`Circuit breaker ${data.label}, estado ${state}`}
       tabIndex={0}

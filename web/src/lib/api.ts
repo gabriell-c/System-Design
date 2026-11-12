@@ -1,5 +1,6 @@
 import type {
   AnalysisResult,
+  CircuitBreakersResult,
   GraphRecord,
   GraphVersion,
   Project,
@@ -12,7 +13,6 @@ import type {
   PresetRunPayload,
   SimulationPreset,
   SimulationResult,
-  SimulationRunPayload,
 } from "./simulation";
 import { API_BASE } from "./api-base";
 
@@ -44,6 +44,34 @@ export class ApiConflictError extends Error {
   }
 }
 
+/**
+ * Contrato (d) — 429 do rate limit de simulação/resiliência. O backend
+ * responde com header `Retry-After` (janela em segundos: 5/60s simulação,
+ * 30/60s resiliência); `retryAfter` é SEMPRE number (fallback 60 quando o
+ * header ausente/inválido — a janela padrão do backend).
+ */
+export class ApiRateLimitError extends Error {
+  readonly status = 429;
+  readonly retryAfter: number;
+
+  constructor(message: string, retryAfter: number) {
+    super(message);
+    this.name = "ApiRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+
+const DEFAULT_RETRY_AFTER_S = 60;
+
+function readRetryAfter(response: Response): number {
+  const header = response.headers.get("Retry-After");
+  if (header != null) {
+    const seconds = Number(header);
+    if (Number.isFinite(seconds) && seconds > 0) return Math.ceil(seconds);
+  }
+  return DEFAULT_RETRY_AFTER_S;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -69,7 +97,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         updatedAt = body.detail.updated_at ?? null;
       }
     } catch {
-      /* ignore */
+      /* corpo não-JSON (429/413 de rate limit) — mantém o detail de status */
+    }
+    if (response.status === 429) {
+      throw new ApiRateLimitError(detail, readRetryAfter(response));
     }
     if (response.status === 409) {
       throw new ApiConflictError(detail, serverEtag, updatedAt);
@@ -86,6 +117,43 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     (data as { etag?: string }).etag = etag;
   }
   return data;
+}
+
+/**
+ * Export csv/prometheus (contrato (d)): fetch BRUTO — o corpo não é JSON
+ * (text/csv | text/plain com Content-Disposition attachment; filename
+ * `sim-{seed}-{mode}.{csv|prom}`). Devolve o `Response` para o chamador
+ * tratar (blob/text()). 429 → ApiRateLimitError, mesmo tratamento de
+ * request<T>.
+ */
+async function postSimulationExport(
+  payload: PresetRunPayload,
+  format: "csv" | "prometheus",
+  signal?: AbortSignal,
+): Promise<Response> {
+  const response = await fetch(`${API_BASE}/api/v1/simulations/run-preset`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    // `format` DEPOIS do spread: o parâmetro explícito vence sobre
+    // `payload.output_format` (contrato (d)).
+    body: JSON.stringify({ ...payload, output_format: format }),
+    signal,
+  });
+  if (!response.ok) {
+    let detail = `${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      detail = body.detail ?? detail;
+    } catch {
+      /* corpo não-JSON — mantém o detail de status */
+    }
+    if (response.status === 429) {
+      throw new ApiRateLimitError(detail, readRetryAfter(response));
+    }
+    throw new Error(detail);
+  }
+  return response;
 }
 
 export type GraphPayload = {
@@ -158,16 +226,27 @@ export const api = {
       ...(draft ? { body: JSON.stringify(draft) } : {}),
     }),
   listSimulationPresets: () => request<SimulationPreset[]>("/api/v1/simulations/presets"),
-  runSimulation: (payload: SimulationRunPayload) =>
-    request<SimulationResult>("/api/v1/simulations/run", {
-      method: "POST",
-      body: JSON.stringify({ output_format: "json" satisfies OutputFormat, ...payload }),
-    }),
-  runSimulationPreset: (payload: PresetRunPayload) =>
+  // Ruling documentado (item 16/20): o método morto `runSimulation`
+  // (POST /api/v1/simulations/run, sem chamador) foi REMOVIDO do client —
+  // o endpoint continua existindo no backend; só o client não o expõe.
+  runSimulationPreset: (payload: PresetRunPayload, signal?: AbortSignal) =>
     request<SimulationResult>("/api/v1/simulations/run-preset", {
       method: "POST",
       body: JSON.stringify({ output_format: "json" satisfies OutputFormat, ...payload }),
+      signal,
     }),
+  /** Contrato (d): export csv/prometheus → Response bruto (nada de JSON). */
+  exportSimulation: (payload: PresetRunPayload, format: "csv" | "prometheus", signal?: AbortSignal) =>
+    postSimulationExport(payload, format, signal),
+  /**
+   * P1 (item 8/15) — roda um cenário SALVO contra os nodes/edges atuais do
+   * grafo (endpoint novo POST /graphs/{id}/simulation-scenarios/{sid}/run).
+   */
+  runScenario: (graphId: string, scenarioId: string, signal?: AbortSignal) =>
+    request<SimulationResult>(
+      `/api/v1/graphs/${graphId}/simulation-scenarios/${scenarioId}/run`,
+      { method: "POST", signal },
+    ),
   // Projects
   listProjects: (filters?: {
     search?: string;
@@ -317,7 +396,10 @@ export const api = {
     ),
   listSimulationScenarios: (graphId: string) =>
     request<import("./types").SimulationScenarioRecord[]>(`/api/v1/graphs/${graphId}/simulation-scenarios`),
-  createSimulationScenario: (graphId: string, payload: { name: string; payload: Record<string, unknown> }) =>
+  createSimulationScenario: (
+    graphId: string,
+    payload: { name: string; payload: import("./simulation").SimulationScenarioPayload },
+  ) =>
     request<import("./types").SimulationScenarioRecord>(`/api/v1/graphs/${graphId}/simulation-scenarios`, {
       method: "POST",
       body: JSON.stringify(payload),
@@ -352,23 +434,30 @@ export const api = {
     }),
   deleteBoundaryContract: (graphId: string, contractId: string) =>
     request<void>(`/api/v1/graphs/${graphId}/boundary-contracts/${contractId}`, { method: "DELETE" }),
+  // Resiliência (contrato (d)): `signal` opcional em POSTs longos; `mode`
+  // espelha o Literal do backend (FailureInjectionRequest).
   failureInjection: (
     graphId: string,
-    body: { node_id: string; mode?: string; max_hops?: number },
+    body: { node_id: string; mode?: "down" | "timeout" | "degraded"; max_hops?: number },
+    signal?: AbortSignal,
   ) =>
     request<import("./types").FailureInjectionResult>(`/api/v1/graphs/${graphId}/failure-injection`, {
       method: "POST",
       body: JSON.stringify(body),
+      signal,
     }),
-  blastRadius: (graphId: string, body: { node_id: string; mode?: string; max_hops?: number }) =>
+  blastRadius: (
+    graphId: string,
+    body: { node_id: string; mode?: "down" | "timeout" | "degraded"; max_hops?: number },
+    signal?: AbortSignal,
+  ) =>
     request<import("./types").BlastRadiusResult>(`/api/v1/graphs/${graphId}/blast-radius`, {
       method: "POST",
       body: JSON.stringify(body),
+      signal,
     }),
   circuitBreakers: (graphId: string) =>
-    request<{ breakers: unknown[]; breaker_count: number; gaps: string[]; recommendation: string }>(
-      `/api/v1/graphs/${graphId}/circuit-breakers`,
-    ),
+    request<CircuitBreakersResult>(`/api/v1/graphs/${graphId}/circuit-breakers`),
   costEstimate: (graphId: string) =>
     request<import("./types").CostBreakdown>(`/api/v1/graphs/${graphId}/cost-estimate`),
   liveDoc: (graphId: string) =>
