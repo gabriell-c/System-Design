@@ -12,6 +12,7 @@ from __future__ import annotations
 import threading
 import time
 from collections import defaultdict
+from typing import Any
 
 from fastapi import HTTPException, Request
 
@@ -72,9 +73,11 @@ def _rate_limit(key: str, max_attempts: int, window_seconds: int) -> None:
     with _lock:
         _buckets[key] = [t for t in _buckets[key] if t > cutoff]
         if len(_buckets[key]) >= max_attempts:
+            # Retry-After (item 11): cliente sabe quando tentar de novo.
             raise HTTPException(
                 status_code=429,
                 detail=f"Too many attempts. Try again in {window_seconds} seconds.",
+                headers={"Retry-After": str(window_seconds)},
             )
         _buckets[key].append(now)
 
@@ -112,6 +115,28 @@ def rate_limit_simulation(request: Request, user_key: str) -> None:
     """Rate limit: 5 simulation requests per 60 seconds per IP+user."""
     ip = request.client.host if request.client else "unknown"
     _rate_limit(f"simulation:{ip}:{user_key}", max_attempts=5, window_seconds=60)
+
+
+# Chave de rate-limit por usuário (item 11): e-mail é o identificador estável
+# e único por conta; contas sem e-mail caem no campo nomeado abaixo (id
+# numérico). Nunca `username` (editável pelo usuário → contorna o limite).
+RATE_LIMIT_USER_KEY_FALLBACK_FIELD = "id"
+
+
+def user_rate_limit_key(user: Any) -> str:
+    """Chave estável por conta para rate limits (ver constante acima)."""
+    return user.email or str(getattr(user, RATE_LIMIT_USER_KEY_FALLBACK_FIELD))
+
+
+def rate_limit_resilience(request: Request, user_key: str) -> None:
+    """Rate limit: 30 resilience requests per 60 seconds per IP+user.
+
+    Endpoints de resiliência (injeção de falha, blast radius, circuit
+    breakers, custo, live doc) são bem mais leves que simulação completa —
+    por isso 30/60s em vez de 5/60s (rate_limit_simulation).
+    """
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"resilience:{ip}:{user_key}", max_attempts=30, window_seconds=60)
 
 
 # ---------------------------------------------------------------------------
