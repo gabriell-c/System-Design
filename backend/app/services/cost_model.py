@@ -1,26 +1,23 @@
-"""P0.5.7 — Custo por serviço/região/tier (ligado ao catálogo)."""
+"""P0.5.7 — Custo mensal estimado por serviço/região.
+
+Tabela estática — ordem de grandeza, não orçamento: os valores vêm
+SOMENTE de `knowledge.COST_USD_MONTH` (revisão 2025, list price de entrada);
+o mapeamento catálogo→chave vive em `pricing.CATALOG_COST_KEY` (R1).
+Sem `tier`/`by_tier` (R2/R3: tier real seria 2ª classe de preço por
+serviço — fora de escopo). Nó fora do mapa (custom) → custo 0 +
+`priced: false` (R4). Região: zona ancestor (`region`/`dr_region`) →
+`config.region` → `"Não definida"` (R6), com `parent_map` construído 1×
+(O(n), não O(n²)).
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from app.services.heuristic import estimate_monthly_cost
 from app.services.knowledge import COST_USD_MONTH
+from app.services.pricing import CATALOG_COST_KEY, PRICE_TABLE_VERSION
 
-CATALOG_COST_KEY: dict[str, tuple[str, float]] = {
-    "cloud-aws-ec2": ("EC2:t3.medium", COST_USD_MONTH["EC2:t3.medium"]),
-    "cloud-aws-ecs": ("EC2:t3.medium", COST_USD_MONTH["EC2:t3.medium"]),
-    "cloud-aws-lambda": ("Lambda:1M", 8.0),
-    "cloud-aws-s3": ("S3:50GB", COST_USD_MONTH["S3:50GB"]),
-    "cloud-aws-cf": ("CloudFront:50GB", COST_USD_MONTH["CloudFront:50GB"]),
-    "cloud-aws-alb": ("ALB", COST_USD_MONTH["ALB"]),
-    "db-postgres": ("RDS:db.t3.micro", COST_USD_MONTH["RDS:db.t3.micro"]),
-    "db-mysql": ("RDS:db.t3.micro", COST_USD_MONTH["RDS:db.t3.micro"]),
-    "db-redis": ("ElastiCache:t3.micro", COST_USD_MONTH["ElastiCache:t3.micro"]),
-    "db-elasticsearch": ("EC2:t3.large", COST_USD_MONTH["EC2:t3.large"]),
-    "dep-vercel": ("Vercel:Pro", COST_USD_MONTH["Vercel:Pro"]),
-    "dep-k8s": ("Kubernetes:managed", COST_USD_MONTH["Kubernetes:managed"]),
-}
+REGION_UNDEFINED = "Não definida"
 
 
 def _node_data(node: dict) -> dict[str, Any]:
@@ -28,28 +25,46 @@ def _node_data(node: dict) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
-def _region_from_node(node: dict, nodes: list[dict]) -> str:
-    nid = str(node.get("id"))
-    parent_map = {str(n.get("id")): str(n.get("parentId") or "") for n in nodes}
-    current = parent_map.get(nid, "")
+def _build_parent_map(nodes: list[dict]) -> dict[str, str]:
+    """id → parentId (uma vez por chamada — R6/O(n))."""
+    return {str(n.get("id")): str(n.get("parentId") or "") for n in nodes}
+
+
+def _region_for_node(node: dict, parent_map: dict[str, str], node_index: dict[str, dict]) -> str:
+    """Sobe até zona region/dr_region (label); senão config.region; senão 'Não definida'."""
+    current = parent_map.get(str(node.get("id")), "")
     while current:
-        parent = next((n for n in nodes if str(n.get("id")) == current), None)
-        if not parent:
+        parent = node_index.get(current)
+        if parent is None:
             break
         data = _node_data(parent)
-        if data.get("kind") == "zone" and data.get("zoneKind") == "region":
-            return str(data.get("label") or "region")
+        if data.get("kind") == "zone" and data.get("zoneKind") in {"region", "dr_region"}:
+            return str(data.get("label") or REGION_UNDEFINED)
         current = parent_map.get(current, "")
     config = _node_data(node).get("config") or {}
-    return str(config.get("region") or "default")
+    return str(config.get("region") or REGION_UNDEFINED)
 
 
-def estimate_cost_breakdown(nodes: list[dict], edges: list[dict] | None = None) -> dict[str, Any]:
-    """Custo mensal estimado por nó, região e tier."""
-    _ = edges
+def _fmt_usd_ptbr(value: float) -> str:
+    """1234.56 → '1.234,56' (milhar ponto, vírgula decimal, 2 casas)."""
+    return f"{value:,.2f}".replace(",", "@").replace(".", ",").replace("@", ".")
+
+
+def estimate_cost_breakdown(nodes: list[dict]) -> dict[str, Any]:
+    """Custo mensal estimado por nó e região (tabela estática, ordem de grandeza).
+
+    Contrato (a): devolve {line_items, total_usd_month, by_region, node_count,
+    priced_count, price_table_version, summary}. `line_items` tem
+    {node_id, label, catalog_id, region, cost_key, cost_usd_month (2 casas),
+    priced}. `total_usd_month` = soma dos line_items ARREDONDADOS, e
+    `by_region` (arredondado por chave) soma exatamente o total — sem drift
+    de centavos.
+    """
+    parent_map = _build_parent_map(nodes)
+    node_index = {str(n.get("id")): n for n in nodes}
+
     line_items: list[dict[str, Any]] = []
     by_region: dict[str, float] = {}
-    by_tier: dict[str, float] = {}
 
     for node in nodes:
         data = _node_data(node)
@@ -58,24 +73,13 @@ def estimate_cost_breakdown(nodes: list[dict], edges: list[dict] | None = None) 
         catalog_id = str(data.get("catalogId") or "")
         label = str(data.get("label") or node.get("id"))
         node_id = str(node.get("id"))
-        region = _region_from_node(node, nodes)
-        contract = data.get("capacityContract") or {}
-        tier = "production" if contract.get("max_rps", 0) > 500 else "standard"
+        region = _region_for_node(node, parent_map, node_index)
 
-        cost_usd = 0.0
-        cost_key = "generic"
-        if catalog_id in CATALOG_COST_KEY:
-            cost_key, cost_usd = CATALOG_COST_KEY[catalog_id]
-        else:
-            tech = str(data.get("tech") or "").lower()
-            if "lambda" in tech:
-                cost_key, cost_usd = "Lambda:1M", 8.0
-            elif "postgres" in tech or "mysql" in tech:
-                cost_key, cost_usd = "RDS:db.t3.micro", COST_USD_MONTH["RDS:db.t3.micro"]
-            elif "redis" in tech:
-                cost_key, cost_usd = "ElastiCache:t3.micro", COST_USD_MONTH["ElastiCache:t3.micro"]
-            else:
-                cost_usd = 12.0
+        cost_key = CATALOG_COST_KEY.get(catalog_id, "")
+        priced = catalog_id in CATALOG_COST_KEY
+        # Custos da tabela já têm ≤2 casas; arredonda p/ 2 e acumula o
+        # valor ARREDONDADO por região → soma(by_region) == total (exato).
+        cost_usd = round(COST_USD_MONTH[cost_key] if priced else 0.0, 2)
 
         line_items.append(
             {
@@ -83,23 +87,27 @@ def estimate_cost_breakdown(nodes: list[dict], edges: list[dict] | None = None) 
                 "label": label,
                 "catalog_id": catalog_id,
                 "region": region,
-                "tier": tier,
                 "cost_key": cost_key,
-                "cost_usd_month": round(cost_usd, 2),
+                "cost_usd_month": cost_usd,
+                "priced": priced,
             }
         )
-        by_region[region] = round(by_region.get(region, 0) + cost_usd, 2)
-        by_tier[tier] = round(by_tier.get(tier, 0) + cost_usd, 2)
+        by_region[region] = round(by_region.get(region, 0.0) + cost_usd, 2)
 
-    total = round(sum(i["cost_usd_month"] for i in line_items), 2)
-    heuristic_total = estimate_monthly_cost(nodes)
+    total = round(sum(item["cost_usd_month"] for item in line_items), 2)
+    priced_count = sum(1 for item in line_items if item["priced"])
+
+    summary = (
+        f"Estimativa: US$ {_fmt_usd_ptbr(total)}/mês em {len(line_items)} "
+        f"serviços ({len(by_region)} regiões)"
+    )
 
     return {
         "line_items": line_items,
         "total_usd_month": total,
-        "heuristic_total_usd_month": heuristic_total,
         "by_region": by_region,
-        "by_tier": by_tier,
         "node_count": len(line_items),
-        "summary": f"Estimativa: US$ {total}/mês em {len(line_items)} serviços ({len(by_region)} regiões).",
+        "priced_count": priced_count,
+        "price_table_version": PRICE_TABLE_VERSION,
+        "summary": summary,
     }

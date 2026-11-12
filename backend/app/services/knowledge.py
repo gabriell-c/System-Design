@@ -21,7 +21,14 @@ THROUGHPUT_RPS = {
     "Laravel": {"low": 200, "high": 800, "note": "PHP-FPM, depende de opcache"},
 }
 
+# Tabela única de preço mensal (USD, ordem de grandeza 2025, list price de
+# entrada us-east-1/equivalente — NÃO é cotação nem orçamento). Fonte:
+# páginas de preços públicas AWS/GCP/Azure 2025 + benchmarks de VPS/PaaS.
+# 2 casas; itens de "code" (framework/linguam/padrão/segurança grátis)
+# têm custo zero conhecido. Blocos: AWS (legado), GCP, Azure, rede,
+# segurança, bancos gerenciados, verticais SaaS.
 COST_USD_MONTH = {
+    # ── AWS (valores legacy, mantidos) ──
     "EC2:t3.medium": 30.0,
     "EC2:t3.large": 61.0,
     "RDS:db.t3.micro": 13.0,
@@ -45,6 +52,69 @@ COST_USD_MONTH = {
     "Kubernetes:managed": 73.0,
     "GitHub Actions:free": 0.0,
     "Terraform:free": 0.0,
+    # ── Custo zero conhecido (code/framework/linguam/padrão/seg grátis) ──
+    "code": 0.0,
+    # ── AWS serverless (projeto pequeno: ~1M invocações + 100 GB-h mês) ──
+    "Lambda:small-project": 8.0,
+    # ── GCP (ordem de grandeza 2025, instâncias pequenas) ──
+    "GCP:GCE small": 15.0,
+    "GCP:Cloud SQL small": 15.0,
+    "GCP:Cloud Run": 15.0,
+    "GCP:Cloud Functions": 10.0,
+    "GCP GCS 100GB": 2.5,
+    "GCP Firestore": 10.0,
+    "GCP Pub/Sub": 10.0,
+    # ── Azure (ordem de grandeza 2025, instâncias pequenas) ──
+    "Azure:VM B2s": 25.0,
+    "Azure:MySQL small": 15.0,
+    "Azure:Container Apps": 15.0,
+    "Azure Cosmos (small)": 20.0,
+    "Azure Blob 100GB": 5.0,
+    "Azure Event Hubs": 25.0,
+    "Azure:Service Bus": 20.0,
+    "Azure:Functions": 8.0,
+    "Azure:Front Door": 100.0,
+    # ── Bancos gerenciados (pequena instância / entrada) ──
+    "DynamoDB": 5.0,
+    "MongoDB:small": 10.0,
+    "Cassandra:small": 30.0,
+    "ClickHouse:small": 25.0,
+    "Elasticsearch:small": 61.0,
+    "Influx:small": 10.0,
+    "SurrealDB:small": 20.0,
+    "Cockroach:small": 30.0,
+    "Supabase:small": 25.0,
+    "Convex:small": 5.0,
+    "PlanetScale:small": 15.0,
+    "Neon:small": 19.0,
+    "Redshift:small": 250.0,
+    # ── Mensageria / orquestração gerenciada (uso pequeno) ──
+    "SQS family": 2.0,
+    "Kafka:small": 50.0,
+    "RabbitMQ:small": 15.0,
+    "Workflow family": 5.0,
+    # ── Rede (ordem de grandeza 2025; VPC/VNet peering é grátis → "code") ──
+    "DNS family": 2.0,
+    "WAF family": 10.0,
+    "API GW family": 3.0,
+    "VPN family": 30.0,
+    "Transit GW family": 40.0,
+    "DX family": 300.0,
+    "NAT family": 35.0,
+    "PrivateLink family": 180.0,
+    "CF Workers:small": 5.0,
+    # ── Segurança gerenciada / identidades / verticais SaaS ──
+    "KMS small": 2.0,
+    "Secrets family": 5.0,
+    "GuardDuty family": 15.0,
+    "Monitor family": 20.0,
+    "IoT family small": 2.0,
+    "ML family small": 50.0,
+    "BI family": 10.0,
+    "AI API family": 5.0,
+    "Auth family": 5.0,
+    "Email SaaS family": 15.0,
+    "Telecom small": 5.0,
 }
 
 POSTGRES_DEFAULT_MAX_CONN = 100

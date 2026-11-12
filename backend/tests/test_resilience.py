@@ -63,8 +63,11 @@ def test_circuit_breaker_analysis():
 
 
 def test_cost_model_breakdown():
-    nodes, edges = _chain_graph()
-    result = estimate_cost_breakdown(nodes, edges)
+    # Ruling: contrato (a) — `edges` REMOVIDO de estimate_cost_breakdown;
+    # R4 — db-postgres (13.00) + db-redis (12.00) via mapa de catálogo,
+    # be-fastapi → "code" 0.00 (priced): total = 25.00 > 0.
+    nodes, _edges = _chain_graph()
+    result = estimate_cost_breakdown(nodes)
     assert result["node_count"] == 3
     assert result["total_usd_month"] > 0
     assert len(result["line_items"]) == 3

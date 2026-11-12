@@ -67,7 +67,7 @@ def estimate_monthly_cost(nodes: list[dict]) -> float:
     if any("load balancer" in t or "alb" in t for t in techs):
         cost += COST_USD_MONTH["ALB"]
     if any("lambda" in t for t in techs):
-        cost += 8.0
+        cost += COST_USD_MONTH["Lambda:small-project"]
     if any("s3" in t for t in techs):
         cost += COST_USD_MONTH["S3:50GB"]
     if any("cloudfront" in t for t in techs):
@@ -91,7 +91,9 @@ def estimate_monthly_cost(nodes: list[dict]) -> float:
         cost += COST_USD_MONTH["Render:Starter"]
     if any("kubernetes" in t or "k8s" in t for t in techs):
         cost += COST_USD_MONTH["Kubernetes:managed"]
-    return round(cost or 12.0, 2)
+    # R7: `cost or 12.0` era falsy-0 bug — sem techs precificáveis o custo é
+    # 0.0, não o 12.0 mágico.
+    return round(cost, 2)
 
 
 def complexity_score(nodes: list[dict]) -> int:
