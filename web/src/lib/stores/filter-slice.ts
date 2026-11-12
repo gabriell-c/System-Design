@@ -25,6 +25,9 @@ export function filterSlice(
   | "blastUnreachableIds"
   | "blastDegradedIds"
   | "blastHighlightEdgeIds"
+  | "blastEdgeIds"
+  | "blastLabels"
+  | "lastInjection"
   | "diffHighlights"
   | "diagramKind"
   | "parentGraphId"
@@ -40,6 +43,7 @@ export function filterSlice(
   | "setDiffHighlights"
   | "setBlastRadiusHighlight"
   | "clearBlastRadiusHighlight"
+  | "setLastInjection"
   | "setSequenceMode"
 > {
   return {
@@ -51,6 +55,11 @@ export function filterSlice(
   blastUnreachableIds: [],
   blastDegradedIds: [],
   blastHighlightEdgeIds: [],
+  // S3a: campos SOBRADOS para injeção de falha — `blastHighlightEdgeIds`
+  // continua pertencendo ao "Caminho crítico" (analysis-slice).
+  blastEdgeIds: [],
+  blastLabels: null,
+  lastInjection: null,
   diffHighlights: [],
   diagramKind: null,
   parentGraphId: null,
@@ -87,19 +96,26 @@ export function filterSlice(
 
   setHighlightNodeIds: (highlightNodeIds) => set({ highlightNodeIds }),
 
+  // S3a — o estado de blast é AUTOCONTIDO em campos próprios
+  // (`blastUnreachableIds`, `blastDegradedIds`, `blastEdgeIds`, `blastLabels`).
+  // Ele NÃO escreve `highlightNodeIds` nem `blastHighlightEdgeIds` (ambos
+  // pertencem ao "Caminho crítico"/análise, donos no analysis-slice), e
+  // `clearBlastRadiusHighlight` abaixo só limpa os campos próprios. Ruling:
+  // isolar evita que "Limpar" na aba Falha apague o highlight da Análise.
   setBlastRadiusHighlight: (payload) =>
     set(
       payload
         ? {
             blastUnreachableIds: payload.unreachable,
             blastDegradedIds: payload.degraded,
-            blastHighlightEdgeIds: payload.edgeIds,
-            highlightNodeIds: [...payload.unreachable, ...payload.degraded],
+            blastEdgeIds: payload.edgeIds ?? [],
+            blastLabels: payload.labels ?? null,
           }
         : {
             blastUnreachableIds: [],
             blastDegradedIds: [],
-            blastHighlightEdgeIds: [],
+            blastEdgeIds: [],
+            blastLabels: null,
           },
     ),
 
@@ -107,9 +123,11 @@ export function filterSlice(
     set({
       blastUnreachableIds: [],
       blastDegradedIds: [],
-      blastHighlightEdgeIds: [],
-      highlightNodeIds: [],
+      blastEdgeIds: [],
+      blastLabels: null,
     }),
+
+  setLastInjection: (lastInjection) => set({ lastInjection }),
 
   setDiffHighlights: (diffHighlights) => set({ diffHighlights }),
 

@@ -55,6 +55,19 @@ type GetFn = () => GraphState;
 // P4: pendências de onNodesChange fora do state (antes era _pendingTimeout).
 let _pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 
+// S3a (item 1): snapshot de highlight/blast zerado, aplicado nas transições
+// de gráfico (loadGraph/loadSnapshot/reset). Inclui os campos de blast
+// dedicados (blastEdgeIds/blastLabels) e a última injeção.
+const CLEARED_HIGHLIGHT_ON_GRAPH_CHANGE = {
+  highlightNodeIds: [] as string[],
+  blastUnreachableIds: [] as string[],
+  blastDegradedIds: [] as string[],
+  blastHighlightEdgeIds: [] as string[],
+  blastEdgeIds: [] as string[],
+  blastLabels: null,
+  lastInjection: null,
+} satisfies Partial<GraphState>;
+
 export function documentSlice(
   set: SetFn,
   get: GetFn,
@@ -1193,6 +1206,10 @@ export function documentSlice(
       sequenceMode: graph.diagram_kind === "sequence",
       excalidrawElements: freeScene,
       selectedExcalidrawElementId: null,
+      // S3a (item 1): troca de gráfico A→B não pode herdar o estado de
+      // blast/highlight de A. Limpa campos de blast (dedicados), de
+      // highlight genérico e a última injeção.
+      ...CLEARED_HIGHLIGHT_ON_GRAPH_CHANGE,
     });
   },
 
@@ -1212,6 +1229,9 @@ export function documentSlice(
         // 关键修复：加载快照时清空 Excalidraw 元素
         excalidrawElements: [],
         selectedExcalidrawElementId: null,
+        // S3a (item 1): snapshot pode pertencer a outro gráfico — limpa
+        // highlight/blast herdado (mesma regra de loadGraph).
+        ...CLEARED_HIGHLIGHT_ON_GRAPH_CHANGE,
       });
     });
   },
@@ -1281,6 +1301,9 @@ export function documentSlice(
         past: [],
         future: [],
         saveStatus: "saved",
+        // S3a (item 1): reset é transição de documento — limpa o mesmo
+        // snapshot de highlight/blast de loadGraph/loadSnapshot.
+        ...CLEARED_HIGHLIGHT_ON_GRAPH_CHANGE,
       });
     });
   },

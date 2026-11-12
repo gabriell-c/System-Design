@@ -17,17 +17,28 @@ import {
   TrendingUp,
   Clock,
   Flame,
+  XCircle,
 } from "lucide-react";
 import PanelHeader from "@/components/ui/PanelHeader";
 import CustomSelect from "@/components/ui/Select";
-import { useSimulation } from "@/hooks/useSimulation";
+import {
+  SIM_EMPTY_CANVAS_MESSAGE,
+  SIM_ERROR_RATE_PEAK_MAX,
+  SIM_HEADROOM_TARGET_PCT,
+  SIM_REALISM_OK_MIN,
+  formatPct,
+  modeLabel,
+  nextScenarioName,
+  useSimulation,
+} from "@/hooks/useSimulation";
 import { api } from "@/lib/api";
 import { useGraphStore } from "@/lib/graph-store";
+import type { LoadPoint } from "@/lib/simulation";
 import type { SimulationScenarioRecord } from "@/lib/types";
 
-function pct(n: number): string {
-  return `${(n * 100).toFixed(1)}%`;
-}
+// S3a (item 21) — constantes de leitura da timeline (antes Math.max mágico).
+const MIN_BAR_PCT = 4;
+const MIN_TIMELINE_MAX_RPS = 1;
 
 function severityClass(sev: string): string {
   if (sev === "critical") return "text-rose-400";
@@ -41,19 +52,13 @@ function modeIcon(mode: string) {
   return <Gauge size={14} />;
 }
 
-function modeLabel(mode: string): string {
-  if (mode === "stress") return "Stress Test";
-  if (mode === "soak") return "Soak Test";
-  return "Load Test";
-}
-
 function modeDesc(mode: string): string {
   if (mode === "stress") return "Empurra até quebrar — acha o teto real";
   if (mode === "soak") return "Carga sustentada — testa estabilidade";
   return "Carga normal — testa capacidade sustentável";
 }
 
-export default function SimulationPanel() {
+export default function SimulationPanel({ onOpenResilience }: { onOpenResilience?: () => void }) {
   const {
     presets,
     presetId,
@@ -65,31 +70,103 @@ export default function SimulationPanel() {
     testMode,
     setTestMode,
     loadingPresets,
+    presetsError,
+    retryPresets,
     running,
     result,
+    resultSavedAt,
     error,
     runPreset,
     rerunSameSeed,
     newSeedAndRun,
+    runSavedScenario,
+    cancel,
     canRun,
   } = useSimulation();
   const graphId = useGraphStore((s) => s.graphId);
+  const pushUiNotice = useGraphStore((s) => s.pushUiNotice);
   const [scenarios, setScenarios] = useState<SimulationScenarioRecord[]>([]);
   const [scenarioName, setScenarioName] = useState("");
 
+  // S3a (item 21): seed como draft string, commit no blur/Enter com clamp.
+  const [seedDraft, setSeedDraft] = useState(String(seed));
   useEffect(() => {
+    setSeedDraft(String(seed));
+  }, [seed]);
+
+  function commitSeed() {
+    const parsed = Number(seedDraft);
+    if (seedDraft.trim() === "" || !Number.isFinite(parsed)) {
+      setSeedDraft(String(seed));
+      return;
+    }
+    setSeed(parsed); // setSeed clampa (inteiro >= 0) e persiste por grafo
+  }
+
+  // S3a (item 6): lista de cenários — guard de stale, deps sem `result`
+  // (não re-listar a cada run), catch específico com notice de erro.
+  useEffect(() => {
+    setScenarios([]); // troca de grafo: não deixa a lista do gráfico A
     if (!graphId) return;
-    void api.listSimulationScenarios(graphId).then(setScenarios).catch(() => setScenarios([]));
-  }, [graphId, result]);
+    let alive = true;
+    const when = graphId;
+    api
+      .listSimulationScenarios(when)
+      .then((rows) => {
+        if (!alive) return;
+        if (useGraphStore.getState().graphId !== when) return; // stale — descartar
+        setScenarios(rows);
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        if (useGraphStore.getState().graphId !== when) return;
+        setScenarios([]);
+        pushUiNotice({
+          type: "error",
+          text: `Falha ao carregar cenários: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+        });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [graphId, pushUiNotice]);
 
   async function saveScenario() {
     if (!graphId || !result) return;
-    const row = await api.createSimulationScenario(graphId, {
-      name: scenarioName.trim() || `Cenário ${scenarios.length + 1}`,
-      payload: { presetId, seed, realism, testMode, result_summary: result.summary },
-    });
-    setScenarios((prev) => [row, ...prev]);
-    setScenarioName("");
+    try {
+      const row = await api.createSimulationScenario(graphId, {
+        // Item 15: nome padrão = maior índice existente + 1 (sem colisão pós-delete).
+        name: scenarioName.trim() || nextScenarioName(scenarios),
+        // Registra o seed que PRODUZIU o resultado (honesto p/ reprovar).
+        payload: { presetId, seed: result.seed, realism, testMode, result_summary: result.summary },
+      });
+      setScenarios((prev) => [row, ...prev]);
+      setScenarioName("");
+      pushUiNotice({ type: "success", text: "Cenário salvo." });
+    } catch (err) {
+      // Item 9: sem rejection silenciosa — a lista continua em sync.
+      pushUiNotice({
+        type: "error",
+        text: `Falha ao salvar cenário: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+      });
+    }
+  }
+
+  async function removeScenario(id: string) {
+    if (!graphId) return;
+    // Item 9: delete destrutivo — confirmação pt-BR antes.
+    if (!window.confirm("Excluir este cenário? Essa ação não pode ser desfeita.")) return;
+    try {
+      await api.deleteSimulationScenario(graphId, id);
+      // Item 9: refetch da lista após o delete (estado local nunca dessincroniza).
+      const rows = await api.listSimulationScenarios(graphId);
+      if (useGraphStore.getState().graphId === graphId) setScenarios(rows);
+    } catch (err) {
+      pushUiNotice({
+        type: "error",
+        text: `Falha ao excluir cenário: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+      });
+    }
   }
 
   const selected = presets.find((p) => p.id === presetId);
@@ -98,7 +175,7 @@ export default function SimulationPanel() {
     return (
       <div className="flex items-center gap-2 px-4 py-8 text-sm text-[var(--muted-fg)]">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Carregando cenários…
+        Carregando presets…
       </div>
     );
   }
@@ -112,16 +189,16 @@ export default function SimulationPanel() {
         subtitle="Testa se a arquitetura aguenta a carga, onde estão os gargalos, e o que quebra sob pressão."
       />
 
-      {/* Test Mode Selector */}
+      {/* Test Mode Selector — item 21: wrap em vez de grid-3 travado em ~380px */}
       <div>
         <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Modo de teste</label>
-        <div className="mt-1 grid grid-cols-3 gap-2">
+        <div className="mt-1 flex flex-wrap gap-2">
           {(["load", "stress", "soak"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => setTestMode(mode)}
-              className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+              className={`min-w-[110px] flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
                 testMode === mode
                   ? "border-[var(--accent)]/50 bg-indigo-400/10 text-indigo-300"
                   : "border-[var(--border)] bg-black/20 text-[var(--muted-fg)] hover:border-[var(--border-strong)] hover:text-slate-300"
@@ -129,7 +206,7 @@ export default function SimulationPanel() {
             >
               <div className="flex items-center justify-center gap-1.5">
                 {modeIcon(mode)}
-                {modeLabel(mode)}
+                {modeLabel(mode)} Test
               </div>
               <div className="mt-1 text-sm opacity-70">{modeDesc(mode)}</div>
             </button>
@@ -144,7 +221,16 @@ export default function SimulationPanel() {
           value={presetId}
           options={presets.map((p) => ({ value: p.id, label: p.label }))}
           onChange={setPresetId}
+          placeholder="Carregando…"
         />
+        {presetsError && presets.length === 0 && (
+          <div className="mt-1 space-y-1">
+            <p className="text-sm text-rose-300">{presetsError}</p>
+            <button type="button" className="btn-ghost text-xs" onClick={retryPresets}>
+              Tentar novamente
+            </button>
+          </div>
+        )}
         {selected && <p className="mt-1 text-sm text-[var(--muted)]">{selected.description}</p>}
       </div>
 
@@ -158,15 +244,25 @@ export default function SimulationPanel() {
             id="sim-seed"
             type="number"
             min={0}
+            step={1}
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 font-mono text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]/50"
-            value={seed}
-            onChange={(e) => setSeed(Number(e.target.value) || 0)}
+            value={seedDraft}
+            onChange={(e) => setSeedDraft(e.target.value)}
+            onBlur={commitSeed}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitSeed();
+              if (e.key === "Escape") setSeedDraft(String(seed));
+            }}
           />
         </div>
         <div>
           <label className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]" htmlFor="sim-realism">
-            Realismo {(realism * 100).toFixed(0)}%
+            Realismo
           </label>
+          {/* S3a (item 28): <output> associado ao range para ATs */}
+          <output htmlFor="sim-realism" className="ml-1 text-sm font-medium text-slate-300">
+            {formatPct(realism, 0)}
+          </output>
           <p className="mt-0.5 text-sm text-[var(--muted-fg)]">Quanto de imprevisibilidade</p>
           <input
             id="sim-realism"
@@ -190,6 +286,12 @@ export default function SimulationPanel() {
           {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
           Rodar simulação
         </button>
+        {running && (
+          <button type="button" className="btn-ghost flex w-full items-center justify-center gap-1.5 text-xs" onClick={cancel}>
+            <XCircle size={12} />
+            Cancelar
+          </button>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -215,7 +317,7 @@ export default function SimulationPanel() {
 
       {!canRun && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-xs text-amber-100">
-          Adicione cards/blocos no canvas para simular.
+          {SIM_EMPTY_CANVAS_MESSAGE}
         </p>
       )}
       {error && (
@@ -224,33 +326,64 @@ export default function SimulationPanel() {
 
       {result && (
         <div className="space-y-4 border-t border-[var(--border)] pt-4">
+          {/* S3a (item 11) — chip de prova de seed/reprodução/hora */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="rounded-full border border-[var(--border)] bg-black/25 px-2 py-0.5 font-mono text-[var(--muted-fg)]">
+              seed {result.seed}
+            </span>
+            <span
+              className={`rounded-full border px-2 py-0.5 ${
+                result.reproducible
+                  ? "border-emerald-400/40 text-emerald-300"
+                  : "border-amber-400/40 text-amber-300"
+              }`}
+            >
+              {result.reproducible ? "reproduzível" : "não reproduzível"}
+            </span>
+            {resultSavedAt != null && (
+              <span className="rounded-full border border-[var(--border)] bg-black/25 px-2 py-0.5 font-mono text-[var(--muted-fg)]">
+                {new Date(resultSavedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+            {result.presets_used.length > 0 && (
+              <span className="rounded-full border border-[var(--border)] bg-black/25 px-2 py-0.5 text-[var(--muted-fg)]">
+                {result.presets_used.join(" · ")}
+              </span>
+            )}
+          </div>
+
+          {/* S3a (item 27): CTA de fragmentação — sai da simulação p/ a injeção. */}
+          {onOpenResilience && (
+            <button type="button" className="btn-ghost w-full text-xs" onClick={onOpenResilience}>
+              Ver blast radius na aba “Falha” →
+            </button>
+          )}
+
           {/* Summary */}
           <p className="text-xs leading-relaxed text-slate-300">{result.summary}</p>
 
           {/* Key Metrics */}
           <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* Paridade com siblings (item 21): ok = capacidade cobre o pico de carga */}
             <Metric
               icon={<Gauge size={12} />}
               label="Capacidade"
               value={`${result.estimated_capacity_rps} RPS`}
+              ok={!result.load || result.estimated_capacity_rps >= result.load.peak_rps}
             />
             <Metric
               icon={<Activity size={12} />}
               label="Variabilidade"
-              value={pct(result.realism_score)}
-              ok={result.realism_score >= 0.5}
+              value={formatPct(result.realism_score)}
+              ok={result.realism_score >= SIM_REALISM_OK_MIN}
             />
             {result.load && (
               <>
-                <Metric
-                  label="Pico RPS"
-                  value={`${result.load.peak_rps} RPS`}
-                  ok={result.load.ok}
-                />
+                <Metric label="Pico RPS" value={`${result.load.peak_rps} RPS`} ok={result.load.ok} />
                 <Metric
                   label="Erros no pico"
-                  value={pct(result.load.error_rate_peak)}
-                  ok={result.load.error_rate_peak < 0.05}
+                  value={formatPct(result.load.error_rate_peak)}
+                  ok={result.load.error_rate_peak < SIM_ERROR_RATE_PEAK_MAX}
                 />
               </>
             )}
@@ -258,24 +391,27 @@ export default function SimulationPanel() {
               <Metric
                 icon={<Route size={12} />}
                 label="Chegou ao fim"
-                value={pct(result.journey.conversion_rate)}
+                value={formatPct(result.journey.conversion_rate)}
                 ok={result.journey.ok}
               />
             )}
             {result.events && (
-              <Metric
-                icon={<AlertTriangle size={12} />}
-                label="Incidentes"
-                value={`${result.events.triggered_count} · cascata ${result.events.cascade_depth}`}
-                ok={result.events.ok}
-              />
+              <>
+                <Metric
+                  icon={<AlertTriangle size={12} />}
+                  label="Incidentes"
+                  value={String(result.events.triggered_count)}
+                  ok={result.events.ok}
+                />
+                <Metric label="Cascata" value={String(result.events.max_cascade_fanout)} />
+              </>
             )}
             {result.engineering_audit && (
               <Metric
                 icon={<TrendingUp size={12} />}
                 label="Margem"
                 value={`${result.engineering_audit.headroom_pct}%`}
-                ok={result.engineering_audit.headroom_pct > 20}
+                ok={result.engineering_audit.headroom_pct > SIM_HEADROOM_TARGET_PCT}
               />
             )}
           </div>
@@ -295,8 +431,9 @@ export default function SimulationPanel() {
                     <span className="font-medium">Gargalo:</span>{" "}
                     {result.engineering_audit.bottleneck_tech} (~{result.engineering_audit.bottleneck_rps} RPS)
                   </p>
+                  {/* Item 25: "Margem atual" saíu daqui (duplicava o tile Margem) */}
                   <p className="mt-1 text-sm text-[var(--muted-fg)]">
-                    Sistema suporta ~{result.engineering_audit.system_capacity_rps} RPS · Margem atual: {result.engineering_audit.headroom_pct}%
+                    Sistema suporta ~{result.engineering_audit.system_capacity_rps} RPS
                   </p>
                 </div>
               )}
@@ -307,7 +444,7 @@ export default function SimulationPanel() {
                   <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Componentes</p>
                   <div className="space-y-1">
                     {result.engineering_audit.component_capacities.map((comp, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-black/20 px-2 py-2">
+                      <div key={`${i}:${comp.component}`} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-black/20 px-2 py-2">
                         <span className="text-sm text-slate-300">{comp.component}</span>
                         <span className="text-sm font-mono text-[var(--muted-fg)]">{comp.tech}</span>
                         <span className="text-sm font-mono text-[var(--muted)]">{comp.capacity_rps} RPS</span>
@@ -323,7 +460,7 @@ export default function SimulationPanel() {
                   <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Riscos identificados</p>
                   <ul className="space-y-1">
                     {result.engineering_audit.failure_scenarios.map((s, i) => (
-                      <li key={i} className="text-sm leading-snug text-amber-300/90">
+                      <li key={`${i}:${s.slice(0, 24)}`} className="text-sm leading-snug text-amber-300/90">
                         {s}
                       </li>
                     ))}
@@ -337,7 +474,7 @@ export default function SimulationPanel() {
                   <p className="mb-1 text-sm font-medium uppercase text-[var(--muted)]">Recomendações</p>
                   <ul className="space-y-1">
                     {result.engineering_audit.recommendations.map((r, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-sm text-emerald-300/90">
+                      <li key={`${i}:${r.slice(0, 24)}`} className="flex items-start gap-1.5 text-sm text-emerald-300/90">
                         <span className="mt-0.5 text-emerald-400">→</span>
                         <span>{r}</span>
                       </li>
@@ -351,9 +488,9 @@ export default function SimulationPanel() {
           {/* Findings */}
           {result.findings.length > 0 && (
             <ul className="space-y-2">
-              {result.findings.map((f) => (
+              {result.findings.map((f, i) => (
                 <li
-                  key={f}
+                  key={`${i}:${f.slice(0, 32)}`}
                   className="rounded-lg border border-[var(--border)] bg-black/20 px-2.5 py-2 text-sm leading-relaxed text-slate-300"
                 >
                   {f}
@@ -362,13 +499,20 @@ export default function SimulationPanel() {
             </ul>
           )}
 
-          {/* Bottlenecks (legacy) */}
+          {/*
+            S3a (item 24) — ruling: seção MANTIDA (renomeada, sem o marker
+            "legacy"). `load.bottlenecks` lista gargalos POR CENÁRIO de carga
+            (componente + motivo + severidade), enquanto `engineering_audit`
+            mostra só o gargalo de topo + capacidades — há sobreposição, mas
+            não redundância total; custo se errar: se o backend de fato
+            deprecou `load.bottlenecks`, a seção some sozinha (lista vazia).
+          */}
           {result.load && result.load.bottlenecks.length > 0 && (
             <div>
-              <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Gargalos</p>
+              <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Gargalos de carga</p>
               <ul className="space-y-1">
-                {result.load.bottlenecks.map((b) => (
-                  <li key={`${b.component}-${b.reason}`} className="text-sm leading-snug">
+                {result.load.bottlenecks.map((b, i) => (
+                  <li key={`${i}:${b.component}`} className="text-sm leading-snug">
                     <span className={`font-medium ${severityClass(b.severity)}`}>{b.component}</span>
                     <span className="text-[var(--muted)]"> — {b.reason}</span>
                   </li>
@@ -386,7 +530,7 @@ export default function SimulationPanel() {
                   <li key={s.step_id} className="flex items-center justify-between gap-2 text-sm text-slate-300">
                     <span className="truncate">{s.name}</span>
                     <span className="shrink-0 font-mono text-[var(--muted)]">
-                      {s.completed}/{s.entered} · {pct(s.success_rate)}
+                      {s.completed}/{s.entered} · {formatPct(s.success_rate)}
                     </span>
                   </li>
                 ))}
@@ -435,9 +579,12 @@ export default function SimulationPanel() {
           )}
 
           {/* Timeline */}
-          {result.load && result.load.timeline.length > 0 && (
+          {result.load && result.load.timeline.length > 0 ? (
             <MiniTimeline points={result.load.timeline} capacity={result.estimated_capacity_rps} />
-          )}
+          ) : result.load ? (
+            /* Item 21: timeline sumia sem explicação — linha p/ preset sem curva */
+            <p className="text-sm text-[var(--muted-fg)]">Este preset não tem curva de carga.</p>
+          ) : null}
 
           {graphId && (
             <div className="rounded-lg border border-[var(--border)] bg-black/20 p-3">
@@ -455,19 +602,26 @@ export default function SimulationPanel() {
               </div>
               <ul className="mt-2 space-y-1 text-sm text-[var(--muted-fg)]">
                 {scenarios.map((s) => (
-                  <li key={s.id} className="flex justify-between gap-2">
-                    <span>{s.name}</span>
-                    <button
-                      type="button"
-                      className="text-rose-300"
-                      onClick={() =>
-                        void api.deleteSimulationScenario(graphId, s.id).then(() =>
-                          setScenarios((prev) => prev.filter((x) => x.id !== s.id)),
-                        )
-                      }
-                    >
-                      ×
-                    </button>
+                  <li key={s.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{s.name}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        className="text-xs text-[var(--muted)] hover:text-slate-200 disabled:opacity-40"
+                        disabled={running}
+                        onClick={() => void runSavedScenario(s.id)}
+                      >
+                        Rodar
+                      </button>
+                      <button
+                        type="button"
+                        className="text-rose-300"
+                        aria-label={`Excluir ${s.name}`}
+                        onClick={() => void removeScenario(s.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -507,23 +661,42 @@ function MiniTimeline({
   points,
   capacity,
 }: {
-  points: { t_seconds: number; rps: number; saturated: boolean }[];
+  points: LoadPoint[];
   capacity: number;
 }) {
-  const max = Math.max(capacity, ...points.map((p) => p.rps), 1);
+  const max = Math.max(capacity, ...points.map((p) => p.rps), MIN_TIMELINE_MAX_RPS);
+  const capacityPct = Math.min(100, (capacity / max) * 100);
+  const saturated = points.filter((p) => p.saturated);
   return (
     <div>
       <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">Timeline RPS</p>
       <div className="flex h-16 items-end gap-px rounded-lg border border-[var(--border)] bg-black/30 px-1 py-1">
-        {points.map((p) => (
+        <div className="relative h-full w-full">
+          <div className="flex h-full items-end gap-px">
+            {points.map((p) => (
+              <div
+                key={`${p.t_seconds}:${p.rps}`}
+                title={`t=${p.t_seconds}s · ${p.rps} RPS`}
+                className={`min-w-0 flex-1 rounded-sm ${p.saturated ? "bg-rose-400/80" : "bg-indigo-400/70"}`}
+                style={{ height: `${Math.max(MIN_BAR_PCT, (p.rps / max) * 100)}%` }}
+              />
+            ))}
+          </div>
+          {/* S3a (item 10): a linha de capacidade era só copy — agora é desenhada */}
           <div
-            key={p.t_seconds}
-            title={`t=${p.t_seconds}s · ${p.rps} RPS`}
-            className={`min-w-0 flex-1 rounded-sm ${p.saturated ? "bg-rose-400/80" : "bg-indigo-400/70"}`}
-            style={{ height: `${Math.max(4, (p.rps / max) * 100)}%` }}
+            className="pointer-events-none absolute inset-x-0 bottom-0 border-t-2 border-dashed border-amber-400/90"
+            style={{ height: `${capacityPct}%` }}
+            title={`Linha de capacidade ~${capacity} RPS`}
+            aria-hidden
           />
-        ))}
+        </div>
       </div>
+      {/* S3a (item 28): resumo visível para leitores de tela (só <title> não chega) */}
+      <p className="sr-only">
+        {`Curva de carga com ${points.length} pontos; ${saturated.length} passos saturados${
+          saturated.length > 0 ? ` (t=${saturated.map((p) => `${p.t_seconds}s`).join(", ")})` : ""
+        }; capacidade estimada ~${capacity} RPS.`}
+      </p>
       <p className="mt-1 text-sm text-[var(--muted-fg)]">linha de capacidade ~{capacity} RPS · vermelho = saturado</p>
     </div>
   );

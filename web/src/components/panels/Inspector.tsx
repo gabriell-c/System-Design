@@ -27,7 +27,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useGraphStore } from "@/lib/graph-store";
 import AdrPanel from "./AdrPanel";
 import AnalysisPanel from "./AnalysisPanel";
@@ -74,7 +74,7 @@ const PRIMARY: TabItem[] = [
   { id: "context", label: "Contexto", icon: FileText, hint: "Contexto e NFRs" },
   { id: "props", label: "Props", icon: Wrench, hint: "Propriedades do nó" },
   { id: "analysis", label: "Análise", icon: Sparkles, hint: "Score e findings" },
-  { id: "sim", label: "Simulação", icon: Zap, hint: "Carga e falhas" },
+  { id: "sim", label: "Simulação", icon: Zap, hint: "Carga e capacidade" },
   { id: "governance", label: "Governança", icon: Shield, hint: "Policies e RACI" },
 ];
 
@@ -122,6 +122,17 @@ export default function Inspector({
   const [showMore, setShowMore] = useState(false);
   const [query, setQuery] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+
+  // S3a (item 4): troca de gráfico A→B — a navegação volta à aba "sim"
+  // (o result/error da aba Simulação já é zerado no efeito do
+  // useSimulation na mesma transição). Ruling documentado: o alvo é "sim"
+  // (e não "resilience") porque é a aba de entrada da feature.
+  const prevGraphIdRef = useRef<string | null>(graphId);
+  useEffect(() => {
+    const prev = prevGraphIdRef.current;
+    prevGraphIdRef.current = graphId;
+    if (prev !== null && prev !== graphId) setTab("sim");
+  }, [graphId]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -288,7 +299,7 @@ export default function Inspector({
         {tab === "props" && <PropertiesPanel />}
         {tab === "arch" && <ArchitecturePanel />}
         {tab === "analysis" && <AnalysisPanel />}
-        {tab === "sim" && <SimulationPanel />}
+        {tab === "sim" && <SimulationPanel onOpenResilience={() => selectMore("resilience")} />}
         {tab === "resilience" && <ResiliencePanel />}
         {tab === "consistency" && <ConsistencyPanel />}
         {tab === "governance" && <GovernancePanel />}

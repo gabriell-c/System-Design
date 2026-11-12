@@ -49,6 +49,21 @@ export type UiNotice = {
   text: string;
 };
 
+/** Modo de falha da injeção de resiliência (mesmo domínio do backend). */
+export type FailureMode = "down" | "timeout" | "degraded";
+
+/**
+ * Última injeção de falha por gráfico (S3a — item 5): o painel de resiliência
+ * desmonta ao trocar de tab, e o canvas ficaria vermelho "sem origem". Esta
+ * estrutura reidrata origem/modo do estado ao reabrir a aba.
+ */
+export type LastInjection = {
+  graphId: string;
+  nodeId: string;
+  nodeLabel: string;
+  mode: FailureMode;
+};
+
 export type GraphSnapshot = {
   name: string;
   context: string;
@@ -93,6 +108,20 @@ export type GraphState = {
   blastUnreachableIds: string[];
   blastDegradedIds: string[];
   blastHighlightEdgeIds: string[];
+  /**
+   * S3a — arestas do blast radius, campo SOBRADO para injeção de falha.
+   * `blastHighlightEdgeIds` continua sendo do "Caminho crítico" (analysis-slice);
+   * o overlay/canvas passam a ler `blastEdgeIds` para as arestas do blast
+   * (independência blast × análise, item 13).
+   */
+  blastEdgeIds: string[];
+  /**
+   * S3a (contrato d/e) — rótulos dos nós do blast, produzidos pelo painel na
+   * hora da injeção; o overlay lê `blastLabels` do store.
+   */
+  blastLabels: { unreachable: string[]; degraded: string[] } | null;
+  /** S3a (item 5) — última injeção por graphId; `null` quando não há. */
+  lastInjection: LastInjection | null;
   diffHighlights: DiffHighlight[];
   diagramKind: string | null;
   parentGraphId: string | null;
@@ -124,12 +153,20 @@ export type GraphState = {
   setCanvasComments: (comments: CanvasComment[]) => void;
   setHighlightNodeIds: (ids: string[]) => void;
   setDiffHighlights: (highlights: DiffHighlight[]) => void;
+  /**
+   * S3a — `edgeIds`/`labels` opcionais (contrato e). Escreve APENAS campos de
+   * blast (`blastUnreachableIds`, `blastDegradedIds`, `blastEdgeIds`,
+   * `blastLabels`); não toca `highlightNodeIds` nem
+   * `blastHighlightEdgeIds` (campo da análise/caminho crítico).
+   */
   setBlastRadiusHighlight: (payload: {
     unreachable: string[];
     degraded: string[];
-    edgeIds: string[];
+    edgeIds?: string[];
+    labels?: { unreachable: string[]; degraded: string[] };
   } | null) => void;
   clearBlastRadiusHighlight: () => void;
+  setLastInjection: (lastInjection: LastInjection | null) => void;
   addPatternNodes: (nodes: Node<CanvasNodeData>[]) => void;
   applyFixFromFinding: (action: FixAction) => boolean;
   applyTemplate: (template: ProjectTemplate) => void;

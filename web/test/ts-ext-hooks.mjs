@@ -11,9 +11,25 @@
  *   register(new URL("../../test/ts-ext-hooks.mjs", import.meta.url));
  */
 import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// S3a — raiz `@/` (alias do tsconfig) → `web/src/` para testes de hooks que
+// importam `@/lib/*` sob Node (o tsconfig aponta `@/*` → `./src/*`).
+const SRC_ROOT = new URL("../src/", import.meta.url);
+
+function resolveAlias(specifier) {
+  if (!specifier.startsWith("@/")) return null;
+  const target = new URL(specifier.slice(2), SRC_ROOT);
+  const filePath = fileURLToPath(target);
+  if (existsSync(filePath + ".ts")) return pathToFileURL(filePath + ".ts").href;
+  if (existsSync(filePath + "/index.ts")) return pathToFileURL(filePath + "/index.ts").href;
+  if (existsSync(filePath)) return pathToFileURL(filePath).href;
+  return null;
+}
 
 export function resolve(specifier, context, next) {
+  const aliased = resolveAlias(specifier);
+  if (aliased) return next(aliased, context);
   const isRelative = specifier.startsWith("./") || specifier.startsWith("../");
   const hasExtension = /\.[cm]?[jt]sx?$/.test(specifier);
   if (isRelative && !hasExtension && context.parentURL) {

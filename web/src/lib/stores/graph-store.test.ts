@@ -8,7 +8,7 @@ import { register } from "node:module";
 register(new URL("../../../test/ts-ext-hooks.mjs", import.meta.url));
 
 import type { Edge, Node } from "@xyflow/react";
-import type { CanvasNodeData } from "../types";
+import type { CanvasNodeData, GraphRecord } from "../types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 function exEl(id: string): ExcalidrawElement {
@@ -264,4 +264,127 @@ test("runAnalyze: sem nós é no-op (não chama fetch, não altera analyzing)", 
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+/**
+ * S3a — testes de blast/análise (item 1/13) e lastInjection (item 5).
+ * `highlightCriticalPath` precisa de arestas marcadas (isCriticalPath) ou
+ * com flowNumber; sem nós/arestas no grafo ela produz caminho vazio,
+ * então os testes semeiam o estado de forma direta.
+ */
+test("S3a: loadGraph limpa estado de blast/highlight (regressão item 1)", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  // Simula o gráfico A com highlight/blast ativos + última injeção.
+  store.setState({ graphId: "A", nodes: [archNode("A", "A")] });
+  store.getState().setBlastRadiusHighlight({
+    unreachable: ["A"],
+    degraded: [],
+    edgeIds: ["e-A"],
+    labels: { unreachable: ["A"], degraded: [] },
+  });
+  store.getState().setLastInjection({ graphId: "A", nodeId: "A", nodeLabel: "A", mode: "down" });
+  store.setState({ highlightNodeIds: ["A"], blastHighlightEdgeIds: ["e-A"] });
+
+  // Troca para o gráfico B — nenhum estado de A pode sobreviver.
+  store.getState().loadGraph({ id: "B", name: "B" } as unknown as GraphRecord);
+  const s = store.getState();
+  assert.equal(s.graphId, "B");
+  assert.deepEqual(s.blastUnreachableIds, [], "blastUnreachableIds deve zerar na troca");
+  assert.deepEqual(s.blastDegradedIds, [], "blastDegradedIds deve zerar na troca");
+  assert.deepEqual(s.blastEdgeIds, [], "blastEdgeIds deve zerar na troca");
+  assert.equal(s.blastLabels, null, "blastLabels deve zerar na troca");
+  assert.equal(s.lastInjection, null, "lastInjection deve zerar na troca");
+  assert.deepEqual(s.highlightNodeIds, [], "highlightNodeIds deve zerar na troca");
+  assert.deepEqual(s.blastHighlightEdgeIds, [], "blastHighlightEdgeIds deve zerar na troca");
+});
+
+test("S3a: loadSnapshot e reset também limpam estado de blast", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  store.getState().setBlastRadiusHighlight({
+    unreachable: ["X"],
+    degraded: ["Y"],
+    edgeIds: ["e"],
+    labels: { unreachable: ["X"], degraded: ["Y"] },
+  });
+  store.getState().setLastInjection({ graphId: "G", nodeId: "X", nodeLabel: "X", mode: "timeout" });
+
+  store.getState().loadSnapshot("snap", [archNode("C", "C")], []);
+  let s = store.getState();
+  assert.deepEqual(s.blastUnreachableIds, []);
+  assert.equal(s.lastInjection, null);
+
+  store.getState().setBlastRadiusHighlight({ unreachable: ["Z"], degraded: [] });
+  s = store.getState();
+  assert.deepEqual(s.blastUnreachableIds, ["Z"]);
+  store.getState().reset();
+  s = store.getState();
+  assert.deepEqual(s.blastUnreachableIds, [], "reset zera blast");
+  assert.equal(s.blastLabels, null, "reset zera blastLabels");
+  assert.equal(s.lastInjection, null, "reset zera lastInjection");
+});
+
+test("S3a: clear de blast NÃO apaga highlight de análise (independência, item 13)", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  // Semeia um caminho crítico real (aresta isCriticalPath) p/ a análise ter estado.
+  const critEdge: Edge = { id: "e-crit", source: "A", target: "B", data: { isCriticalPath: true } };
+  store.setState({ nodes: [archNode("A", "A"), archNode("B", "B")], edges: [critEdge] });
+  store.getState().highlightCriticalPath();
+  store
+    .getState()
+    .setBlastRadiusHighlight({ unreachable: ["A"], degraded: ["B"], edgeIds: ["e-blast"] });
+
+  // Limpar blast deve preservar o highlight do caminho crítico.
+  store.getState().clearBlastRadiusHighlight();
+  const s = store.getState();
+  assert.deepEqual(s.blastUnreachableIds, [], "blast limpo");
+  assert.deepEqual(s.blastEdgeIds, [], "blastEdgeIds limpo");
+  assert.equal(s.blastLabels, null);
+  // Os campos de análise (donos no analysis-slice) NÃO foram tocados.
+  assert.notDeepEqual(s.highlightNodeIds, [], "highlightNodeIds da análise sobreviveu ao clear de blast");
+  assert.notDeepEqual(s.blastHighlightEdgeIds, [], "blastHighlightEdgeIds da análise sobreviveu ao clear de blast");
+});
+
+test("S3a: setBlastRadiusHighlight não sobrepõe highlight de análise", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  const critEdge: Edge = { id: "e-crit", source: "A", target: "B", data: { isCriticalPath: true } };
+  store.setState({ nodes: [archNode("A", "A"), archNode("B", "B")], edges: [critEdge] });
+  store.getState().highlightCriticalPath();
+  const analysisNodes = [...store.getState().highlightNodeIds];
+  const analysisEdges = [...store.getState().blastHighlightEdgeIds];
+  assert.ok(analysisNodes.length > 0 && analysisEdges.length > 0, "pré: caminho crítico ativo");
+
+  store
+    .getState()
+    .setBlastRadiusHighlight({ unreachable: ["B"], degraded: [], edgeIds: ["e-blast"], labels: { unreachable: ["B"], degraded: [] } });
+  const s = store.getState();
+  // Estado de blast é autocontido — não escreve nos campos da análise.
+  assert.deepEqual(s.blastEdgeIds, ["e-blast"], "blastEdgeIds recebeu as arestas do blast");
+  assert.deepEqual(s.highlightNodeIds, analysisNodes, "injeção não sobrepôs highlightNodeIds");
+  assert.deepEqual(s.blastHighlightEdgeIds, analysisEdges, "injeção não sobrepôs arestas do crítico");
+
+  // E limpar a análise não afeta o blast.
+  store.getState().clearCriticalPathHighlight();
+  const s2 = store.getState();
+  assert.deepEqual(s2.highlightNodeIds, []);
+  assert.deepEqual(s2.blastHighlightEdgeIds, []);
+  assert.deepEqual(s2.blastEdgeIds, ["e-blast"], "blast sobreviveu ao clear da análise");
+});
+
+test("S3a: setLastInjection grava/limpa por graphId (reidratação, item 5)", async () => {
+  const store = await loadStore();
+  store.getState().reset();
+  assert.equal(store.getState().lastInjection, null);
+  store.getState().setLastInjection({ graphId: "G1", nodeId: "n", nodeLabel: "Svc", mode: "degraded" });
+  assert.deepEqual(store.getState().lastInjection, {
+    graphId: "G1",
+    nodeId: "n",
+    nodeLabel: "Svc",
+    mode: "degraded",
+  });
+  store.getState().setLastInjection(null);
+  assert.equal(store.getState().lastInjection, null);
 });
