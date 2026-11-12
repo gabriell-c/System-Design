@@ -103,7 +103,12 @@ SAMPLE_WITH_LB = [
     },
 ]
 
-SAMPLE_EDGES = [{"source": "b1", "target": "d1"}]
+SAMPLE_EDGES = [
+    {"source": "b1", "target": "d1"},
+    # Aresta do Redis: sem ela, o multiplicador de cache não é creditado
+    # (componente isolado não infla a capacidade do sistema — ruling S1a).
+    {"source": "b1", "target": "c1"},
+]
 
 
 # ── Tests: Component Capacity Estimation ─────────────────────────────────────
@@ -111,7 +116,7 @@ SAMPLE_EDGES = [{"source": "b1", "target": "d1"}]
 class TestEstimateComponentCapacities:
     def test_basic_backend_and_db(self):
         """Testa estimação básica: backend + database."""
-        cap, comps, bots = estimate_component_capacities(SAMPLE_SIMPLE, SAMPLE_EDGES)
+        cap, comps, _ = estimate_component_capacities(SAMPLE_SIMPLE, SAMPLE_EDGES)
         assert cap > 0
         assert len(comps) >= 2  # backend + db
 
@@ -166,10 +171,12 @@ class TestEstimateComponentCapacities:
                 },
             },
         ]
+        lb_edges = [{"source": "lb1", "target": "b1"}]
         cap_no_lb, _, _ = estimate_component_capacities(
             [n for n in lb_nodes if n["id"] != "lb1"], []
         )
-        cap_with_lb, _, _ = estimate_component_capacities(lb_nodes, [])
+        # Multiplicador do LB só é creditado com aresta real (ruling S1a)
+        cap_with_lb, _, _ = estimate_component_capacities(lb_nodes, lb_edges)
         assert cap_with_lb > cap_no_lb
 
     def test_bottleneck_identification(self):
