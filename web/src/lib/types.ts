@@ -890,22 +890,27 @@ export type CircuitBreakersResult = {
   recommendation: string;
 };
 
-/** P0.5 — espelha `CostEstimateOut`/`CostLineItemOut` (sem mudança de shape). */
+/**
+ * R2/R4 (plano de custo) — espelha `CostEstimateOut`/`CostLineItemOut`:
+ * `tier`, `by_tier` e `heuristic_total_usd_month` foram REMOVIDOS do
+ * contrato: fonte única de preço em `pricing.py` + `knowledge.COST_USD_MONTH`;
+ * nó de catálogo desconhecido → custo 0 + `priced: false` (fim do $12 mágico).
+ */
 export type CostBreakdown = {
   line_items: Array<{
     node_id: string;
     label: string;
     catalog_id: string;
     region: string;
-    tier: string;
     cost_key: string;
     cost_usd_month: number;
+    priced: boolean;
   }>;
   total_usd_month: number;
-  heuristic_total_usd_month: number;
   by_region: Record<string, number>;
-  by_tier: Record<string, number>;
   node_count: number;
+  priced_count: number;
+  price_table_version: string;
   summary: string;
 };
 

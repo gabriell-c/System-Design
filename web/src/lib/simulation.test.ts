@@ -204,12 +204,12 @@ test("CircuitBreakersResult / CostBreakdown / LiveDocResult: espelhos estáveis"
   };
   assert.equal(cb.breaker_count, cb.breakers.length);
   const cost: CostBreakdown = {
-    line_items: [{ node_id: "n1", label: "L", catalog_id: "c", region: "us", tier: "m", cost_key: "k", cost_usd_month: 10 }],
+    line_items: [{ node_id: "n1", label: "L", catalog_id: "c", region: "us", cost_key: "k", cost_usd_month: 10, priced: true }],
     total_usd_month: 10,
-    heuristic_total_usd_month: 12,
     by_region: { us: 10 },
-    by_tier: { m: 10 },
     node_count: 1,
+    priced_count: 1,
+    price_table_version: "2025-static-v1",
     summary: "s",
   };
   assert.equal(cost.total_usd_month, 10);

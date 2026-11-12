@@ -458,8 +458,19 @@ export const api = {
     }),
   circuitBreakers: (graphId: string) =>
     request<CircuitBreakersResult>(`/api/v1/graphs/${graphId}/circuit-breakers`),
-  costEstimate: (graphId: string) =>
-    request<import("./types").CostBreakdown>(`/api/v1/graphs/${graphId}/cost-estimate`),
+  costEstimate: (graphId: string, signal?: AbortSignal) =>
+    request<import("./types").CostBreakdown>(`/api/v1/graphs/${graphId}/cost-estimate`, signal ? { signal } : undefined),
+  /** Preview do custo com o canvas atual (sem salvar): POST com nodes/edges. */
+  costEstimateLive: (
+    graphId: string,
+    payload: { nodes: unknown[]; edges: unknown[] },
+    signal?: AbortSignal,
+  ) =>
+    request<import("./types").CostBreakdown>(`/api/v1/graphs/${graphId}/cost-estimate/live`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      signal,
+    }),
   liveDoc: (graphId: string) =>
     request<import("./types").LiveDocResult>(`/api/v1/graphs/${graphId}/doc`),
   networkPolicy: (graphId: string) =>
