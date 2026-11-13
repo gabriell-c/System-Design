@@ -57,6 +57,55 @@ def test_network_policy_scores_nacl_with_deny():
     assert result["score"] >= 70
 
 
+def test_tgw_single_attachment_fires_info():
+    """TGW com 1 attachment (< TGW_MIN_ATTACHMENTS) → finding info."""
+    nodes, _ = _network_graph()
+    nodes[4]["data"]["tgwAttachments"] = [{"vpc_id": "vpc-a", "vpc_label": "App"}]
+    result = analyze_network_policy(nodes, [])
+    assert any(f["severity"] == "info" and "TGW hub subutilizado" in f["title"] for f in result["findings"])
+
+
+def test_edge_public_to_private_without_firewall_rules_warning():
+    """Tráfego public→private sem firewallRules documentado → warning."""
+    nodes, _ = _network_graph()
+    edges = [{"id": "e-x", "source": "alb", "target": "ecs"}]
+    result = analyze_network_policy(nodes, edges)
+    assert any(f["severity"] == "warning" and "public→private" in f["title"] for f in result["findings"])
+
+
+def test_tgw_zone_without_card_warning():
+    """Zona zoneKind=tgw sem nenhum card net-tgw no grafo → warning."""
+    nodes, _ = _network_graph()
+    nodes = [n for n in nodes if n["id"] != "tgw1"]
+    nodes.append({"id": "z-tgw", "type": "zone", "data": {"kind": "zone", "zoneKind": "tgw", "label": "TGW"}})
+    result = analyze_network_policy(nodes, [])
+    assert any(f["severity"] == "warning" and "Zona TGW sem nó Transit Gateway" in f["title"] for f in result["findings"])
+
+
+def test_parent_id_cycle_does_not_raise():
+    """Ciclo parentId (a→b→a) não pode lançar RecursionError/500."""
+    nodes = [
+        {"id": "a", "parentId": "b", "data": {"label": "A", "kind": "cloud"}},
+        {"id": "b", "parentId": "a", "data": {"label": "B", "kind": "cloud"}},
+    ]
+    edges = [{"id": "e1", "source": "a", "target": "b"}]
+    result = analyze_network_policy(nodes, edges)
+    assert result["ok"] is True
+    assert isinstance(result["score"], int)
+
+
+def test_score_bounds_zero_to_hundred():
+    """Score sempre 0-100 (clamp: muitos críticos não vão para negativo)."""
+    empty = analyze_network_policy([], [])
+    assert empty["score"] == 100
+    many_nacls = [
+        {"id": f"n{i}", "type": "nacl", "data": {"catalogId": "net-nacl", "label": f"NACL {i}", "naclRules": []}}
+        for i in range(8)
+    ]
+    result = analyze_network_policy(many_nacls, [])
+    assert 0 <= result["score"] <= 100
+
+
 def _cicd_graph():
     nodes = [
         {"id": "lane-dev", "type": "swimlane", "data": {"kind": "swimlane", "swimlaneKind": "dev_flow", "label": "Dev"}},

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+# TGW com menos de 2 VPC attachments não agrega tráfego — hub subutilizado.
+TGW_MIN_ATTACHMENTS = 2
+
 
 def _node_data(node: dict[str, Any]) -> dict[str, Any]:
     data = node.get("data")
@@ -67,13 +70,16 @@ def analyze_network_policy(nodes: list[dict[str, Any]], edges: list[dict[str, An
         elif cid == "net-tgw" or node.get("type") == "transitGateway":
             tgw_nodes.append(node)
             attachments = data.get("tgwAttachments") or []
-            if len(attachments) < 2:
+            if len(attachments) < TGW_MIN_ATTACHMENTS:
                 findings.append(
                     {
                         "severity": "info",
                         "node_id": node.get("id"),
                         "title": f"TGW hub subutilizado: {_label(node)}",
-                        "detail": "Transit Gateway com menos de 2 VPC attachments — hub não agrega tráfego.",
+                        "detail": (
+                            f"Transit Gateway com menos de {TGW_MIN_ATTACHMENTS} VPC attachments — "
+                            "hub não agrega tráfego."
+                        ),
                     }
                 )
         if _is_zone(node, "tgw"):
@@ -126,9 +132,21 @@ def analyze_network_policy(nodes: list[dict[str, Any]], edges: list[dict[str, An
 
 
 def _zone_kind_of_node(node: dict[str, Any], by_id: dict[str, dict[str, Any]]) -> str | None:
-    if _is_zone(node):
-        return str(_node_data(node).get("zoneKind") or "")
-    parent_id = node.get("parentId")
-    if parent_id and str(parent_id) in by_id:
-        return _zone_kind_of_node(by_id[str(parent_id)], by_id)
+    """Sobe a cadeia `parentId` até achar a zona contida.
+
+    Iterativo com guarda de ciclo (`parentId` a→b→a no canvas não pode
+    virar RecursionError/500): visita cada nó no máximo 1×.
+    """
+    current: dict[str, Any] | None = node
+    seen: set[str] = set()
+    while current is not None:
+        data = _node_data(current)
+        if data.get("kind") == "zone":
+            return str(data.get("zoneKind") or "")
+        node_key = str(current.get("id"))
+        if node_key in seen:
+            return None
+        seen.add(node_key)
+        parent_id = current.get("parentId")
+        current = by_id.get(str(parent_id)) if parent_id else None
     return None

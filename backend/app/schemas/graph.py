@@ -1,12 +1,14 @@
+import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.arch_style import ArchStyle, FailureMode
 
 ReviewStatus = Literal["draft", "analyzed", "pending_review", "approved", "rejected"]
 UserRole = Literal["senior", "other"]
+TEAM_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
 
 
 class EnvironmentPlan(BaseModel):
@@ -83,9 +85,31 @@ class GraphUpdate(BaseModel):
 
 
 class TeamAccess(BaseModel):
-    """P2.2.3 — permissão por squad."""
-    team: str
+    """P2.2.3 — permissão por squad.
+
+    `team` é normalizado (strip + lowercase) e validado: 2–64 caracteres,
+    começa por letra/número, só `a-z 0-9 . _ -` (sem espaços/acento).
+    """
+
+    team: str = Field(min_length=2, max_length=64)
     role: Literal["read", "write", "admin"]
+
+    @field_validator("team", mode="before")
+    @classmethod
+    def _normalize_team(cls, value: Any) -> str:
+        if not isinstance(value, str):
+            raise TypeError("team deve ser uma string (ex.: 'backoffice')")
+        normalized = value.strip().lower()
+        if len(normalized) < 2:
+            raise ValueError("team tem no mínimo 2 caracteres")
+        if len(normalized) > 64:
+            raise ValueError("team tem no máximo 64 caracteres")
+        if not TEAM_NAME_PATTERN.fullmatch(normalized):
+            raise ValueError(
+                "team só aceita letras minúsculas, números, '.', '_' ou '-' "
+                "e deve começar por letra/número (ex.: 'backoffice-01')"
+            )
+        return normalized
 
 
 class GraphOut(BaseModel):

@@ -487,8 +487,10 @@ def enrich_analysis(result: AnalysisResult, nodes: list[dict], edges: list[dict]
     from app.services.threat_analysis import enrich_threat_analysis
     from app.services.well_architected import calculate_well_architected_score
 
-    # Threat analysis (STRIDE + LINDDUN)
-    threat_findings = enrich_threat_analysis([], nodes, edges, nfr)
+    # Threat analysis (STRIDE + LINDDUN). R5: os fix_actions heurísticos
+    # passam por `attach_fix_actions` (validação contra o snapshot do
+    # catálogo, mesmo tratamento da via LLM) antes de entrar no resultado.
+    threat_findings = attach_fix_actions(enrich_threat_analysis(nodes, edges, nfr))
 
     # Well-Architected scorecard
     wa_scorecard = calculate_well_architected_score(nodes, edges, nfr)

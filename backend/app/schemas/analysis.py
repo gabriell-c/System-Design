@@ -69,6 +69,8 @@ class Finding(BaseModel):
     # Item 39 — origem do finding: "heuristica", a chave do agente (ex.:
     # "security") ou "consolidador". None só em dados antigos (cache legado).
     agent: str | None = None
+    # Threat heurístico: "stride" | "linddun"; None nos demais findings.
+    model: str | None = None
 
 
 class GrowthScenario(BaseModel):
