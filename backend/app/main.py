@@ -47,6 +47,7 @@ from app.routes.projects import router as projects_router
 from app.routes.resilience import router as resilience_router
 from app.routes.settings import router as settings_router
 from app.routes.simulations import router as simulations_router
+from app.routes.threat import router as threat_router
 from app.routes.users import router as users_router
 from app.routes.ws import router as ws_router, set_main_loop
 from app.seed import seed_default_users
@@ -242,4 +243,5 @@ app.include_router(users_router)
 app.include_router(resilience_router)
 app.include_router(cost_router)
 app.include_router(network_router)
+app.include_router(threat_router)
 app.include_router(ws_router)

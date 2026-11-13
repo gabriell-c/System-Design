@@ -1,8 +1,13 @@
 """P2.2.2 — Contrato de borda entre subsystems.
 
 Um contrato de borda define quais APIs/eventos atravessam a fronteira
-entre dois subsystems (zones). Cada contrato é válido para um par
+entre dois subsystems (zonas). Cada contrato é válido para um par
 (source_zone, target_zone) e especifica o tipo de comunicação.
+
+IDOR (R1): GET passa por `get_graph_or_404` (leitura); POST/DELETE exigem
+permissão de edição (`write=True`) — usuário com ACL só de leitura cai em
+404 nas escritas (mudança documentada, travada por
+`tests/test_network_acl_boundary_routes.py`).
 """
 from __future__ import annotations
 
@@ -13,8 +18,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.graph import Graph, GraphBoundaryContract, new_uuid
+from app.models.graph import GraphBoundaryContract, new_uuid
 from app.models.user import User
+from app.routes._graph_helpers import get_graph_or_404
 from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["boundary"])
@@ -26,9 +32,7 @@ def list_boundary_contracts(
     db: Annotated[Session, Depends(get_db)],
     current_user: User = Depends(get_current_user),
 ):
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    get_graph_or_404(db, current_user, graph_id)
     rows = (
         db.execute(select(GraphBoundaryContract).where(GraphBoundaryContract.graph_id == graph_id))
         .scalars()
@@ -55,9 +59,7 @@ def create_boundary_contract(
     db: Annotated[Session, Depends(get_db)],
     current_user: User = Depends(get_current_user),
 ):
-    graph = db.get(Graph, graph_id)
-    if not graph:
-        raise HTTPException(status_code=404, detail="Graph not found")
+    get_graph_or_404(db, current_user, graph_id, write=True)
     source = body.get("source_zone", "").strip()
     target = body.get("target_zone", "").strip()
     if not source or not target:
@@ -82,6 +84,9 @@ def delete_boundary_contract(
     db: Annotated[Session, Depends(get_db)],
     current_user: User = Depends(get_current_user),
 ):
+    # R1: ownership antes do lookup da regra — terceiro não descobre
+    # quais contratos existem (IDOR-safe).
+    get_graph_or_404(db, current_user, graph_id, write=True)
     row = db.get(GraphBoundaryContract, contract_id)
     if not row or row.graph_id != graph_id:
         raise HTTPException(status_code=404, detail="Contract not found")

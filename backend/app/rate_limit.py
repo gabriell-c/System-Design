@@ -152,6 +152,27 @@ def rate_limit_cost(request: Request, user_key: str) -> None:
     _rate_limit(f"cost:{ip}:{user_key}", max_attempts=60, window_seconds=60)
 
 
+def rate_limit_network(request: Request, user_key: str) -> None:
+    """Rate limit: 30 network requests per 60 seconds per IP+user (R3).
+
+    Análise de rede (SG/NACL/TGW + fluxos de deploy) é pesada — mesmo teto
+    de resiliência (30/60s), em bucket próprio (`network:`): exaurir o
+    limite de rede não trava resiliência/custo/threat e vice-versa.
+    """
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"network:{ip}:{user_key}", max_attempts=30, window_seconds=60)
+
+
+def rate_limit_threat(request: Request, user_key: str) -> None:
+    """Rate limit: 60 threat requests per 60 seconds per IP+user (R2).
+
+    Threat heurística é barata e idempotente (sem LLM, O(n)) — mesmo teto
+    do custo (60/60s), em bucket próprio (`threat:`).
+    """
+    ip = request.client.host if request.client else "unknown"
+    _rate_limit(f"threat:{ip}:{user_key}", max_attempts=60, window_seconds=60)
+
+
 # ---------------------------------------------------------------------------
 # Per-user daily LLM analyze budget (P1.9c / item 30)
 # Os tetos são constantes nomeadas; o enforcement é DURÁVEL em SQLite
