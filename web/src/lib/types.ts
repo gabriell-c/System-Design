@@ -387,6 +387,9 @@ export type Finding = {
    *   "coherence" | "tradeoffs" | "heuristica" | "consolidador");
    *  valores desconhecidos são exibidos como vêm. */
   agent?: string;
+  /** R4 (plano threat) — modelo heurístico que produziu o finding;
+   *  ausente/null em findings de outros agentes ou de pipelines antigos. */
+  model?: "stride" | "linddun" | null;
 };
 
 export type ScoreFactor = {
@@ -919,6 +922,20 @@ export type LiveDocResult = {
   markdown: string;
   anchors: Record<string, string>;
   updated_at: string;
+};
+
+/**
+ * R7 (plano threat) — espelha a resposta de
+ * `GET /graphs/{id}/threat-analysis` e `POST .../threat-analysis/live`
+ * (contrato wire fixo A2→A3): heurística determinística STRIDE + LINDDUN
+ * sobre o grafo salvo (ou o canvas, no live).
+ */
+export type ThreatAnalysisResult = {
+  findings: Finding[];
+  total: number;
+  by_severity: { critical: number; warning: number; info: number };
+  summary: string;
+  version: string;
 };
 
 export type NetworkPolicyFinding = {

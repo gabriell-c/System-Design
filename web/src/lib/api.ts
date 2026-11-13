@@ -413,8 +413,11 @@ export const api = {
   getEmbedToken: (graphId: string) =>
     request<{ embed_url: string; iframe_snippet: string }>(`/api/v1/embed/${graphId}/token`),
   // P2.2.3 — ACL por squad
-  listAccess: (graphId: string) =>
-    request<Array<{ team: string; role: "read" | "write" | "admin" }>>(`/api/v1/graphs/${graphId}/access`),
+  listAccess: (graphId: string, signal?: AbortSignal) =>
+    request<Array<{ team: string; role: "read" | "write" | "admin" }>>(
+      `/api/v1/graphs/${graphId}/access`,
+      signal ? { signal } : undefined,
+    ),
   setAccess: (graphId: string, team: string, role: "read" | "write" | "admin") =>
     request<{ team: string; role: string }>(`/api/v1/graphs/${graphId}/access`, {
       method: "POST",
@@ -423,9 +426,10 @@ export const api = {
   deleteAccess: (graphId: string, team: string) =>
     request<void>(`/api/v1/graphs/${graphId}/access/${team}`, { method: "DELETE" }),
   // P2.2.2 — contratos de borda entre subsystems
-  listBoundaryContracts: (graphId: string) =>
+  listBoundaryContracts: (graphId: string, signal?: AbortSignal) =>
     request<Array<{ id: string; source_zone: string; target_zone: string; protocol: string; description: string; sla_ms?: number }>>(
       `/api/v1/graphs/${graphId}/boundary-contracts`,
+      signal ? { signal } : undefined,
     ),
   createBoundaryContract: (graphId: string, body: { source_zone: string; target_zone: string; protocol?: string; description?: string; sla_ms?: number }) =>
     request<{ ok: boolean }>(`/api/v1/graphs/${graphId}/boundary-contracts`, {
@@ -473,10 +477,39 @@ export const api = {
     }),
   liveDoc: (graphId: string) =>
     request<import("./types").LiveDocResult>(`/api/v1/graphs/${graphId}/doc`),
-  networkPolicy: (graphId: string) =>
-    request<import("./types").NetworkPolicyResult>(`/api/v1/graphs/${graphId}/network-policy`),
-  deploymentFlows: (graphId: string) =>
-    request<import("./types").DeploymentFlowsResult>(`/api/v1/graphs/${graphId}/deployment-flows`),
+  networkPolicy: (graphId: string, signal?: AbortSignal) =>
+    request<import("./types").NetworkPolicyResult>(
+      `/api/v1/graphs/${graphId}/network-policy`,
+      signal ? { signal } : undefined,
+    ),
+  deploymentFlows: (graphId: string, signal?: AbortSignal) =>
+    request<import("./types").DeploymentFlowsResult>(
+      `/api/v1/graphs/${graphId}/deployment-flows`,
+      signal ? { signal } : undefined,
+    ),
+  /**
+   * R7 (plano threat) — threat model heurístico do grafo SALVO
+   * (GET; 429 → ApiRateLimitError, igual costEstimate). `nfr` no body
+   * do live é opcional no wire (ausente → {} no backend).
+   */
+  threatAnalysis: (graphId: string, signal?: AbortSignal) =>
+    request<import("./types").ThreatAnalysisResult>(
+      `/api/v1/graphs/${graphId}/threat-analysis`,
+      signal ? { signal } : undefined,
+    ),
+  threatAnalysisLive: (
+    graphId: string,
+    payload: { nodes: unknown[]; edges: unknown[]; nfr?: Record<string, unknown> },
+    signal?: AbortSignal,
+  ) =>
+    request<import("./types").ThreatAnalysisResult>(
+      `/api/v1/graphs/${graphId}/threat-analysis/live`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+        signal,
+      },
+    ),
   projectConsistency: (projectId: string) =>
     request<{ ok: boolean; issues: unknown[]; graph_count: number }>(`/api/v1/projects/${projectId}/consistency`),
   projectPolicy: (projectId: string) =>

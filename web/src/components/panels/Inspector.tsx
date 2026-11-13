@@ -48,6 +48,7 @@ import ThreatAnalysisPanel from "./ThreatAnalysisPanel";
 import WellArchitectedPanel from "./WellArchitectedPanel";
 import AccessPanel from "./AccessPanel";
 import BoundaryPanel from "./BoundaryPanel";
+import NetworkPanel from "./NetworkPanel";
 import DiffPanel from "./DiffPanel";
 import TogafPanel from "./TogafPanel";
 import ResiliencePanel from "./ResiliencePanel";
@@ -94,12 +95,13 @@ const MORE: TabItem[] = [
   { id: "events", label: "Eventos", icon: Workflow, hint: "Catálogo de eventos" },
   { id: "polyglot", label: "Polyglot", icon: Network, hint: "Polyglot map" },
   { id: "lineage", label: "Lineage", icon: GitBranch, hint: "Linha de dados" },
-  { id: "threats", label: "Threats", icon: ShieldAlert, hint: "STRIDE / LINDDUN" },
+  { id: "threats", label: "Ameaças", icon: ShieldAlert, hint: "STRIDE / LINDDUN" },
   { id: "wellarch", label: "Well-Arch", icon: Cloud, hint: "Well-Architected" },
   { id: "wiki", label: "Wiki", icon: FileText, hint: "Doc viva" },
   { id: "audit", label: "Audit", icon: BookMarked, hint: "Audit trail" },
   { id: "diff", label: "Diff", icon: FileDiff, hint: "Comparar versões" },
   { id: "boundary", label: "Borda", icon: Link2, hint: "Contratos de borda" },
+  { id: "rede", label: "Rede", icon: Network, hint: "SG/NACL/TGW + fluxos" },
   { id: "togaf", label: "TOGAF", icon: Layers, hint: "Cobertura ADM" },
 ];
 
@@ -315,6 +317,7 @@ export default function Inspector({
         {tab === "audit" && <AuditTrailPanel />}
         {tab === "access" && graphId && <AccessPanel graphId={graphId} />}
         {tab === "boundary" && graphId && <BoundaryPanel graphId={graphId} />}
+        {tab === "rede" && graphId && <NetworkPanel graphId={graphId} />}
         {tab === "diff" && graphId && <DiffPanel graphId={graphId} />}
         {tab === "togaf" && <TogafPanel />}
         {tab === "adr" && <AdrPanel />}
